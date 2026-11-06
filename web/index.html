@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pascal Markets — Research desk</title>
+  <link rel="stylesheet" href="/style.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <main>
+    <header>
+      <a class="brand" href="/" aria-label="Pascal Markets home"><span class="monogram">P</span><span>PASCAL <strong>MARKETS</strong></span></a>
+      <span class="mode">RESEARCH &amp; PAPER</span>
+    </header>
+    <section class="intro">
+      <p class="eyebrow">NBA · PREDICTION MARKETS</p>
+      <h1>The research desk.</h1>
+      <p class="lead">Follow your market recordings, evaluate forecasts, and investigate the gap between odds and executable prices.</p>
+      <div class="toolbar"><button id="refresh" type="button">Refresh data <span aria-hidden="true">↻</span></button><span id="updated" role="status">Loading local data…</span></div>
+    </section>
+    <section class="metrics" aria-label="Research activity">
+      <article><p>CAPTURED MARKETS</p><strong id="market-count">—</strong><span>In the latest recording</span></article>
+      <article><p>BOOK MESSAGES</p><strong id="message-count">—</strong><span>From the completed capture</span></article>
+      <article><p>RECONSTRUCTED QUOTES</p><strong id="quote-count">—</strong><span>After book validation</span></article>
+      <article><p>MESSAGE AGE · P95</p><strong id="age">—</strong><span>Source time to receipt</span></article>
+    </section>
+    <section class="panel">
+      <div class="section-title"><div><p class="eyebrow">01 / MARKET DATA</p><h2>Latest capture</h2></div><span id="capture-state" class="tag">Waiting for data</span></div>
+      <div id="capture-details" class="empty">Run a capture to collect NBA sports and order-book updates.</div>
+      <div class="command"><code>node src/cli.js capture data/capture-session 60</code><span>NEW RECORDING</span></div>
+    </section>
+    <section class="panel">
+      <div class="section-title"><div><p class="eyebrow">02 / MODEL &amp; EXECUTION</p><h2>Pipeline demonstration</h2></div><span class="tag amber">SYNTHETIC DATA</span></div>
+      <p class="note">Artificial NBA observations exercise training and replay. These figures demonstrate software behavior and do not measure a real trading advantage.</p>
+      <div id="demo-details" class="empty">Run the demo to see the baseline model and sportsbook comparison.</div>
+      <div class="command"><code>node src/cli.js demo</code><span>LOCAL EXAMPLE</span></div>
+    </section>
+    <footer><span>Pascal Markets · Local research environment</span><span id="project-path"></span></footer>
+  </main>
+</body>
+</html>

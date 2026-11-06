@@ -1,0 +1,10 @@
+{
+  "signal": "sportsbook",
+  "initialCash": 1000,
+  "orderBudget": 10,
+  "maxExposure": 100,
+  "minEdge": 0.04,
+  "feePerShare": 0.02,
+  "delayMs": 3000,
+  "maxAgeMs": 2000
+}

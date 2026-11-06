@@ -1,0 +1,19 @@
+{
+  "name": "pascal-markets",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.4"
+  },
+  "scripts": {
+    "test": "node --test",
+    "pascal": "node src/cli.js",
+    "demo": "node src/cli.js demo",
+    "start": "node src/cli.js serve",
+    "test:browser": "node scripts/browser-smoke.js"
+  },
+  "devDependencies": {
+    "playwright": "^1.65.0"
+  }
+}

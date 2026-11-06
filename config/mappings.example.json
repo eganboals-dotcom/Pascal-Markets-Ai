@@ -1,0 +1,14 @@
+[
+  {
+    "gameId": "POLYMARKET_GAME_ID",
+    "marketId": "POLYMARKET_MONEYLINE_MARKET_ID",
+    "providerGameId": "ODDS_PROVIDER_EVENT_ID",
+    "homeTeam": "EXACT_PROVIDER_HOME_TEAM_NAME",
+    "awayTeam": "EXACT_PROVIDER_AWAY_TEAM_NAME",
+    "bookmaker": "PROVIDER_BOOKMAKER_KEY",
+    "startsAt": 0,
+    "includesOvertime": true,
+    "rulesHash": "COPY_FROM_CURRENT_CATALOG_AFTER_CHECKING_RULES",
+    "reviewed": false
+  }
+]

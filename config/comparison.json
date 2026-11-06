@@ -1,0 +1,5 @@
+{
+  "maxAgeMs": 2000,
+  "maxMetadataAgeMs": 60000,
+  "minEdge": 0.04
+}
