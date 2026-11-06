@@ -38,3 +38,35 @@ test('atomic file replacement leaves valid content after repeat writes', () => {
   writeProjectFile(path, JSON.stringify({ version: 2 }));
   assert.deepEqual(JSON.parse(readFileSync(projectPath(path), 'utf8')), { version: 2 });
 });
+
+test('capture analysis uses only metadata received by quote time', async () => {
+  const directory = 'data/test-metadata';
+  const terms = { acceptingOrders: true, secondsDelay: 3, feesEnabled: false };
+  writeProjectFile(`${directory}/summary.json`, JSON.stringify({ finishedAt: 5000, streams: [{ status: 'fulfilled' }] }));
+  writeProjectFile(`${directory}/catalog.json`, JSON.stringify({ recordedAt: 500, markets: [{
+    gameId: 'g', marketId: 'm', homeAssetId: '1', awayAssetId: '2', includesOvertime: true, ...terms
+  }] }));
+  const snapshots = [
+    { receivedAt: 1400, terms },
+    { receivedAt: 1800, terms: null },
+    { receivedAt: 2400, terms: { ...terms, acceptingOrders: false, secondsDelay: 5 } }
+  ].map(snapshot => ({ marketId: 'm', ...snapshot }));
+  writeProjectFile(`${directory}/metadata.jsonl`, snapshots.map(row => JSON.stringify(row)).join('\n'));
+  const rows = [1100, 1600, 2100, 2600].map(receivedAt => ({
+    kind: 'data', receivedAt, recordingId: 'fixture', session: 1,
+    payload: { event_type: 'book', asset_id: '1', timestamp: String(receivedAt - 100),
+      bids: [{ price: '0.4', size: '10' }], asks: [{ price: '0.5', size: '10' }] }
+  }));
+  writeProjectFile(`${directory}/books.jsonl`, rows.map(row => JSON.stringify(row)).join('\n'));
+  writeProjectFile(`${directory}/sports.jsonl`, '');
+  const result = await analyzeCapture(directory);
+  const quotes = readFileSync(projectPath(`${directory}/quotes.jsonl`), 'utf8').trim().split('\n').map(JSON.parse);
+  const snapshotsUsed = quotes.filter(quote => !quote.invalidated);
+  assert.deepEqual(snapshotsUsed.map(quote => quote.metadataAt), [500, 1400, 1800, 2400]);
+  assert.deepEqual(snapshotsUsed.map(quote => quote.termsEpoch), [500, 500, 1800, 2400]);
+  assert.deepEqual(snapshotsUsed.map(quote => quote.acceptingOrders), [true, true, false, false]);
+  assert.equal(snapshotsUsed.at(-1).secondsDelay, 5);
+  assert.equal(result.metadataUpdates, 2);
+  assert.equal(result.metadataFailures, 1);
+  assert.ok(quotes.some(quote => quote.receivedAt === 1800 && quote.invalidated));
+});

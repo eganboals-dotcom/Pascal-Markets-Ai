@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { OrderBooks } from '../src/books.js';
-import { nbaMoneylines } from '../src/catalog.js';
+import { nbaMoneylines, refreshedTerms } from '../src/catalog.js';
 
 const frame = payload => ({ recordingId: 'r', session: 1, kind: 'data', receivedAt: 1001, payload });
 const snapshot = () => ({ event_type: 'book', asset_id: '1', timestamp: '1000',
@@ -54,6 +54,10 @@ test('catalog maps full-game home outcomes using explicit team ordering', () => 
   assert.equal(markets[0].homeAssetId, '2');
   assert.equal(markets[0].awayAssetId, '1');
   assert.equal(markets[0].includesOvertime, true);
+  const raw = event.markets[0];
+  assert.equal(refreshedTerms(markets[0], { ...raw, closed: true }).acceptingOrders, false);
+  assert.throws(() => refreshedTerms(markets[0], { ...raw, description: 'Revised rules' }), /rules changed/);
+  assert.throws(() => refreshedTerms(markets[0], { ...raw, clobTokenIds: '["2","1"]' }), /identity changed/);
   assert.equal(nbaMoneylines([{ ...event, teams: [] }]).length, 0);
   assert.equal(nbaMoneylines([{ ...event, markets: [{ ...event.markets[0], sportsMarketType: 'spreads' }] }]).length, 0);
 });

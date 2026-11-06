@@ -1,8 +1,33 @@
-import { mkdirSync } from 'node:fs';
+import { appendFileSync, mkdirSync } from 'node:fs';
+import { setTimeout as sleep } from 'node:timers/promises';
 import { dirname, join } from 'node:path';
-import { discoverNba, recordBooks, recordSports } from './polymarket.js';
-import { nbaMoneylines } from './catalog.js';
+import { discoverNba, fetchMarket, recordBooks, recordSports } from './polymarket.js';
+import { nbaMoneylines, refreshedTerms } from './catalog.js';
 import { projectPath, writeProjectFile } from './files.js';
+
+async function recordMetadata(path, markets, signal) {
+  let updates = 0;
+  let failures = 0;
+  while (!signal.aborted) {
+    try { await sleep(20000, undefined, { signal }); }
+    catch (error) { if (signal.aborted) break; throw error; }
+    const snapshots = await Promise.all(markets.map(async market => {
+      let terms;
+      try {
+        const requestSignal = AbortSignal.any([signal, AbortSignal.timeout(10000)]);
+        terms = refreshedTerms(market, await fetchMarket(market.marketId, requestSignal));
+      } catch { terms = null; }
+      return { marketId: market.marketId, receivedAt: Date.now(), terms };
+    }));
+    if (signal.aborted) break;
+    for (const snapshot of snapshots) {
+      appendFileSync(path, JSON.stringify(snapshot) + '\n');
+      if (snapshot.terms) updates++;
+      else failures++;
+    }
+  }
+  return { updates, failures };
+}
 
 export async function capture(path, durationSeconds = 60) {
   if (!Number.isFinite(durationSeconds) || durationSeconds < 1 || durationSeconds > 86400) {
@@ -19,13 +44,18 @@ export async function capture(path, durationSeconds = 60) {
   mkdirSync(directory);
   writeProjectFile(join(directory, 'catalog.json'), JSON.stringify({ recordedAt: Date.now(), markets }, null, 2));
   const assetIds = markets.flatMap(market => [market.homeAssetId, market.awayAssetId]);
+  const stopMetadata = new AbortController();
+  const metadata = recordMetadata(projectPath(join(directory, 'metadata.jsonl')), markets, stopMetadata.signal)
+    .catch(error => ({ error: error.message }));
   const streams = await Promise.allSettled([
-    recordSports(projectPath(join(directory, 'sports.jsonl')), durationSeconds),
-    recordBooks(projectPath(join(directory, 'books.jsonl')), assetIds, durationSeconds)
+    Promise.resolve().then(() => recordSports(join(directory, 'sports.jsonl'), durationSeconds)),
+    Promise.resolve().then(() => recordBooks(join(directory, 'books.jsonl'), assetIds, durationSeconds))
   ]);
+  stopMetadata.abort();
   const result = {
     startedAt, finishedAt: Date.now(), directory,
     markets: markets.map(({ gameId, title, marketId }) => ({ gameId, title, marketId })),
+    metadata: await metadata,
     streams: streams.map((stream, index) => ({
       source: index === 0 ? 'sports' : 'books',
       status: stream.status,

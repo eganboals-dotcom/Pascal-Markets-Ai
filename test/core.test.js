@@ -89,6 +89,21 @@ test('venue matching delay takes precedence over configured delay', () => {
   assert.equal(replay([proposal, row('a', 11000)], null, config).fills, 1);
 });
 
+test('a gap or changed trading terms cancel a pending proposal before it can fill', () => {
+  const proposal = row('a', 1000);
+  proposal.quote.termsEpoch = 500;
+  const executable = row('a', 4000);
+  executable.quote.termsEpoch = 500;
+  const gap = row('a', 2000);
+  gap.quote.invalidated = true;
+  assert.equal(replay([proposal, executable], null, config).fills, 1);
+  const afterGap = replay([proposal, gap, executable], null, config);
+  assert.equal(afterGap.fills, 0);
+  assert.equal(afterGap.unresolvedProposals, 0);
+  executable.quote.termsEpoch = 4000;
+  assert.equal(replay([proposal, executable], null, config).fills, 0);
+});
+
 test('invalid model metadata and duplicate observations fail before replay', () => {
   assert.throws(() => replay([row('a', 1000)], null, { ...config, signal: 'model' }), /trained model/);
   assert.throws(() => replay([row('a', 1000), row('a', 1000)], null, config), /Duplicate/);
