@@ -23,12 +23,16 @@ try {
     page.on('pageerror', error => errors.push(error.message));
     await page.goto(base);
     await page.waitForFunction(() => document.getElementById('updated').textContent.startsWith('Checked'));
-    assert.equal(await page.getByRole('heading', { name: 'The research desk.' }).count(), 1);
+    assert.equal(await page.getByRole('heading', { name: 'Sports Pulse' }).count(), 1);
+    assert.equal(await page.getByRole('heading', { name: 'Paper ticket' }).count(), 1);
+    await page.getByRole('button', { name: 'Refresh data' }).waitFor();
+    assert.ok(await page.locator('#event-count').textContent() !== '—');
     assert.equal(await page.getByText('SYNTHETIC DATA', { exact: true }).count(), 1);
     const dimensions = await page.evaluate(() => ({ page: document.documentElement.scrollWidth, viewport: innerWidth }));
     assert.ok(dimensions.page <= dimensions.viewport, `${name} layout overflows horizontally`);
     await page.getByRole('button', { name: 'Refresh data' }).click();
     await page.waitForFunction(() => !document.getElementById('refresh').disabled);
+    await page.waitForFunction(() => !document.getElementById('chart').textContent.includes('Loading price history'));
     await page.screenshot({ path: projectPath(`outputs/dashboard-${name}.png`), fullPage: true });
     assert.deepEqual(errors, []);
     console.log(`${name}: dashboard loaded, refresh worked, no horizontal overflow or script errors`);

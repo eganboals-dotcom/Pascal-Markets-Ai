@@ -30,6 +30,41 @@ export async function discoverNba() {
   return events;
 }
 
+export async function discoverSports({ query = '', now = Date.now() } = {}) {
+  const url = new URL('https://gamma-api.polymarket.com/events/keyset');
+  url.search = new URLSearchParams({ tag_slug: 'sports', closed: 'false', limit: '100', order: 'startTime', ascending: 'true' });
+  if (query) url.searchParams.set('title_search', query);
+  else {
+    url.searchParams.set('start_time_min', new Date(now - 8 * 3600000).toISOString());
+    url.searchParams.set('start_time_max', new Date(now + 36 * 3600000).toISOString());
+  }
+  const events = [];
+  const cursors = new Set();
+  for (let pageIndex = 0; pageIndex < 5; pageIndex++) {
+    const page = await getJson(url);
+    if (!Array.isArray(page.events)) throw new Error('Unexpected sports events response');
+    events.push(...page.events);
+    if (!page.next_cursor) break;
+    if (cursors.has(page.next_cursor)) throw new Error('Repeated sports pagination cursor');
+    cursors.add(page.next_cursor);
+    url.searchParams.set('after_cursor', page.next_cursor);
+  }
+  return events;
+}
+
+export async function fetchResolution(conditionId) {
+  if (!/^0x[\da-f]{64}$/i.test(conditionId)) throw new Error('Invalid condition ID');
+  const result = await getJson(`https://data-api.polymarket.com/v2/resolutions?condition=${conditionId}`);
+  return result.data?.find(row => row.condition_id === conditionId) ?? null;
+}
+
+export async function fetchPriceHistory(assetId) {
+  if (typeof assetId !== 'string' || !/^\d+$/.test(assetId)) throw new Error('Invalid outcome asset ID');
+  const result = await getJson(`https://clob.polymarket.com/prices-history?market=${assetId}&interval=1d&fidelity=5`);
+  return Array.isArray(result.history) ? result.history.filter(point => Number.isFinite(point.t) &&
+    Number.isFinite(point.p) && point.p >= 0 && point.p <= 1).slice(-300) : [];
+}
+
 export function recordSports(path, durationSeconds = 60) {
   return recordStream({ path, source: 'polymarket-sports', durationSeconds,
     url: 'wss://sports-api.polymarket.com/ws',
