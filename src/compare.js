@@ -1,12 +1,5 @@
-import { normalizeSportsbook } from './sportsbook.js';
+import { normalizeSportsbook, reviewedMarket } from './sportsbook.js';
 import { takerFeePerShare } from './fees.js';
-
-function sameTeam(catalogName, providerName) {
-  if (typeof catalogName !== 'string' || typeof providerName !== 'string') return false;
-  const shortName = catalogName.toLowerCase().trim();
-  const fullName = providerName.toLowerCase().trim();
-  return shortName.length > 0 && (fullName === shortName || fullName.endsWith(` ${shortName}`));
-}
 
 export function compareQuotes(catalog, quotes, snapshot, mappings, policy, now = Date.now()) {
   if (!Number.isFinite(now) || !Number.isFinite(policy.maxAgeMs) || policy.maxAgeMs < 0 ||
@@ -14,10 +7,8 @@ export function compareQuotes(catalog, quotes, snapshot, mappings, policy, now =
       !Number.isFinite(policy.minEdge) || policy.minEdge < 0) throw new Error('Invalid comparison policy');
   const results = [];
   for (const mapping of mappings) {
-    const market = catalog.markets.find(market => market.marketId === mapping.marketId && market.gameId === mapping.gameId);
-    if (!market || mapping.rulesHash !== market.rulesHash || mapping.startsAt !== market.startsAt ||
-        mapping.reviewed !== true || mapping.includesOvertime !== true || market.includesOvertime !== true ||
-        !sameTeam(market.homeTeam, mapping.homeTeam) || !sameTeam(market.awayTeam, mapping.awayTeam)) {
+    const market = reviewedMarket(catalog.markets, mapping);
+    if (!market) {
       results.push({ gameId: mapping.gameId, eligibleForPaper: false, blockers: ['unverified-contract-mapping'] });
       continue;
     }

@@ -1,8 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { fetchNbaOdds, normalizeSportsbook } from '../src/sportsbook.js';
+import { readFileSync } from 'node:fs';
+import { fetchNbaOdds, normalizeSportsbook, recordSportsbook } from '../src/sportsbook.js';
 import { compareQuotes } from '../src/compare.js';
 import { takerFeePerShare } from '../src/fees.js';
+import { projectPath, writeProjectFile } from '../src/files.js';
+import { buildReplayDataset } from '../src/dataset.js';
 
 const time = Date.parse('2026-11-06T02:00:00Z');
 const mapping = { gameId: '1', marketId: '2', providerGameId: 'provider-1', homeTeam: 'Phoenix Suns',
@@ -66,4 +69,36 @@ test('fee formula is symmetric and rejects unsupported schedules', () => {
   assert.ok(Math.abs(takerFeePerShare(0.3, { rate: 0.05, exponent: 1 }) -
     takerFeePerShare(0.7, { rate: 0.05, exponent: 1 })) < 1e-12);
   assert.throws(() => takerFeePerShare(0.5, { rate: 0.05, exponent: 2 }));
+});
+
+test('recorded sportsbook quotes join only the reviewed market after receipt', async () => {
+  const path = 'data/test-sportsbook/quotes.jsonl';
+  writeProjectFile(path, '');
+  const report = await recordSportsbook(path, mapping, 1, new AbortController().signal, async () => snapshot());
+  assert.deepEqual(report, { requests: 1, quotes: 1, unavailable: 0 });
+  const recorded = JSON.parse(readFileSync(projectPath(path), 'utf8'));
+  assert.equal(recorded.suspended, null);
+  assert.equal(recorded.receivedAt, time);
+  assert.equal(recorded.sourceAt, time - 1000);
+  const contractQuote = { gameId: mapping.gameId, marketId: mapping.marketId, rulesHash: mapping.rulesHash,
+    outcome: 'home', receivedAt: time - 1 };
+  const wrongMarket = { ...contractQuote, marketId: 'other-market', receivedAt: time + 1 };
+  const settlement = { gameId: mapping.gameId, resolvedAt: time + 1000, homeWon: 1, verified: true, source: 'fixture' };
+  const { observations } = buildReplayDataset([contractQuote, wrongMarket], [recorded], [settlement]);
+  assert.equal(observations.length, 1);
+  assert.equal(observations[0].observedAt, time);
+  assert.equal(observations[0].quote.marketId, mapping.marketId);
+});
+
+test('provider errors stop polling and record an unavailable quote', async () => {
+  const path = 'data/test-sportsbook/unavailable.jsonl';
+  writeProjectFile(path, '');
+  const report = await recordSportsbook(path, mapping, 2, new AbortController().signal, async () => {
+    throw new Error('fixture provider failure');
+  });
+  assert.equal(report.requests, 1);
+  assert.equal(report.stopped, 'provider-request-failed');
+  const record = JSON.parse(readFileSync(projectPath(path), 'utf8'));
+  assert.equal(record.suspended, null);
+  assert.equal(record.homeOdds, undefined);
 });

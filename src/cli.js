@@ -23,6 +23,7 @@ const help = `Pascal Markets
   serve [port]                              Open the local dashboard server (default 8787)
   discover [output.json]                     Find and map NBA moneylines
   capture [new-directory] [seconds]          Record sports and outcome books together
+  capture-odds directory seconds mapping.json max-requests
   analyze capture-directory                 Reconstruct quotes and write capture metrics
   record [file.jsonl] [seconds]              Record the NBA sports stream
   record-books file assetId,assetId seconds  Record selected outcome books
@@ -44,6 +45,14 @@ try {
     case 'demo': result = runDemo(); break;
     case 'serve': serveDashboard(Number(args[0] ?? 8787)); break;
     case 'capture': result = await capture(args[0] ?? `data/capture-${Date.now()}`, Number(args[1] ?? 60)); break;
+    case 'capture-odds': {
+      const mappings = JSON.parse(readFileSync(projectPath(args[2]), 'utf8'));
+      if (!Array.isArray(mappings) || mappings.length !== 1 || !mappings[0]?.providerGameId || !mappings[0]?.bookmaker) {
+        throw new Error('Sportsbook capture requires exactly one reviewed game and bookmaker mapping');
+      }
+      result = await capture(args[0], Number(args[1]), { mapping: mappings[0], maxRequests: Number(args[3]) });
+      break;
+    }
     case 'analyze': result = await analyzeCapture(args[0]); break;
     case 'odds': {
       const output = projectPath(args[0] ?? 'data/sportsbook.json');
