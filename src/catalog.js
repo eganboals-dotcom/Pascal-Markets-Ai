@@ -1,8 +1,45 @@
 import { createHash } from 'node:crypto';
 
-function arrayField(value) {
+export function arrayField(value) {
   if (Array.isArray(value)) return value;
   try { return JSON.parse(value); } catch { return null; }
+}
+
+export function sportsContract(event, market) {
+  const labels = arrayField(market.outcomes);
+  const version = market.version ?? 'v1';
+  const assets = arrayField(version === 'v2' ? market.positionIds : market.clobTokenIds);
+  if (!['v1', 'v2'].includes(version) || !Array.isArray(labels) || labels.length !== 2 ||
+      !labels.every(label => typeof label === 'string' && label.trim()) || labels[0] === labels[1] ||
+      !Array.isArray(assets) || assets.length !== 2 || !assets.every(asset => typeof asset === 'string' && /^\d+$/.test(asset)) ||
+      assets[0] === assets[1] || typeof market.description !== 'string' || !market.description.trim() ||
+      !/^\d+$/.test(String(market.id)) || !/^0x[\da-f]{64}$/i.test(market.conditionId ?? '')) return null;
+  const prices = arrayField(market.outcomePrices);
+  const identity = [market.description, market.resolutionSource, market.fallbackResolutionType];
+  return {
+    marketId: String(market.id), eventId: String(event.id), title: market.question ?? event.title,
+    conditionId: market.conditionId, type: market.sportsMarketType ?? 'binary', version,
+    rules: market.description, rulesHash: createHash('sha256').update(JSON.stringify(identity)).digest('hex'),
+    outcomes: labels.map((label, index) => ({ label, assetId: assets[index], price: prices?.[index] == null ? null : Number(prices[index]) })),
+    ...tradingTerms(market),
+    acceptingOrders: market.active === true && market.closed === false && market.acceptingOrders === true && market.enableOrderBook === true,
+    liquidity: Number(market.liquidityNum ?? market.liquidity), volume: Number(market.volume24hr)
+  };
+}
+
+export function sportsBoard(events) {
+  const board = [];
+  for (const event of events) {
+    const startsAt = Date.parse(event.startTime);
+    if (!Number.isFinite(startsAt) || event.ended === true) continue;
+    const markets = (event.markets ?? []).filter(market => market.closed === false && market.active === true)
+      .map(market => sportsContract(event, market)).filter(Boolean)
+      .sort((a, b) => Number(b.type === 'moneyline') - Number(a.type === 'moneyline') || (b.liquidity || 0) - (a.liquidity || 0));
+    if (!markets.length) continue;
+    board.push({ id: String(event.id), title: event.title, league: event.teams?.[0]?.league ?? event.seriesSlug ?? 'sports',
+      startsAt, live: event.live === true, score: typeof event.score === 'string' ? event.score : null, markets });
+  }
+  return board;
 }
 
 function outcomeAssets(market, home, away) {

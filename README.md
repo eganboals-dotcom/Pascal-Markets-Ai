@@ -18,6 +18,14 @@ node src/cli.js replay data/holdout.jsonl config/paper.json
 
 The dashboard runs at http://127.0.0.1:8787. Run `node src/cli.js help` for the complete command list.
 
+## Sports Pulse dashboard
+
+Use the Live, Scheduled, and Recordings columns to browse current Polymarket sports markets and local captures. Search by team or event to look beyond the default discovery window. Select a contract to inspect either outcome, recent price history, the order book, and the settlement rules.
+
+The dashboard accepts manual paper buys for eligible two-outcome sports contracts, including moneylines, totals, and props across leagues. The local paper account starts with $1,000 of simulated cash, with a $25 order cap and $100 combined exposure cap. Orders match against displayed top-of-book liquidity on a fresh quote after the matching delay. The ledger persists in `data/paper-ledger.json`. Use **Check settlements** to apply confirmed Polymarket payouts and update realized P&L.
+
+Contract outcomes and rules must be available, and the venue must be accepting orders. The dashboard is a paper simulator. The automated forecasting and sportsbook replay pipeline below currently uses NBA data.
+
 ## Capture and inspect public markets
 
 ```sh
