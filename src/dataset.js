@@ -34,10 +34,17 @@ export function buildReplayDataset(quotes, sportsbookQuotes, settlements) {
     if (event.kind === 'book') books.set(gameId, event.value);
     else odds.set(gameId, event.value);
     if (!books.has(gameId) || !odds.has(gameId)) { skipped.missingCounterpart++; continue; }
+    const quote = books.get(gameId);
+    const sportsbook = odds.get(gameId);
+    if (sportsbook.marketId !== undefined && (quote.marketId !== sportsbook.marketId ||
+        (!quote.invalidated && quote.rulesHash !== sportsbook.rulesHash))) {
+      skipped.missingCounterpart++;
+      continue;
+    }
     rows.set(JSON.stringify([gameId, receivedAt]), {
       gameId, observedAt: receivedAt, resolvedAt: settlement.resolvedAt,
       homeWon: settlement.homeWon, settlementPayout: settlement.settlementPayout,
-      settlementSource: settlement.source, quote: books.get(gameId), sportsbook: odds.get(gameId)
+      settlementSource: settlement.source, quote, sportsbook
     });
   }
   const observations = [...rows.values()];

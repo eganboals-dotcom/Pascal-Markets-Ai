@@ -41,6 +41,16 @@ node src/cli.js compare data/catalog.json data/capture-session/quotes.jsonl data
 
 Prepare `config/mappings.json` from `config/mappings.example.json` after checking both teams, start time, bookmaker, full-game rules and the catalog rules hash. The comparator requires a reviewed mapping and checks data freshness, fees and suspension status. The Odds API does not guarantee an explicit suspension flag, so these snapshots remain research inputs when that status is unavailable. Its published in-play moneyline interval is 40 seconds. A faster feed must demonstrate its advantage through measured timestamps. [Provider update intervals](https://the-odds-api.com/sports-odds-data/update-intervals.html)
 
+For a synchronized recording, use a mapping file with exactly one reviewed game and bookmaker. The final argument caps the number of provider requests. The recorder requests the first snapshot immediately, waits 40 seconds between requests, and stops polling on provider errors or quota exhaustion.
+
+```sh
+node --env-file=.env src/cli.js capture-odds data/capture-game 90 config/mappings.json 3
+node src/cli.js analyze data/capture-game
+node src/cli.js build-replay data/capture-game/quotes.jsonl data/capture-game/sportsbook.jsonl data/settlements.jsonl data/replay.jsonl
+```
+
+Run the dataset step after adding the verified settlement. The recorder saves normalized sportsbook quotes, source and receipt timestamps, and unavailable observations in `sportsbook.jsonl`. The replay join checks market identity and rules. Quotes with unknown suspension status are available for feed timing research and are ineligible for paper fills driven by the sportsbook signal.
+
 ## Build real datasets
 
 ```sh
