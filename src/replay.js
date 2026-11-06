@@ -59,8 +59,17 @@ export function replay(rows, model, config) {
       }
     }
     const quote = row.quote;
+    const order = pending.get(row.gameId);
+    if (order && quote?.gameId === row.gameId && quote.assetId === order.assetId &&
+        quote.receivedAt <= row.observedAt && (quote.invalidated === true ||
+        quote.termsEpoch !== order.termsEpoch || quote.rulesHash !== order.rulesHash)) {
+      pending.delete(row.gameId);
+      reserved -= order.reservedCost;
+      decisions.push({ gameId: row.gameId, status: 'unfilled', reason: 'quote-or-market-invalidated', at: row.observedAt });
+      continue;
+    }
     if (quote?.metadataAt !== undefined && (!Number.isFinite(quote.metadataAt) ||
-        quote.metadataAt > row.observedAt || row.observedAt - quote.metadataAt > maxMetadataAgeMs)) {
+        quote.metadataAt > quote.receivedAt || row.observedAt - quote.metadataAt > maxMetadataAgeMs)) {
       skipped.invalidQuote++;
       continue;
     }
@@ -76,7 +85,6 @@ export function replay(rows, model, config) {
     let currentFee;
     try { currentFee = feeAt(quote.ask, quote, config); }
     catch { skipped.invalidFees++; continue; }
-    const order = pending.get(row.gameId);
     if (order && row.observedAt >= order.eligibleAt && quote.sourceAt >= order.eligibleAt) {
       pending.delete(row.gameId);
       reserved -= order.reservedCost;
@@ -120,7 +128,8 @@ export function replay(rows, model, config) {
     const eligibleAt = row.observedAt + Math.max(delayMs, quote.secondsDelay * 1000);
     reserved += reservedCost;
     attempted.add(row.gameId);
-    pending.set(row.gameId, { assetId: quote.assetId, limitPrice: quote.ask, shares, reservedCost,
+    pending.set(row.gameId, { assetId: quote.assetId, rulesHash: quote.rulesHash, termsEpoch: quote.termsEpoch,
+      limitPrice: quote.ask, shares, reservedCost,
       eligibleAt, expiresAt: eligibleAt + maxAgeMs });
     decisions.push({ gameId: row.gameId, status: 'proposed', at: row.observedAt, probability, shares, reservedCost });
   }

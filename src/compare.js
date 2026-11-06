@@ -27,24 +27,30 @@ export function compareQuotes(catalog, quotes, snapshot, mappings, policy, now =
       results.push({ gameId: mapping.gameId, eligibleForPaper: false, blockers: [error.message] });
       continue;
     }
-    const quote = quotes.filter(quote => quote.assetId === market.homeAssetId && quote.receivedAt <= now)
-      .sort((a, b) => b.receivedAt - a.receivedAt)[0];
+    let quote;
+    for (const candidate of quotes) {
+      if (candidate.assetId === market.homeAssetId && candidate.receivedAt <= now &&
+          (!quote || candidate.receivedAt >= quote.receivedAt)) quote = candidate;
+    }
+    const terms = quote?.metadataAt === undefined ? market : quote;
+    const metadataAt = quote?.metadataAt ?? catalog.recordedAt;
     const blockers = [];
     if (book.suspended !== false) blockers.push('sportsbook-suspension-status-unavailable-or-suspended');
     if (book.sourceAt > book.receivedAt || book.receivedAt > now || now - book.sourceAt > policy.maxAgeMs) {
       blockers.push('stale-or-invalid-sportsbook-timestamp');
     }
-    if (!Number.isFinite(catalog.recordedAt) || catalog.recordedAt > now || now - catalog.recordedAt > policy.maxMetadataAgeMs) {
+    if (!Number.isFinite(metadataAt) || metadataAt > (quote?.receivedAt ?? now) || now - metadataAt > policy.maxMetadataAgeMs) {
       blockers.push('stale-market-metadata');
     }
-    if (!market.acceptingOrders) blockers.push('market-not-accepting-orders');
+    if (terms.acceptingOrders !== true || quote?.invalidated === true) blockers.push('market-not-accepting-orders');
+    if (quote?.rulesHash !== undefined && quote.rulesHash !== market.rulesHash) blockers.push('unverified-contract-mapping');
     if (!quote || !Number.isFinite(quote.sourceAt) || !Number.isFinite(quote.receivedAt) ||
         quote.sourceAt > quote.receivedAt || now - quote.sourceAt > policy.maxAgeMs ||
         !Number.isFinite(quote.askSize) || quote.askSize <= 0) blockers.push('missing-or-stale-executable-quote');
     let fee = null;
     try {
-      if (market.feesEnabled === false) fee = 0;
-      else if (market.feesEnabled === true) fee = takerFeePerShare(quote?.ask, market.feeSchedule);
+      if (terms.feesEnabled === false) fee = 0;
+      else if (terms.feesEnabled === true) fee = takerFeePerShare(quote?.ask, terms.feeSchedule);
       else blockers.push('unknown-fee-status');
     } catch { blockers.push('unsupported-fee-schedule-or-price'); }
     const netGap = Number.isFinite(quote?.ask) && quote.ask > 0 && quote.ask < 1 && fee !== null

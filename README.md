@@ -28,7 +28,7 @@ node src/cli.js analyze data/capture-session
 
 Choose a new capture directory for each session. Capture records sports updates and both outcome books for up to six nearby NBA games. Analysis reconstructs quotes from snapshots and deltas, checks book consistency and writes `quotes.jsonl` and `analysis.json`. Gap markers invalidate previous quotes. Capture records connection boundaries and retries up to five disconnects.
 
-Market metadata is captured at the start of a session. Replay rejects metadata older than its configured limit, which defaults to 60 seconds. Longer trading experiments require refreshed market metadata. A successful connection can receive zero sports updates during a quiet period.
+The recorder refreshes market metadata every 20 seconds after each polling round. Analysis attaches the latest snapshot available when each quote arrived. A failed refresh or change in trading terms invalidates the previous quote. Changes to contract rules or outcome identifiers require a new reviewed mapping. Replay rejects metadata older than its configured limit, which defaults to 60 seconds. A successful connection can receive zero sports updates during a quiet period.
 
 ## Sportsbook comparison
 
@@ -81,7 +81,7 @@ Match game, teams, outcome asset, full-game scope and overtime rules explicitly 
 
 ## Research limitations
 
-This is a research and paper-trading foundation. Real historical training data, a licensed faster sportsbook feed, automatic metadata refresh and live execution remain future work. The included model demonstration uses synthetic data.
+This is a research and paper-trading foundation. Real historical training data, a licensed faster sportsbook feed and live execution remain future work. The included model demonstration uses synthetic data.
 
 The default fee setting is a user-supplied per-share assumption. Set `feeMode` to `market` to use a quote's `feesEnabled` and supported `feeSchedule` fields. Paper replay assumes top-of-book liquidity at a subsequent observation, and cannot prove a live fill. It models a bounded immediate attempt, holds fills to settlement and assumes no competing queue consumption. The current model's features are a baseline and need possession, lineups, fouls, timeouts and overtime treatment before broader evaluation.
 
