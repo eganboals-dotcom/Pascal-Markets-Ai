@@ -47,11 +47,12 @@ test('non-demo hosts, lookalikes, ports and alternate paths are refused', () => 
   }
 });
 
-test('disabled switch and wrong venue never send', async () => {
+test('disabled switch and wrong venue never send orders or cancels', async () => {
   let calls = 0;
   for (const trading of [{ enabled: false, venue: 'demo' }, { enabled: true, venue: 'production' }, { enabled: 'true', venue: 'demo' }]) {
     const client = createDemoClient({ config: { trading }, fetch: async () => { calls++; } });
-    await assert.rejects(client.getBalance(), /disabled/);
+    await assert.rejects(client.placeLimitOrder({ ticker: 'TEST-A', side: 'yes', price: .5, count: 1, clientOrderId: 'a' }), /disabled/);
+    await assert.rejects(client.cancelOrder('order-id', 'TEST-A'), /disabled/);
   }
   assert.equal(calls, 0);
 });

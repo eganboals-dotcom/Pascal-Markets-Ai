@@ -1,12 +1,12 @@
 // Explicit fake-money experiment only. Never used by workflows.
-import { createDemoClient } from '../src/demo.js';
+import { createDemoClient, loadTradingConfig } from '../src/demo.js';
 import { demoPlan } from '../src/demo-plan.js';
 import { readResearch } from '../src/report.js';
 
 const args = process.argv.slice(2);
 if (args.some(a => a.startsWith('--') && a !== '--send') || args.filter(a => a !== '--send').length > 1) throw new Error('Usage: kalshi-demo.js [dir] [--send]');
 const out = args.find(a => a !== '--send') ?? 'research/kalshi';
-const config = readResearch('config/scan.json', {});
+const config = loadTradingConfig();
 const plan = demoPlan(readResearch(`${out}/state.json`, {}), readResearch(`${out}/dryrun.jsonl`, [], true), config);
 console.log(JSON.stringify({ venue: 'demo', enabled: config.trading?.enabled === true, ...plan }, null, 2));
 if (args.includes('--send')) {
