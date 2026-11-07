@@ -10,7 +10,7 @@ import { capture } from './capture.js';
 import { analyzeCapture } from './analyze.js';
 import { fetchNbaOdds } from './sportsbook.js';
 import { compareQuotes } from './compare.js';
-import { buildReplayDataset, buildTrainingDataset } from './dataset.js';
+import { buildModelReplayDataset, buildReplayDataset, buildTrainingDataset } from './dataset.js';
 import { serveDashboard } from './dashboard.js';
 
 function readRows(path) {
@@ -33,6 +33,7 @@ const help = `Pascal Markets
   compare catalog quotes.jsonl odds mappings Compare verified contract and bookmaker mappings
   build-training states pregame settlements output.jsonl
   build-replay quotes sportsbook settlements output.jsonl
+  build-model-replay states quotes output.jsonl [score-lag-ms]
   train rows.jsonl cutoff-ISO model.json     Train and evaluate the baseline chronologically
   train-nba-history start-date end-date cutoff-date
   predict model.json home-score away-score seconds-remaining pregame-home-probability
@@ -70,6 +71,14 @@ try {
       const mappings = JSON.parse(readFileSync(projectPath(args[3]), 'utf8'));
       const policy = JSON.parse(readFileSync(projectPath('config/comparison.json'), 'utf8'));
       result = compareQuotes(catalog, readRows(args[1]), snapshot, mappings, policy);
+      break;
+    }
+    case 'build-model-replay': {
+      const output = projectPath(args[2]);
+      const rows = buildModelReplayDataset(readRows(args[0]), readRows(args[1]), { scoreLagMs: Number(args[3] ?? 0) });
+      if (!rows.some(row => !row.quote.invalidated)) throw new Error('No score states paired with quotes');
+      writeProjectFile(output, rows.map(row => JSON.stringify(row)).join('\n') + '\n');
+      result = { rows: rows.length, path: output };
       break;
     }
     case 'build-replay':

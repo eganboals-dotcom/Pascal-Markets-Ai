@@ -134,7 +134,21 @@ export function replay(rows, model, config) {
     decisions.push({ gameId: row.gameId, status: 'proposed', at: row.observedAt, probability, shares, reservedCost });
   }
   settle(Infinity);
+  const settlementChanges = new Map();
+  for (const position of positions) {
+    const change = position.shares * position.settlementPayout - position.cost;
+    settlementChanges.set(position.resolvedAt, (settlementChanges.get(position.resolvedAt) ?? 0) + change);
+  }
+  let equity = initialCash;
+  let peak = initialCash;
+  let maxRealizedDrawdown = 0;
+  for (const [, change] of [...settlementChanges].sort((a, b) => a[0] - b[0])) {
+    equity += change;
+    peak = Math.max(peak, equity);
+    maxRealizedDrawdown = Math.max(maxRealizedDrawdown, peak - equity);
+  }
   return { initialCash, finalCash: cash, netPnl: cash - initialCash, fills: positions.length,
+    maxRealizedDrawdown,
     feesPaid: positions.reduce((sum, position) => sum + position.fee, 0),
     unresolvedProposals: pending.size, skipped, positions, decisions };
 }

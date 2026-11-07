@@ -32,6 +32,15 @@ test('later executable quote fills once and includes costs', () => {
   assert.ok(Math.abs(result.finalCash - (100 - 23 * 0.42 + 23)) < 1e-9);
 });
 
+test('realized drawdown follows settlement order', () => {
+  const loss = at => ({ ...row('loss', at), homeWon: 0, resolvedAt: 9000 });
+  const win = at => ({ ...row('win', at), resolvedAt: 8000 });
+  const result = replay([loss(1000), loss(4000), win(1100), win(4100)], null, { ...config, maxExposure: 20 });
+  assert.equal(result.fills, 2);
+  assert.ok(result.netPnl > 0);
+  assert.ok(Math.abs(result.maxRealizedDrawdown - 9.66) < 1e-9);
+});
+
 test('stale apparent edge cannot fill after price moves', () => {
   assert.equal(replay([row('a', 1000), row('a', 4000, 0.8)], null, config).fills, 0);
   assert.equal(replay([row('a', 1000), row('a', 2000)], null, config).fills, 0);
