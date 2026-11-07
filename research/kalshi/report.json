@@ -1,0 +1,38 @@
+{
+  "generatedAt": 1794056224736,
+  "scannedAt": 1794056034794,
+  "hitsToday": 2,
+  "byKind": {
+    "cross-venue": 2
+  },
+  "bySeries": {
+    "KXEFLL1GAME": 2
+  },
+  "lifetime": [
+    {
+      "id": "cross-venue:kalshi:KXEFLL1GAME-26NOV14STEMAT-TIE:yes+polymarket:6512588#106500599161785338725220249036010653008756335794651357238682605190240463362193:outcome 1",
+      "medianMinDurationMs": 2095420,
+      "maxMinDurationMs": 2095420
+    },
+    {
+      "id": "cross-venue:kalshi:KXEFLL1GAME-26NOV14DRLEY-TIE:yes+polymarket:6512726#24744687854477667767248484611425791996202613510589350787911468989011479992346:outcome 1",
+      "medianMinDurationMs": 2095420,
+      "maxMinDurationMs": 2095420
+    }
+  ],
+  "outcomes": {
+    "filled": 2,
+    "legged": 0,
+    "missed": 0,
+    "skipped": 0
+  },
+  "skipReasons": {},
+  "nearMissSummary": {
+    "<-2c": 5657,
+    "-2..0c": 355,
+    "0..1c": 27,
+    "1..2c": 1,
+    ">=2c": 1
+  },
+  "startedGames": []
+}
