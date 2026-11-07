@@ -159,3 +159,13 @@ Screenshots are saved under `outputs/`. Recordings, models, credentials, caches 
 Run `node scripts/evaluate-nba-history.js config/nba-evaluation.json` to fetch cached NBA history and compare candidates with the saved baseline across the configured date windows. Each candidate trains only on games completed before its evaluation window. Whole games are assigned by tipoff so midnight boundaries cannot split a game between windows. The baseline must have finished training before every evaluation window.
 
 The command saves candidate models, per-observation predictions, game-weighted Brier scores, fourth-quarter scores, and a game-level bootstrap interval inside `models/` and `data/nba-history/`. The aggregate measures the retraining procedure across folds. It measures forecast accuracy, and trading returns require a separate order-book replay.
+
+## Open the dashboard
+
+Double-click `scripts/open-dashboard.cmd`. It starts the local server without a console, opens Sports Pulse in its own Edge app window, and stops the server when the window closes. The window keeps its own browser profile in `.cache/dashboard-window`.
+
+## Archive replay in GitHub Actions
+
+`scripts/prepare-archive-replay.js` writes the small inputs in `research/archive-replay/inputs`: score states for NBA games covered by the Pendulum Flow v3.1 archive, each game's reviewed Polymarket moneyline (settlement checked against ESPN), and the candidate and baseline models. A push that changes those inputs or the replay scripts starts the `Archive replay` workflow. The workflow downloads each archive hour once, keeps only the home-outcome book rows for those games, replays both models at 5, 15 and 30 second score delays, and commits `research/archive-replay/results/summary.md` and `report.json`. The order-book data stays on the runner.
+
+The archive is published under CC BY-NC 4.0 by Pendulum Flow and is not affiliated with Polymarket. Results are research only. Assumptions are listed in each summary.
