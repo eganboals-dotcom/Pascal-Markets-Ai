@@ -1,4 +1,4 @@
-# Opens the Sports Pulse dashboard in its own app window. Starts the local server hidden when it
+# Opens the Kalshi scanner dashboard in its own app window. Starts the local server hidden when it
 # is not already running, and stops it again when the window closes if this script started it.
 Set-Location (Join-Path $PSScriptRoot "..")
 $url = "http://127.0.0.1:8787"
