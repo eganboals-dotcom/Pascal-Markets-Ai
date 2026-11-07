@@ -22,10 +22,10 @@ if (closed.length) {
 
 const pct = x => `${(x * 100).toFixed(2)}%`;
 const date = ms => new Date(ms).toISOString().slice(0, 10);
-const row = o => `| ${o.kind} | ${o.title.replaceAll('|', '/')} | ${o.legs.map(l => `${l.side} ${l.ticker} @ ${l.price}`).join('; ')} | ${o.contracts} | $${o.profit.toFixed(2)} | ${pct(o.returnPct)} | ${pct(o.annualized)} | ${date(o.closesAt)} |`;
-const head = ['| Kind | Event | Legs | Contracts | Profit after fees | Return | Annualized | Closes |', '|---|---|---|---|---|---|---|---|'];
+const row = o => `| ${o.makerLeg ? `${o.kind}: maker (needs a fill)` : o.kind} | ${o.verified ? '\u2713' : (o.checks ?? ['unverified']).join(', ')} | ${o.title.replaceAll('|', '/')} | ${o.legs.map(l => `${l.side} ${l.ticker} @ ${l.price}`).join('; ')} | ${o.contracts} | $${o.profit.toFixed(2)} | ${pct(o.returnPct)} | ${pct(o.annualized)} | ${date(o.expiresAt)} |`;
+const head = ['| Kind | Verified | Event | Legs | Contracts | Profit after fees | Return | Annualized | Expected expiry |', '|---|---|---|---|---|---|---|---|---|'];
 const open = Object.values(state.open).sort((a, b) => b.profit - a.profit);
-const near = scan.candidates.filter(c => c.profit < config.minProfit).sort((a, b) => b.returnPct - a.returnPct).slice(0, config.nearMisses);
+const near = scan.candidates.filter(c => !scan.hits.includes(c)).sort((a, b) => b.returnPct - a.returnPct).slice(0, config.nearMisses);
 writeProjectFile(`${out}/latest.md`, [
   '# Kalshi scan', '',
   `Scanned ${new Date(scan.scannedAt).toISOString()}: ${scan.events} open events, ${scan.markets} markets. Research only; no orders.`, '',

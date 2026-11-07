@@ -8,14 +8,14 @@ function table(target, rows, tracked = false) {
   const box = el(target);
   box.replaceChildren();
   if (!rows.length) { box.append(Object.assign(document.createElement('p'), { className: 'muted', textContent: 'None.' })); return; }
-  const headers = ['Kind', 'Event', 'Legs', 'Contracts', 'Profit', 'Return', 'Annualized', 'Closes', ...(tracked ? ['Open for'] : [])];
+  const headers = ['Kind', 'Verified', 'Event', 'Legs', 'Contracts', 'Profit', 'Return', 'Annualized', 'Expected expiry', ...(tracked ? ['Open for'] : [])];
   const t = document.createElement('table');
   const head = t.createTHead().insertRow();
   for (const h of headers) head.append(Object.assign(document.createElement('th'), { textContent: h }));
   const body = t.createTBody();
   for (const o of rows) {
-    const cells = [o.kind, o.title, o.legs.map(l => `${l.side} ${l.ticker} @ ${l.price}`).join('\n'), o.contracts,
-      usd(o.profit), pct(o.returnPct), pct(o.annualized), day(o.closesAt), ...(tracked ? [since(o.firstSeen)] : [])];
+    const cells = [o.makerLeg ? `${o.kind}: maker (needs a fill)` : o.kind, o.verified ? '\u2713' : (o.checks ?? ['unverified']).join(', '), o.title, o.legs.map(l => `${l.side} ${l.ticker} @ ${l.price}`).join('\n'), o.contracts,
+      usd(o.profit), pct(o.returnPct), pct(o.annualized), day(o.expiresAt ?? o.closesAt), ...(tracked ? [since(o.firstSeen)] : [])];
     const row = body.insertRow();
     for (const c of cells) row.insertCell().textContent = c;
     if (o.profit > 0) row.className = 'positive';

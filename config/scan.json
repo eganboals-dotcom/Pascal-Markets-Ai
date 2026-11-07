@@ -1,6 +1,60 @@
 {
-  "minProfit": 0.05,
+  "minProfit": 1,
   "maxContracts": 100,
   "feeRate": 0.07,
-  "nearMisses": 10
+  "nearMisses": 10,
+  "dryRunDelayMs": 30000,
+  "minReturn": 0.03,
+  "slippageTicks": 1,
+  "verified": {
+    "minLegVolume24h": 500,
+    "minHoursToClose": 2,
+    "reviewedSeries": []
+  },
+  "makerFeeRate": 0.0175,
+  "maxDaysToClose": 60,
+  "longHold": {
+    "maxDays": 400,
+    "minProfitPerContract": 0.03,
+    "minAnnualized": 0.1
+  },
+  "focus": {
+    "seriesPrefixes": [
+      "KXNBA",
+      "KXNFL",
+      "KXMLB",
+      "KXNHL",
+      "KXEPL",
+      "KXMLS",
+      "KXLALIGA",
+      "KXLIGUE1",
+      "KXUCL",
+      "KXSERIEA",
+      "KXBUNDESLIGA",
+      "KXUFC",
+      "KXBOX"
+    ],
+    "sportTags": [
+      "Basketball",
+      "Football",
+      "Baseball",
+      "Hockey",
+      "Soccer",
+      "MMA",
+      "Boxing",
+      "Tennis",
+      "Golf"
+    ],
+    "categories": [
+      "Economics",
+      "World",
+      "Financials"
+    ]
+  },
+  "budget": {
+    "bankroll": 1000,
+    "maxPerEvent": 100,
+    "maxOpenEvents": 20
+  },
+  "makerMaxSpread": 0.04
 }

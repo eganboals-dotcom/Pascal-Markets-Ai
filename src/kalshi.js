@@ -15,7 +15,6 @@ async function getJson(url) {
 }
 
 // Taker fee for a whole order, rounded up to the cent: ceil(rate * C * P * (1 - P)).
-// shortcut: one rate for every series; some series carry a different multiplier, check Kalshi's fee schedule before trusting a hit.
 export function kalshiFee(contracts, price, rate = 0.07) {
   return Math.ceil(rate * contracts * price * (1 - price) * 100 - 1e-9) / 100;
 }
@@ -51,4 +50,10 @@ export async function fetchOpenEvents({ maxPages = 200, load = getJson } = {}) {
 export async function fetchMarket(ticker, load = getJson) {
   if (!/^[A-Z0-9._-]{1,120}$/i.test(ticker ?? '')) throw new Error('Invalid Kalshi ticker');
   return (await load(`${BASE}/markets/${encodeURIComponent(ticker)}`)).market;
+}
+
+export async function fetchSeries(load = getJson) {
+  const body = await load(`${BASE}/series`);
+  if (!Array.isArray(body.series)) throw new Error('Unexpected Kalshi series response');
+  return body.series;
 }
