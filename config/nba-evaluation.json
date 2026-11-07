@@ -1,5 +1,5 @@
 {
-  "baseline": "models/nba-history.json",
+  "baseline": "models/nba-history-v1-baseline.json",
   "windows": [
     [
       "2024-10-22",
