@@ -7,3 +7,4 @@ node_modules/
 work/
 outputs/
 .venv/
+graphify-out/

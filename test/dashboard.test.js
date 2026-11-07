@@ -36,3 +36,29 @@ test('dashboard rejects other hosts and reports scan failures', async () => {
     assert.match((await failed.json()).error, /down/);
   });
 });
+
+test('dashboard shares long-running scans and caches for five minutes after completion', async t => {
+  let now = 0, scans = 0, started, finish;
+  const start = new Promise(resolve => { started = resolve; });
+  const gate = new Promise(resolve => { finish = resolve; });
+  t.mock.method(Date, 'now', () => now);
+  await withServer(async () => {
+    scans++; started(); await gate;
+    return { scannedAt: now, events: 0, markets: 0, errors: [], candidates: [], hits: [] };
+  }, async base => {
+    const first = fetch(`${base}/api/scan`);
+    await start;
+    now += 6 * 60000;
+    const second = fetch(`${base}/api/scan`);
+    await new Promise(resolve => setImmediate(resolve));
+    finish();
+    await Promise.all([first, second]);
+    assert.equal(scans, 1);
+    now += 4 * 60000;
+    await fetch(`${base}/api/scan`);
+    assert.equal(scans, 1);
+    now += 2 * 60000;
+    await fetch(`${base}/api/scan`);
+    assert.equal(scans, 2);
+  });
+});

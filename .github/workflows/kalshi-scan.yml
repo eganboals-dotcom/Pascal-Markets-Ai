@@ -27,6 +27,8 @@ jobs:
         run: node --test
       - name: Scan
         run: node scripts/kalshi-scan.js
+      - name: Dry run
+        run: node scripts/kalshi-dryrun.js
       - name: Commit results
         # Every 15-minute scan commits only when tracked hits change; the 6-hourly run and manual runs
         # also refresh latest.md, so the summary on GitHub stays current without a commit per scan.
@@ -34,7 +36,7 @@ jobs:
           git config user.name "Pascal Markets"
           git config user.email "pascal-markets@example.com"
           git add research/kalshi
-          if git diff --cached --quiet -- research/kalshi/state.json research/kalshi/log.jsonl &&
+          if git diff --cached --quiet -- research/kalshi/state.json research/kalshi/log.jsonl research/kalshi/dryrun.jsonl &&
              [ "${{ github.event.schedule }}" = "*/15 * * * *" ]; then
             echo "No change in tracked hits"; exit 0
           fi

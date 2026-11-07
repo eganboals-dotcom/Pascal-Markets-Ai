@@ -15,8 +15,8 @@ export function createDashboardServer({ scan = () => runScan(readJson('config/sc
   let cached = null;
   const latest = () => {
     if (!cached || Date.now() - cached.at > CACHE_MS) {
-      const entry = { at: Date.now(), promise: scan() };
-      entry.promise.catch(() => { if (cached === entry) cached = null; });
+      const entry = { at: Infinity, promise: scan() };
+      entry.promise.then(() => { entry.at = Date.now(); }, () => { if (cached === entry) cached = null; });
       cached = entry;
     }
     return cached.promise;
