@@ -1,21 +1,25 @@
-export const FEATURES = ['scoreDifference', 'secondsRemaining', 'pregameHomeProbability'];
+export const FEATURES = ['scoreDifference', 'secondsRemaining', 'pregameHomeProbability', 'pregameTimeDecay'];
+const WEIGHT_COUNT = { 1: 4, 2: 5 };
 
-export function features(row) {
+// Version 2 adds the pregame log-odds scaled by the square root of the remaining fraction, so the prior fades as the game ends.
+export function features(row, version = 2) {
   const { homeScore, awayScore, secondsRemaining, pregameHomeProbability } = row;
   if (![homeScore, awayScore].every(x => Number.isInteger(x) && x >= 0) ||
       !Number.isFinite(secondsRemaining) || secondsRemaining < 0 || secondsRemaining > 2880 ||
       !Number.isFinite(pregameHomeProbability) || pregameHomeProbability <= 0 || pregameHomeProbability >= 1) {
     throw new Error('Invalid regulation NBA state or pregame probability');
   }
-  return [1, (homeScore - awayScore) / Math.sqrt(secondsRemaining / 60 + 1),
-    secondsRemaining / 2880, Math.log(pregameHomeProbability / (1 - pregameHomeProbability))];
+  const prior = Math.log(pregameHomeProbability / (1 - pregameHomeProbability));
+  const base = [1, (homeScore - awayScore) / Math.sqrt(secondsRemaining / 60 + 1), secondsRemaining / 2880, prior];
+  return version === 1 ? base : [...base, prior * Math.sqrt(secondsRemaining / 2880)];
 }
 
 export function predict(model, row) {
-  if (model?.version !== 1 || !Array.isArray(model.weights) || model.weights.length !== 4 || !model.weights.every(Number.isFinite)) {
+  if (!WEIGHT_COUNT[model?.version] || !Array.isArray(model.weights) || model.weights.length !== WEIGHT_COUNT[model.version] ||
+      !model.weights.every(Number.isFinite)) {
     throw new Error('Invalid model');
   }
-  const z = features(row).reduce((sum, x, i) => sum + x * model.weights[i], 0);
+  const z = features(row, model.version).reduce((sum, x, i) => sum + x * model.weights[i], 0);
   return 1 / (1 + Math.exp(-Math.max(-35, Math.min(35, z))));
 }
 
@@ -57,18 +61,45 @@ export function train(rows, cutoff) {
   }
   const counts = new Map();
   training.forEach(r => counts.set(r.gameId, (counts.get(r.gameId) ?? 0) + 1));
-  const model = { version: 1, weights: [0, 0, 0, 0], trainedBefore: cutoff,
+  const model = { version: 2, weights: fitLogistic(training, counts), trainedBefore: cutoff,
     trainingGames: [...counts.keys()], features: FEATURES,
     containsSyntheticData: training.some(row => row.synthetic === true) };
-  for (let epoch = 0; epoch < 1200; epoch++) {
-    const gradient = [0, 0, 0, 0];
-    for (const row of training) {
-      const error = (predict(model, row) - row.homeWon) / counts.get(row.gameId);
-      features(row).forEach((x, i) => { gradient[i] += error * x; });
-    }
-    model.weights = model.weights.map((w, i) => w - 0.03 * (gradient[i] / counts.size + (i ? 0.01 * w : 0)));
-  }
   return { model, evaluation: evaluate(model, holdout) };
+}
+
+// Newton's method on game-weighted log loss with light L2 on non-intercept weights; converges where fixed-step descent stalled.
+function fitLogistic(rows, counts, lambda = 1e-4) {
+  const X = rows.map(row => features(row));
+  const d = X[0].length;
+  let w = Array(d).fill(0);
+  for (let iteration = 0; iteration < 50; iteration++) {
+    const A = Array.from({ length: d }, () => Array(d + 1).fill(0));
+    rows.forEach((row, j) => {
+      const x = X[j];
+      const p = 1 / (1 + Math.exp(-Math.max(-35, Math.min(35, x.reduce((s, v, i) => s + v * w[i], 0)))));
+      const a = 1 / counts.get(row.gameId) / counts.size;
+      for (let i = 0; i < d; i++) {
+        A[i][d] += a * (p - row.homeWon) * x[i];
+        for (let k = 0; k < d; k++) A[i][k] += a * p * (1 - p) * x[i] * x[k];
+      }
+    });
+    for (let i = 1; i < d; i++) { A[i][d] += lambda * w[i]; A[i][i] += lambda; }
+    for (let i = 0; i < d; i++) {
+      let pivot = i;
+      for (let k = i + 1; k < d; k++) if (Math.abs(A[k][i]) > Math.abs(A[pivot][i])) pivot = k;
+      [A[i], A[pivot]] = [A[pivot], A[i]];
+      if (!(Math.abs(A[i][i]) > 1e-12)) throw new Error('Training data cannot identify every model feature');
+      for (let k = 0; k < d; k++) if (k !== i) {
+        const c = A[k][i] / A[i][i];
+        for (let m = i; m <= d; m++) A[k][m] -= c * A[i][m];
+      }
+    }
+    const step = A.map((row, i) => row[d] / row[i]);
+    w = w.map((v, i) => v - step[i]);
+    if (Math.max(...step.map(Math.abs)) < 1e-9) break;
+  }
+  if (!w.every(Number.isFinite)) throw new Error('Model training diverged');
+  return w;
 }
 
 export function evaluate(model, rows) {
