@@ -26,6 +26,17 @@ The dashboard accepts manual paper buys for eligible two-outcome sports contract
 
 Contract outcomes and rules must be available, and the venue must be accepting orders. The dashboard is a paper simulator. The automated forecasting and sportsbook replay pipeline below currently uses NBA data.
 
+## Train the NBA win probability model
+
+```sh
+node src/cli.js train-nba-history 2025-11-01 2026-01-31 2026-01-15
+node src/cli.js predict models/nba-history.json 82 76 600 0.55
+```
+
+The historical trainer reads ESPN regular-season scoreboards and play-by-play. It checks the end-of-game score against the final result and samples one regulation score state per game minute when available. The pregame Elo prior uses results that had already finished before tipoff. The cutoff is midnight UTC and separates model fitting from later test games. During evaluation the fixed model can receive an updated pregame prior from earlier completed games.
+
+The forecast calculator in Sports Pulse reads `models/nba-history.json`, which includes the model weights and test results. Enter the regulation score, seconds left, and a pregame home win estimate. Historical play timestamps establish the sequence of game states. Measuring live latency or trading returns requires separately recorded sportsbook and Polymarket quotes.
+
 ## Capture and inspect public markets
 
 ```sh
