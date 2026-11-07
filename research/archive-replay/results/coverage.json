@@ -7,379 +7,379 @@
   "hour": "2026-10-27T00",
   "files": 1,
   "games": 3,
-  "rows": 399
+  "rows": 176826
  },
  {
   "hour": "2026-10-27T01",
   "files": 1,
   "games": 4,
-  "rows": 568
+  "rows": 248882
  },
  {
   "hour": "2026-10-27T02",
   "files": 1,
   "games": 4,
-  "rows": 1072
+  "rows": 318423
  },
  {
   "hour": "2026-10-27T03",
   "files": 1,
   "games": 2,
-  "rows": 1329
+  "rows": 228558
  },
  {
   "hour": "2026-10-27T04",
   "files": 1,
   "games": 1,
-  "rows": 246
+  "rows": 34251
  },
  {
   "hour": "2026-10-27T23",
   "files": 1,
   "games": 3,
-  "rows": 255
+  "rows": 42860
  },
  {
   "hour": "2026-10-28T00",
   "files": 1,
   "games": 3,
-  "rows": 630
+  "rows": 226997
  },
  {
   "hour": "2026-10-28T01",
   "files": 1,
   "games": 3,
-  "rows": 1186
+  "rows": 276933
  },
  {
   "hour": "2026-10-28T02",
   "files": 1,
   "games": 3,
-  "rows": 1220
+  "rows": 243552
  },
  {
   "hour": "2026-10-28T22",
   "files": 1,
   "games": 4,
-  "rows": 45
+  "rows": 13900
  },
  {
   "hour": "2026-10-28T23",
   "files": 1,
   "games": 9,
-  "rows": 1009
+  "rows": 719161
  },
  {
   "hour": "2026-10-29T00",
   "files": 1,
   "games": 10,
-  "rows": 1481
+  "rows": 1254308
  },
  {
   "hour": "2026-10-29T01",
   "files": 1,
   "games": 11,
-  "rows": 1509
+  "rows": 1327108
  },
  {
   "hour": "2026-10-29T02",
   "files": 1,
   "games": 7,
-  "rows": 1293
+  "rows": 736542
  },
  {
   "hour": "2026-10-29T03",
   "files": 1,
   "games": 3,
-  "rows": 866
+  "rows": 477749
  },
  {
   "hour": "2026-10-29T04",
   "files": 1,
   "games": 2,
-  "rows": 161
+  "rows": 123851
  },
  {
   "hour": "2026-10-29T05",
   "files": 1,
   "games": 1,
-  "rows": 4
+  "rows": 3753
  },
  {
   "hour": "2026-10-29T23",
   "files": 1,
   "games": 2,
-  "rows": 36
+  "rows": 7445
  },
  {
   "hour": "2026-10-30T00",
   "files": 1,
   "games": 2,
-  "rows": 260
+  "rows": 259840
  },
  {
   "hour": "2026-10-30T01",
   "files": 1,
   "games": 3,
-  "rows": 282
+  "rows": 233992
  },
  {
   "hour": "2026-10-30T02",
   "files": 1,
   "games": 3,
-  "rows": 276
+  "rows": 270477
  },
  {
   "hour": "2026-10-30T03",
   "files": 1,
   "games": 1,
-  "rows": 65
+  "rows": 149399
  },
  {
   "hour": "2026-10-30T04",
   "files": 1,
   "games": 1,
-  "rows": 35
+  "rows": 32824
  },
  {
   "hour": "2026-10-30T22",
   "files": 1,
   "games": 1,
-  "rows": 36
+  "rows": 7055
  },
  {
   "hour": "2026-10-30T23",
   "files": 1,
   "games": 8,
-  "rows": 290
+  "rows": 403315
  },
  {
   "hour": "2026-10-31T00",
   "files": 1,
   "games": 8,
-  "rows": 971
+  "rows": 993808
  },
  {
   "hour": "2026-10-31T01",
   "files": 1,
   "games": 10,
-  "rows": 627
+  "rows": 1015599
  },
  {
   "hour": "2026-10-31T02",
   "files": 1,
   "games": 8,
-  "rows": 497
+  "rows": 542737
  },
  {
   "hour": "2026-10-31T03",
   "files": 1,
   "games": 2,
-  "rows": 213
+  "rows": 157675
  },
  {
   "hour": "2026-10-31T04",
   "files": 1,
   "games": 2,
-  "rows": 210
+  "rows": 157324
  },
  {
   "hour": "2026-10-31T18",
   "files": 1,
   "games": 1,
-  "rows": 23
+  "rows": 6359
  },
  {
   "hour": "2026-10-31T19",
   "files": 2,
   "games": 1,
-  "rows": 84
+  "rows": 72066
  },
  {
   "hour": "2026-10-31T20",
   "files": 1,
   "games": 1,
-  "rows": 53
+  "rows": 60439
  },
  {
   "hour": "2026-10-31T21",
   "files": 1,
   "games": 2,
-  "rows": 149
+  "rows": 13877
  },
  {
   "hour": "2026-10-31T22",
   "files": 1,
   "games": 2,
-  "rows": 115
+  "rows": 193453
  },
  {
   "hour": "2026-10-31T23",
   "files": 1,
   "games": 5,
-  "rows": 307
+  "rows": 360490
  },
  {
   "hour": "2026-11-01T00",
   "files": 1,
   "games": 6,
-  "rows": 1179
+  "rows": 917466
  },
  {
   "hour": "2026-11-01T01",
   "files": 1,
   "games": 5,
-  "rows": 280
+  "rows": 465070
  },
  {
   "hour": "2026-11-01T02",
   "files": 1,
   "games": 4,
-  "rows": 249
+  "rows": 163186
  },
  {
   "hour": "2026-11-01T20",
   "files": 1,
   "games": 1,
-  "rows": 43
+  "rows": 76087
  },
  {
   "hour": "2026-11-01T21",
   "files": 1,
   "games": 2,
-  "rows": 37
+  "rows": 159773
  },
  {
   "hour": "2026-11-01T22",
   "files": 1,
   "games": 2,
-  "rows": 116
+  "rows": 298471
  },
  {
   "hour": "2026-11-01T23",
   "files": 1,
   "games": 1,
-  "rows": 61
+  "rows": 169180
  },
  {
   "hour": "2026-11-02T00",
   "files": 1,
   "games": 1,
-  "rows": 19
+  "rows": 214836
  },
  {
   "hour": "2026-11-02T01",
   "files": 1,
   "games": 2,
-  "rows": 38
+  "rows": 86052
  },
  {
   "hour": "2026-11-02T02",
   "files": 1,
   "games": 2,
-  "rows": 115
+  "rows": 327976
  },
  {
   "hour": "2026-11-02T03",
   "files": 1,
   "games": 2,
-  "rows": 158
+  "rows": 276521
  },
  {
   "hour": "2026-11-02T04",
   "files": 1,
   "games": 1,
-  "rows": 121
+  "rows": 75692
  },
  {
   "hour": "2026-11-02T23",
   "files": 1,
   "games": 1,
-  "rows": 7
+  "rows": 4493
  },
  {
   "hour": "2026-11-03T00",
   "files": 1,
   "games": 9,
-  "rows": 385
+  "rows": 425616
  },
  {
   "hour": "2026-11-03T01",
   "files": 1,
   "games": 12,
-  "rows": 400
+  "rows": 947868
  },
  {
   "hour": "2026-11-03T02",
   "files": 1,
   "games": 15,
-  "rows": 559
+  "rows": 1220436
  },
  {
   "hour": "2026-11-03T03",
   "files": 1,
   "games": 11,
-  "rows": 198
+  "rows": 771837
  },
  {
   "hour": "2026-11-03T04",
   "files": 1,
   "games": 5,
-  "rows": 19
+  "rows": 593393
  },
  {
   "hour": "2026-11-03T05",
   "files": 1,
   "games": 3,
-  "rows": 29
+  "rows": 791844
  },
  {
   "hour": "2026-11-04T23",
   "files": 1,
   "games": 2,
-  "rows": 3
+  "rows": 14873
  },
  {
   "hour": "2026-11-05T00",
   "files": 1,
   "games": 8,
-  "rows": 30
+  "rows": 427633
  },
  {
   "hour": "2026-11-05T01",
   "files": 2,
   "games": 11,
-  "rows": 145
+  "rows": 949381
  },
  {
   "hour": "2026-11-05T02",
   "files": 2,
   "games": 13,
-  "rows": 211
+  "rows": 1346404
  },
  {
   "hour": "2026-11-05T03",
   "files": 1,
   "games": 11,
-  "rows": 179
+  "rows": 909967
  },
  {
   "hour": "2026-11-05T04",
   "files": 1,
   "games": 7,
-  "rows": 83
+  "rows": 415795
  },
  {
   "hour": "2026-11-05T05",
   "files": 1,
   "games": 3,
-  "rows": 85
+  "rows": 634606
  },
  {
   "hour": "2026-11-05T06",
   "files": 1,
   "games": 1,
-  "rows": 24
+  "rows": 76627
  },
  {
   "hour": "2026-11-06T01",

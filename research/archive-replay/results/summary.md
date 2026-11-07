@@ -9,8 +9,8 @@ Game-weighted Brier score at each score state, lower is better. The market colum
 
 | Model | Games | Model Brier | Market Brier |
 |---|---|---|---|
-| candidate | 74 | 0.1625 | 0.1426 |
-| baseline | 74 | 0.1634 | 0.1426 |
+| candidate | 74 | 0.1650 | 0.1452 |
+| baseline | 74 | 0.1664 | 0.1452 |
 
 ## Paper trading after fees
 
@@ -18,12 +18,12 @@ $10 per order, one attempt per game, minimum edge 0.04, 3s matching delay.
 
 | Score delay | Model | Trades | Winning | Net P&L | 95% interval |
 |---|---|---|---|---|---|
-| 5s | candidate | 5 | 3 | -$2.13 | -$38.78 to $31.73 |
-| 5s | baseline | 5 | 4 | $20.78 | -$13.76 to $60.04 |
-| 15s | candidate | 7 | 4 | -$10.21 | -$48.90 to $25.04 |
-| 15s | baseline | 4 | 2 | -$9.14 | -$41.90 to $18.41 |
-| 30s | candidate | 4 | 4 | $18.27 | $2.54 to $37.99 |
-| 30s | baseline | 6 | 2 | -$28.86 | -$71.78 to $5.97 |
+| 5s | candidate | 51 | 22 | -$146.56 | -$265.06 to -$27.06 |
+| 5s | baseline | 47 | 22 | -$65.08 | -$193.82 to $63.49 |
+| 15s | candidate | 46 | 23 | -$83.70 | -$192.70 to $30.88 |
+| 15s | baseline | 42 | 22 | -$19.73 | -$143.62 to $102.63 |
+| 30s | candidate | 45 | 25 | -$53.99 | -$162.52 to $55.03 |
+| 30s | baseline | 40 | 23 | $30.04 | -$89.61 to $149.48 |
 
 ## Assumptions
 
