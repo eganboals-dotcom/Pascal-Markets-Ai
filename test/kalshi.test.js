@@ -10,10 +10,12 @@ const close = '2026-12-01T00:00:00Z';
 const market = (ticker, fields) => ({ ticker, status: 'active', close_time: close, yes_ask_dollars: '0', yes_ask_size_fp: '0',
   no_ask_dollars: '0', yes_bid_size_fp: '0', ...fields });
 
-test('Kalshi fee rounds the whole order up to the cent', () => {
-  assert.equal(kalshiFee(1, 0.5), 0.02);
+test('Kalshi fee rounds the whole order up to a hundredth of a cent', () => {
+  assert.equal(kalshiFee(1, 0.33), 0.0155);
+  assert.equal(kalshiFee(1, 0.5), 0.0175);
   assert.equal(kalshiFee(100, 0.5), 1.75);
-  assert.equal(kalshiFee(10, 0.99), 0.01);
+  assert.equal(kalshiFee(10, 0.99), 0.007);
+  assert.equal(kalshiFee(100, 0.38, 0.0175 * 0.5), 0.2062);
 });
 
 test('quotes drop empty or boundary asks and take No size from the Yes bid', () => {

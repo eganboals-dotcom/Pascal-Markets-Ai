@@ -14,9 +14,11 @@ async function getJson(url) {
   }
 }
 
-// Taker fee for a whole order, rounded up to the cent: ceil(rate * C * P * (1 - P)).
+// Fee for a whole order: rate * C * P * (1 - P), charged to the $0.0001 balance grid. Kalshi's fee accumulator makes
+// an order's fills total what one equivalent fill costs (docs.kalshi.com/getting_started/fee_rounding).
+// A demo fill of 1 contract at $0.33 was charged $0.0155 (model fee 0.015477).
 export function kalshiFee(contracts, price, rate = 0.07) {
-  return Math.ceil(rate * contracts * price * (1 - price) * 100 - 1e-9) / 100;
+  return Math.ceil(rate * contracts * price * (1 - price) * 10000 - 1e-6) / 10000;
 }
 
 // Best asks from the listing. Kalshi books hold bids only: the No ask is 1 minus the best Yes bid,
