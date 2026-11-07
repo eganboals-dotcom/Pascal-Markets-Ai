@@ -1,0 +1,12 @@
+{
+  "signal": "model",
+  "initialCash": 1000,
+  "orderBudget": 10,
+  "maxExposure": 100,
+  "minEdge": 0.04,
+  "feeMode": "market",
+  "feePerShare": 0.02,
+  "delayMs": 3000,
+  "maxAgeMs": 2000,
+  "maxMetadataAgeMs": 21600000
+}

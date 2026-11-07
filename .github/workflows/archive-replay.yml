@@ -1,0 +1,52 @@
+name: Archive replay
+
+# Downloads archived Polymarket order books in the cloud, one hour file at a time, keeps only the
+# NBA rows, replays both models, and commits the small report. Nothing large is stored in the repo.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - research/archive-replay/inputs/**
+      - research/archive-replay/config.json
+      - scripts/archive_extract.py
+      - scripts/archive-replay.js
+      - .github/workflows/archive-replay.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: archive-replay
+  cancel-in-progress: true
+
+jobs:
+  replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install duckdb==2.0.0
+      - name: Extract NBA order-book rows
+        run: python scripts/archive_extract.py research/archive-replay/inputs/markets.json work/extract
+      - name: Replay models
+        run: node scripts/archive-replay.js work/extract
+      - name: Save coverage and summary
+        run: |
+          cp work/extract/coverage.json research/archive-replay/results/coverage.json
+          cat research/archive-replay/results/summary.md >> "$GITHUB_STEP_SUMMARY"
+      - name: Commit results
+        run: |
+          git config user.name "Pascal Markets"
+          git config user.email "pascal-markets@example.com"
+          git add research/archive-replay/results
+          git diff --cached --quiet && exit 0
+          git commit -m "chore: archive replay results"
+          git pull --rebase origin main
+          git push origin HEAD:main
