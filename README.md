@@ -33,7 +33,7 @@ node src/cli.js train-nba-history 2025-11-01 2026-01-31 2026-01-15
 node src/cli.js predict models/nba-history.json 82 76 600 0.55
 ```
 
-The historical trainer reads ESPN regular-season scoreboards and play-by-play. It checks the end-of-game score against the final result and samples one regulation score state per game minute when available. The pregame Elo prior uses results that had already finished before tipoff. The cutoff is midnight UTC and separates model fitting from later test games. During evaluation the fixed model can receive an updated pregame prior from earlier completed games.
+The historical trainer reads ESPN regular-season scoreboards and play-by-play. It checks the end-of-game score against the final result and samples one regulation score state per game minute when available. The pregame Elo prior uses results that had already finished before tipoff. Ratings move halfway back to the league mean after a gap of more than 60 days between games, which marks a new season. The cutoff is midnight UTC and separates model fitting from later test games. During evaluation the fixed model can receive an updated pregame prior from earlier completed games.
 
 The forecast calculator in Sports Pulse reads `models/nba-history.json`, which includes the model weights and test results. Enter the regulation score, seconds left, and a pregame home win estimate. Historical play timestamps establish the sequence of game states. Measuring live latency or trading returns requires separately recorded sportsbook and Polymarket quotes.
 
@@ -102,7 +102,7 @@ Replay reports net P&L after fees and `maxRealizedDrawdown`, the largest peak-to
 
 - Public NBA event discovery with cursor pagination.
 - Bounded live NBA sports and book recording, heartbeat replies, reconnection boundaries, raw payloads and local receipt timestamps.
-- Regularized logistic home-win baseline trained from score difference, regulation time remaining, and pregame probability. Each game receives equal training weight.
+- Regularized logistic home-win model trained from score difference, regulation time remaining, pregame probability, and a pregame term that fades with the square root of time remaining. Newton's method fits the weights to convergence. Each game receives equal training weight. Version 1 models from earlier runs still load.
 - Chronological holdout evaluation with game-weighted Brier score, log loss, and pregame baseline. Games must resolve before the training cutoff to enter training.
 - Two-way sportsbook margin removal with timestamp, suspension, and settlement checks.
 - Home-outcome paper replay using a later quote after the configured or venue matching delay, whichever is greater. Reserves exposure and cash for pending proposals, limits fills to available top-of-book quantity, and enforces limit prices and per-share fee assumptions. Proposals expire when the execution window passes.

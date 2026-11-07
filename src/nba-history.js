@@ -5,6 +5,8 @@ import { train } from './model.js';
 const source = 'https://site.api.espn.com/apis/site/v2/sports/basketball/nba/';
 const directory = 'data/nba-history';
 const dayMs = 86400000;
+const seasonGapMs = 60 * dayMs;
+const seasonCarry = 0.5; // chosen on a Dec 2025-Jan 2026 validation window, before the test folds
 
 async function cached(path, endpoint, select) {
   try { return JSON.parse(readFileSync(projectPath(path), 'utf8')); }
@@ -73,6 +75,7 @@ export function historicalRows(games) {
   const finished = [];
   const rows = [];
   const rating = id => ratings.get(id) ?? 1500;
+  let lastStart = null;
   for (const game of [...games].sort((a, b) => a.startsAt - b.startsAt || a.id.localeCompare(b.id))) {
     finished.sort((a, b) => a.resolvedAt - b.resolvedAt);
     while (finished.length && finished[0].resolvedAt < game.startsAt) {
@@ -80,6 +83,11 @@ export function historicalRows(games) {
       ratings.set(previous.home, rating(previous.home) + previous.change);
       ratings.set(previous.away, rating(previous.away) - previous.change);
     }
+    // Rosters change over the offseason, so pull ratings toward the mean when a new season begins.
+    if (lastStart !== null && game.startsAt - lastStart > seasonGapMs) {
+      for (const [team, value] of ratings) ratings.set(team, 1500 + seasonCarry * (value - 1500));
+    }
+    lastStart = game.startsAt;
     const pregameHomeProbability = 1 / (1 + 10 ** ((rating(game.away) - rating(game.home) - (game.neutral ? 0 : 55)) / 400));
     finished.push({ ...game, change: 20 * (game.homeWon - pregameHomeProbability) });
     for (const observation of game.observations) rows.push({ ...observation, gameId: `espn-nba-${game.id}`,
@@ -117,7 +125,7 @@ export async function trainNbaHistory(start, end, cutoff) {
   const report = { source: 'ESPN archived NBA play-by-play', sourceUrl: source, start, end, cutoff, trainedAt: Date.now(),
     trainingGames: model.trainingGames.length, trainingObservations: rows.filter(row => row.resolvedAt < split).length,
     sourceGames, excludedGames: sourceGames - games.length, evaluation,
-    prior: 'Sequential Elo from completed earlier games, with a 55-point home advantage and K=20',
+    prior: 'Sequential Elo from completed earlier games, with a 55-point home advantage, K=20, and ratings regressed halfway to 1500 after gaps over 60 days',
     timestampBasis: 'Historical play wall clock. Live receipt times are unavailable.' };
   writeProjectFile(`${directory}/observations.jsonl`, rows.map(row => JSON.stringify(row)).join('\n') + '\n');
   writeProjectFile('models/nba-history.json', JSON.stringify({ ...model, report }, null, 2));
