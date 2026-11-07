@@ -6,12 +6,19 @@ import { readResearch } from './report.js';
 export const DEMO_BASE = 'https://demo-api.kalshi.co/trade-api/v2';
 const tickerValid = ticker => typeof ticker === 'string' && /^[A-Z0-9._-]{1,120}$/i.test(ticker);
 
-export function createDemoClient({ config = () => readResearch('config/scan.json', {}), env = process.env,
+// The committed config stays disabled; config/trading.local.json (gitignored) switches demo sending on for one machine.
+export function loadTradingConfig() {
+  const config = readResearch('config/scan.json', {});
+  return { ...config, trading: { ...config.trading, ...readResearch('config/trading.local.json', {}) } };
+}
+
+export function createDemoClient({ config = loadTradingConfig, env = process.env,
   fetch: send = globalThis.fetch, baseUrl = DEMO_BASE, now = Date.now } = {}) {
   if (baseUrl !== DEMO_BASE) throw new Error('Only the hard-coded Kalshi demo base URL is allowed');
   async function request(method, path, body) {
     const settings = typeof config === 'function' ? config() : config;
-    if (settings.trading?.enabled !== true || settings.trading?.venue !== 'demo') throw new Error('Demo trading is disabled');
+    // Signed reads (balance, positions) only need the demo key; anything that changes orders needs the switch.
+    if (method !== 'GET' && (settings.trading?.enabled !== true || settings.trading?.venue !== 'demo')) throw new Error('Demo trading is disabled');
     if (!env.KALSHI_DEMO_KEY_ID?.trim() || !env.KALSHI_DEMO_KEY_PATH?.trim()) throw new Error('Both demo credential environment variables are required');
     const url = new URL(DEMO_BASE + path);
     if (url.origin !== 'https://demo-api.kalshi.co' || !url.pathname.startsWith('/trade-api/v2/')) throw new Error('Non-demo request refused');

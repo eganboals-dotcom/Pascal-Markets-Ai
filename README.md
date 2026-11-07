@@ -57,7 +57,21 @@ Quoting candidates require a certified series with settlement sources, focus mem
 
 The [Kalshi demo site](https://demo.kalshi.co/) provides separate accounts and mock funds. In the demo account settings, API Keys → Create New API Key creates a demo key; select **RSA**, since this client implements RSA-PSS. Store the private-key file outside the repository with restricted local permissions. Set `KALSHI_DEMO_KEY_ID` and `KALSHI_DEMO_KEY_PATH` locally; neither value belongs in source, logs or workflow secrets for this scanner. The key path is the demo client's sole external file input.
 
-`node scripts/kalshi-demo.js [dir]` prints a budgeted plan from currently open, verified and reviewed Kalshi hits with a current filled dry run. It sends nothing by default. Sending fake-money IOC limit orders additionally requires `--send` and a deliberate local change to `trading.enabled: true` with `trading.venue: "demo"`. The shipped configuration stays disabled. Series must also appear in `verified.reviewedSeries`. Stable client order IDs identify repeated plans; sequential legs can still partially fill, and execution stops on a partial fill or error. The budget applies to one batch; repeated experiments require manual position reconciliation.
+Setup on one machine:
+
+1. Create an account on the Kalshi demo site, then a demo API key (RSA). Kalshi shows the private key once; save it as `%USERPROFILE%\.kalshi\demo-key.pem`, outside the repository.
+2. Set the two variables for the current Windows user:
+   ```powershell
+   [Environment]::SetEnvironmentVariable('KALSHI_DEMO_KEY_ID', '<key id>', 'User')
+   [Environment]::SetEnvironmentVariable('KALSHI_DEMO_KEY_PATH', "$env:USERPROFILE\.kalshi\demo-key.pem", 'User')
+   ```
+   A new terminal picks them up.
+3. `node scripts/kalshi-demo-check.js` makes signed read-only calls and prints the fake-money balance. Balance and position reads need only the key; orders and cancels also need the switch.
+4. To allow demo orders on this machine only, create `config/trading.local.json` (gitignored) containing `{ "enabled": true, "venue": "demo" }`. It overrides `trading` in `config/scan.json`, which stays disabled.
+
+Demo markets and prices differ from production, so production hits rarely exist on demo; the demo run mainly exercises signing, order placement and partial-fill handling.
+
+`node scripts/kalshi-demo.js [dir]` prints a budgeted plan from currently open, verified and reviewed Kalshi hits with a current filled dry run. It sends nothing by default. Sending fake-money IOC limit orders additionally requires `--send` and the local switch in `config/trading.local.json`. The shipped configuration stays disabled. Series must also appear in `verified.reviewedSeries`. Stable client order IDs identify repeated plans; sequential legs can still partially fill, and execution stops on a partial fill or error. The budget applies to one batch; repeated experiments require manual position reconciliation.
 
 Only `https://demo-api.kalshi.co/trade-api/v2` is accepted; production hosts and redirects are rejected. Kalshi's [demo endpoint documentation](https://docs.kalshi.com/getting_started/demo_env) lists this host as supported. Requests use the [documented authentication headers and RSA-PSS signing](https://docs.kalshi.com/getting_started/api_keys) and the [V2 order endpoint](https://docs.kalshi.com/api-reference/orders/create-order-v2). Demo markets may differ from public production markets. No workflow imports or runs this client. Live trading is out of scope and requires a separately reviewed implementation and explicit funds approval.
 

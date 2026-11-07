@@ -8,3 +8,4 @@ work/
 outputs/
 .venv/
 graphify-out/
+config/*.local.json
