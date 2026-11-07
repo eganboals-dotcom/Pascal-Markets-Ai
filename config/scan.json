@@ -56,5 +56,15 @@
     "maxPerEvent": 100,
     "maxOpenEvents": 20
   },
-  "makerMaxSpread": 0.04
+  "makerMaxSpread": 0.04,
+  "mm": {
+    "maxMarkets": 50,
+    "maxInventory": 10,
+    "skewTicks": 1,
+    "pullMinutes": 60
+  },
+  "trading": {
+    "enabled": false,
+    "venue": "demo"
+  }
 }

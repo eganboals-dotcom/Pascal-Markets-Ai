@@ -4,6 +4,7 @@
 import { readFileSync } from 'node:fs';
 import { runScan, track } from '../src/scan.js';
 import { projectPath, writeProjectFile } from '../src/files.js';
+import { readResearch } from '../src/report.js';
 
 const out = process.argv[2] ?? 'research/kalshi';
 const readJson = (path, fallback) => {
@@ -13,6 +14,10 @@ const readJson = (path, fallback) => {
 const config = readJson('config/scan.json');
 const scan = await runScan(config, readJson('config/pairs.json', []));
 const { state, closed } = track(readJson(`${out}/state.json`, null), scan.hits, scan.scannedAt);
+Object.assign(state, { scannedAt: scan.scannedAt, nearMissSummary: scan.nearMissSummary });
+const books = [...readResearch(`${out}/books.jsonl`, [], true), ...scan.books]
+  .filter(book => book.time >= scan.scannedAt - 7 * 86400000 && book.time <= scan.scannedAt);
+writeProjectFile(`${out}/books.jsonl`, books.map(book => JSON.stringify(book)).join('\n') + (books.length ? '\n' : ''));
 writeProjectFile(`${out}/state.json`, JSON.stringify(state, null, 1) + '\n');
 if (closed.length) {
   let log = '';

@@ -11,7 +11,8 @@ function readJson(path, fallback) {
   catch { return fallback; }
 }
 
-export function createDashboardServer({ scan = () => runScan(readJson('config/scan.json'), readJson('config/pairs.json', [])) } = {}) {
+export function createDashboardServer({ scan = () => runScan(readJson('config/scan.json'), readJson('config/pairs.json', [])),
+  research = () => ({ report: readJson('research/kalshi/report.json', null), mm: readJson('research/kalshi/mm-sim.json', null) }) } = {}) {
   let cached = null;
   const latest = () => {
     if (!cached || Date.now() - cached.at > CACHE_MS) {
@@ -36,6 +37,11 @@ export function createDashboardServer({ scan = () => runScan(readJson('config/sc
     };
     if (!/^(?:127\.0\.0\.1|localhost):\d+$/.test(request.headers.host ?? '')) { json(403, { error: 'Local dashboard access only' }); return; }
     if (request.method !== 'GET') { response.writeHead(405); response.end('Method not allowed'); return; }
+    if (request.url === '/api/research') {
+      try { json(200, research()); }
+      catch { json(500, { error: 'Research reports unavailable' }); }
+      return;
+    }
     if (request.url === '/api/scan') {
       try {
         const result = await latest();
