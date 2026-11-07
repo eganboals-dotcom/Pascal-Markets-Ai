@@ -153,3 +153,9 @@ Screenshots are saved under `outputs/`. Recordings, models, credentials, caches 
 - https://docs.polymarket.com/market-data/realtime-data
 - https://docs.polymarket.com/trading/place-orders
 - https://docs.polymarket.com/trading/fees
+
+## Evaluate across later games
+
+Run `node scripts/evaluate-nba-history.js config/nba-evaluation.json` to fetch cached NBA history and compare candidates with the saved baseline across the configured date windows. Each candidate trains only on games completed before its evaluation window. Whole games are assigned by tipoff so midnight boundaries cannot split a game between windows. The baseline must have finished training before every evaluation window.
+
+The command saves candidate models, per-observation predictions, game-weighted Brier scores, fourth-quarter scores, and a game-level bootstrap interval inside `models/` and `data/nba-history/`. The aggregate measures the retraining procedure across folds. It measures forecast accuracy, and trading returns require a separate order-book replay.
