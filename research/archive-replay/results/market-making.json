@@ -1,0 +1,1506 @@
+{
+ "createdAt": "2026-11-07T05:44:31.300Z",
+ "size": 10,
+ "maxInventory": 100,
+ "games": 74,
+ "summary": {
+  "pessimistic": {
+   "fills": 9831,
+   "pnl": -637.0500000000002,
+   "rebates": 133.78604062499997,
+   "markout10s": -1010.8849999999999,
+   "markout60s": -911.1650000000003,
+   "winningGames": 33
+  },
+  "optimistic": {
+   "fills": 135359,
+   "pnl": 185.24999999999733,
+   "rebates": 1750.1142356250016,
+   "markout10s": 62.79000000000283,
+   "markout60s": 498.7350000000013,
+   "winningGames": 38
+  }
+ },
+ "perGame": [
+  {
+   "gameId": "espn-nba-401909872",
+   "slug": "nba-ind-mil-2026-10-26",
+   "pessimistic": {
+    "fills": 184,
+    "endInventory": -60,
+    "pnl": -59.01000000000001,
+    "rebates": 2.8600191749999966,
+    "markout10s": -18.245000000000008,
+    "markout60s": -17.930000000000017
+   },
+   "optimistic": {
+    "fills": 2937,
+    "endInventory": 90,
+    "pnl": 68.94000000000024,
+    "rebates": 42.69809055000027,
+    "markout10s": 70.62000000000012,
+    "markout60s": 43.920000000000016
+   }
+  },
+  {
+   "gameId": "espn-nba-401909874",
+   "slug": "nba-atl-hou-2026-10-26",
+   "pessimistic": {
+    "fills": 266,
+    "endInventory": 40,
+    "pnl": 6.549999999999898,
+    "rebates": 4.328061524999996,
+    "markout10s": -22.650000000000002,
+    "markout60s": -31.87999999999999
+   },
+   "optimistic": {
+    "fills": 1105,
+    "endInventory": 30,
+    "pnl": -43.909999999999926,
+    "rebates": 17.181258375000052,
+    "markout10s": -45.444999999999986,
+    "markout60s": -57.895
+   }
+  },
+  {
+   "gameId": "espn-nba-401909875",
+   "slug": "nba-mem-uta-2026-10-26",
+   "pessimistic": {
+    "fills": 327,
+    "endInventory": -10,
+    "pnl": -3.2999999999999803,
+    "rebates": 4.525087499999993,
+    "markout10s": -28.945000000000007,
+    "markout60s": -32.955
+   },
+   "optimistic": {
+    "fills": 2192,
+    "endInventory": -100,
+    "pnl": 15.810000000000137,
+    "rebates": 29.496843075000154,
+    "markout10s": -9.574999999999834,
+    "markout60s": 22.679999999999996
+   }
+  },
+  {
+   "gameId": "espn-nba-401909876",
+   "slug": "nba-gsw-den-2026-10-26",
+   "pessimistic": {
+    "fills": 276,
+    "endInventory": 80,
+    "pnl": -51.29,
+    "rebates": 4.127337075000003,
+    "markout10s": -15.864999999999998,
+    "markout60s": -15.294999999999995
+   },
+   "optimistic": {
+    "fills": 1705,
+    "endInventory": -90,
+    "pnl": -52.840000000000266,
+    "rebates": 21.940543350000073,
+    "markout10s": -11.775000000000052,
+    "markout60s": -49.949999999999775
+   }
+  },
+  {
+   "gameId": "espn-nba-401909877",
+   "slug": "nba-bkn-bos-2026-10-27",
+   "pessimistic": {
+    "fills": 446,
+    "endInventory": 0,
+    "pnl": 34.78000000000002,
+    "rebates": 5.902215000000001,
+    "markout10s": -87.64500000000001,
+    "markout60s": -55.92500000000001
+   },
+   "optimistic": {
+    "fills": 8163,
+    "endInventory": 70,
+    "pnl": 256.5299999999987,
+    "rebates": 119.2787711250004,
+    "markout10s": 199.4300000000006,
+    "markout60s": 185.29000000000022
+   }
+  },
+  {
+   "gameId": "espn-nba-401909878",
+   "slug": "nba-det-nyk-2026-10-27",
+   "pessimistic": {
+    "fills": 205,
+    "endInventory": -90,
+    "pnl": -25.70999999999998,
+    "rebates": 3.2467869749999987,
+    "markout10s": -9.449999999999998,
+    "markout60s": -8.089999999999993
+   },
+   "optimistic": {
+    "fills": 1106,
+    "endInventory": -80,
+    "pnl": -39.140000000000015,
+    "rebates": 12.076331549999878,
+    "markout10s": -10.440000000000033,
+    "markout60s": -4.644999999999966
+   }
+  },
+  {
+   "gameId": "espn-nba-401909879",
+   "slug": "nba-sac-sas-2026-10-27",
+   "pessimistic": {
+    "fills": 42,
+    "endInventory": -100,
+    "pnl": 0.15000000000000568,
+    "rebates": 0.11661907500000004,
+    "markout10s": -0.9099999999999986,
+    "markout60s": -0.6549999999999989
+   },
+   "optimistic": {
+    "fills": 328,
+    "endInventory": 60,
+    "pnl": -2.2799999999997453,
+    "rebates": 0.5073149999999982,
+    "markout10s": 0.6399999999999928,
+    "markout60s": 0.4350000000000023
+   }
+  },
+  {
+   "gameId": "espn-nba-401909881",
+   "slug": "nba-mia-atl-2026-10-28",
+   "pessimistic": {
+    "fills": 150,
+    "endInventory": -40,
+    "pnl": 23.909999999999997,
+    "rebates": 2.035178924999999,
+    "markout10s": -9.340000000000003,
+    "markout60s": -11.54
+   },
+   "optimistic": {
+    "fills": 1712,
+    "endInventory": 100,
+    "pnl": 24.89000000000008,
+    "rebates": 20.541923175000203,
+    "markout10s": 1.4799999999999933,
+    "markout60s": 18.55000000000001
+   }
+  },
+  {
+   "gameId": "espn-nba-401909882",
+   "slug": "nba-was-cle-2026-10-28",
+   "pessimistic": {
+    "fills": 152,
+    "endInventory": 0,
+    "pnl": 12.770000000000001,
+    "rebates": 2.3649645749999992,
+    "markout10s": -17.245000000000005,
+    "markout60s": -22.465000000000018
+   },
+   "optimistic": {
+    "fills": 1823,
+    "endInventory": 50,
+    "pnl": -26.22000000000024,
+    "rebates": 26.373199800000148,
+    "markout10s": -0.7200000000000091,
+    "markout60s": -28.639999999999937
+   }
+  },
+  {
+   "gameId": "espn-nba-401909883",
+   "slug": "nba-cha-det-2026-10-28",
+   "pessimistic": {
+    "fills": 150,
+    "endInventory": -100,
+    "pnl": -19.220000000000013,
+    "rebates": 2.18890095,
+    "markout10s": -11.915,
+    "markout60s": -11.810000000000002
+   },
+   "optimistic": {
+    "fills": 1427,
+    "endInventory": 90,
+    "pnl": -30.66000000000001,
+    "rebates": 18.664186200000007,
+    "markout10s": -23.905000000000033,
+    "markout60s": -25.534999999999993
+   }
+  },
+  {
+   "gameId": "espn-nba-401909884",
+   "slug": "nba-phi-ind-2026-10-28",
+   "pessimistic": {
+    "fills": 167,
+    "endInventory": 50,
+    "pnl": -2.9800000000000004,
+    "rebates": 2.3275076999999995,
+    "markout10s": -15.240000000000006,
+    "markout60s": -8.770000000000007
+   },
+   "optimistic": {
+    "fills": 3058,
+    "endInventory": -100,
+    "pnl": 75.87000000000025,
+    "rebates": 45.15291667500018,
+    "markout10s": 47.54499999999997,
+    "markout60s": 48.380000000000074
+   }
+  },
+  {
+   "gameId": "espn-nba-401909885",
+   "slug": "nba-orl-tor-2026-10-28",
+   "pessimistic": {
+    "fills": 171,
+    "endInventory": -90,
+    "pnl": -16.219999999999956,
+    "rebates": 2.5043284499999974,
+    "markout10s": -13.215000000000021,
+    "markout60s": -9.865000000000007
+   },
+   "optimistic": {
+    "fills": 739,
+    "endInventory": 90,
+    "pnl": -10.60000000000008,
+    "rebates": 9.407842649999996,
+    "markout10s": -17.689999999999976,
+    "markout60s": -18.130000000000003
+   }
+  },
+  {
+   "gameId": "espn-nba-401909886",
+   "slug": "nba-nyk-chi-2026-10-28",
+   "pessimistic": {
+    "fills": 161,
+    "endInventory": -30,
+    "pnl": -18.09,
+    "rebates": 2.3444879249999997,
+    "markout10s": -23.075000000000003,
+    "markout60s": -18.21500000000001
+   },
+   "optimistic": {
+    "fills": 2415,
+    "endInventory": 10,
+    "pnl": -13.960000000000061,
+    "rebates": 29.10387780000023,
+    "markout10s": -64.92499999999946,
+    "markout60s": -34.10500000000015
+   }
+  },
+  {
+   "gameId": "espn-nba-401909887",
+   "slug": "nba-hou-mil-2026-10-28",
+   "pessimistic": {
+    "fills": 33,
+    "endInventory": -90,
+    "pnl": 20.610000000000003,
+    "rebates": 0.2925726749999999,
+    "markout10s": -0.7250000000000011,
+    "markout60s": 0.2949999999999997
+   },
+   "optimistic": {
+    "fills": 724,
+    "endInventory": -100,
+    "pnl": 29.729999999999993,
+    "rebates": 4.776355725000008,
+    "markout10s": 7.034999999999999,
+    "markout60s": 6.02500000000001
+   }
+  },
+  {
+   "gameId": "espn-nba-401909888",
+   "slug": "nba-gsw-min-2026-10-28",
+   "pessimistic": {
+    "fills": 185,
+    "endInventory": 10,
+    "pnl": -8.680000000000003,
+    "rebates": 2.35438185,
+    "markout10s": -8.774999999999997,
+    "markout60s": -6.6000000000000005
+   },
+   "optimistic": {
+    "fills": 2266,
+    "endInventory": -100,
+    "pnl": 15.750000000000249,
+    "rebates": 16.457480775000068,
+    "markout10s": 27.310000000000006,
+    "markout60s": 16.255000000000038
+   }
+  },
+  {
+   "gameId": "espn-nba-401909889",
+   "slug": "nba-den-nop-2026-10-28",
+   "pessimistic": {
+    "fills": 96,
+    "endInventory": 20,
+    "pnl": -26.7,
+    "rebates": 0.9706425000000003,
+    "markout10s": -10.049999999999997,
+    "markout60s": -14.449999999999992
+   },
+   "optimistic": {
+    "fills": 810,
+    "endInventory": 100,
+    "pnl": -5.600000000000032,
+    "rebates": 8.234235000000007,
+    "markout10s": -17.899999999999974,
+    "markout60s": -16.99999999999999
+   }
+  },
+  {
+   "gameId": "espn-nba-401909890",
+   "slug": "nba-sas-uta-2026-10-28",
+   "pessimistic": {
+    "fills": 205,
+    "endInventory": 50,
+    "pnl": -30.980000000000018,
+    "rebates": 2.8153891499999975,
+    "markout10s": -25.815,
+    "markout60s": -28.87000000000001
+   },
+   "optimistic": {
+    "fills": 3187,
+    "endInventory": 50,
+    "pnl": 103.10000000000015,
+    "rebates": 45.45719265000041,
+    "markout10s": 46.81000000000009,
+    "markout60s": 86.25499999999994
+   }
+  },
+  {
+   "gameId": "espn-nba-401909891",
+   "slug": "nba-okc-dal-2026-10-28",
+   "pessimistic": {
+    "fills": 289,
+    "endInventory": -90,
+    "pnl": -36.99000000000001,
+    "rebates": 4.786807274999998,
+    "markout10s": -24.405000000000012,
+    "markout60s": -18.945000000000007
+   },
+   "optimistic": {
+    "fills": 1357,
+    "endInventory": -70,
+    "pnl": -66.6399999999999,
+    "rebates": 20.4696393000001,
+    "markout10s": -23.354999999999983,
+    "markout60s": -24.189999999999962
+   }
+  },
+  {
+   "gameId": "espn-nba-401909892",
+   "slug": "nba-lal-lac-2026-10-28",
+   "pessimistic": {
+    "fills": 219,
+    "endInventory": 70,
+    "pnl": -34.28999999999998,
+    "rebates": 3.0436190249999986,
+    "markout10s": -14.890000000000018,
+    "markout60s": -24.03500000000003
+   },
+   "optimistic": {
+    "fills": 962,
+    "endInventory": -40,
+    "pnl": -53.139999999999986,
+    "rebates": 12.949636049999967,
+    "markout10s": -21.644999999999992,
+    "markout60s": -43.64
+   }
+  },
+  {
+   "gameId": "espn-nba-401909893",
+   "slug": "nba-cle-atl-2026-10-29",
+   "pessimistic": {
+    "fills": 300,
+    "endInventory": -40,
+    "pnl": -52.8,
+    "rebates": 4.29981,
+    "markout10s": -19.40000000000001,
+    "markout60s": -0.550000000000002
+   },
+   "optimistic": {
+    "fills": 3467,
+    "endInventory": 90,
+    "pnl": 89.79999999999984,
+    "rebates": 45.323369999999606,
+    "markout10s": 57.05000000000011,
+    "markout60s": 109.50000000000021
+   }
+  },
+  {
+   "gameId": "espn-nba-401909894",
+   "slug": "nba-sac-nop-2026-10-29",
+   "pessimistic": {
+    "fills": 120,
+    "endInventory": 20,
+    "pnl": -33.66000000000001,
+    "rebates": 1.4068400999999977,
+    "markout10s": -13.865000000000002,
+    "markout60s": -12.070000000000004
+   },
+   "optimistic": {
+    "fills": 1104,
+    "endInventory": -60,
+    "pnl": -46.440000000000076,
+    "rebates": 13.011039599999995,
+    "markout10s": -41.39499999999976,
+    "markout60s": -29.319999999999986
+   }
+  },
+  {
+   "gameId": "espn-nba-401909895",
+   "slug": "nba-mem-por-2026-10-29",
+   "pessimistic": {
+    "fills": 263,
+    "endInventory": 10,
+    "pnl": 36.329999999999984,
+    "rebates": 4.031592824999996,
+    "markout10s": -16.785,
+    "markout60s": -14.655
+   },
+   "optimistic": {
+    "fills": 2218,
+    "endInventory": -40,
+    "pnl": -3.219999999999985,
+    "rebates": 34.296412950000004,
+    "markout10s": -10.004999999999992,
+    "markout60s": -13.114999999999997
+   }
+  },
+  {
+   "gameId": "espn-nba-401909277",
+   "slug": "nba-cha-was-2026-10-30",
+   "pessimistic": {
+    "fills": 91,
+    "endInventory": -50,
+    "pnl": 35.93000000000001,
+    "rebates": 1.140839625,
+    "markout10s": -7.945,
+    "markout60s": -7.445000000000006
+   },
+   "optimistic": {
+    "fills": 1162,
+    "endInventory": 80,
+    "pnl": -6.870000000000061,
+    "rebates": 13.18392007499995,
+    "markout10s": -20.56499999999988,
+    "markout60s": -4.039999999999992
+   }
+  },
+  {
+   "gameId": "espn-nba-401909278",
+   "slug": "nba-chi-bos-2026-10-30",
+   "pessimistic": {
+    "fills": 18,
+    "endInventory": -80,
+    "pnl": -10.049999999999997,
+    "rebates": 0.08214787499999998,
+    "markout10s": -0.5400000000000016,
+    "markout60s": -0.7800000000000018
+   },
+   "optimistic": {
+    "fills": 343,
+    "endInventory": 30,
+    "pnl": 2.349999999999927,
+    "rebates": 0.9894650250000024,
+    "markout10s": 4.424999999999998,
+    "markout60s": 6.070000000000015
+   }
+  },
+  {
+   "gameId": "espn-nba-401909279",
+   "slug": "nba-det-bkn-2026-10-30",
+   "pessimistic": {
+    "fills": 57,
+    "endInventory": -50,
+    "pnl": 17.820000000000004,
+    "rebates": 0.8136627,
+    "markout10s": -2.2,
+    "markout60s": -4.385000000000001
+   },
+   "optimistic": {
+    "fills": 629,
+    "endInventory": -90,
+    "pnl": -22.55,
+    "rebates": 8.17058257499997,
+    "markout10s": -23.109999999999992,
+    "markout60s": -19.78500000000001
+   }
+  },
+  {
+   "gameId": "espn-nba-401909280",
+   "slug": "nba-nyk-phi-2026-10-30",
+   "pessimistic": {
+    "fills": 330,
+    "endInventory": 0,
+    "pnl": 24.700000000000017,
+    "rebates": 5.370652500000003,
+    "markout10s": -22.804999999999993,
+    "markout60s": 4.30500000000001
+   },
+   "optimistic": {
+    "fills": 3132,
+    "endInventory": 100,
+    "pnl": 78.34999999999982,
+    "rebates": 45.85463392500041,
+    "markout10s": 109.76,
+    "markout60s": 89.60500000000012
+   }
+  },
+  {
+   "gameId": "espn-nba-401909281",
+   "slug": "nba-orl-tor-2026-10-30",
+   "pessimistic": {
+    "fills": 83,
+    "endInventory": -70,
+    "pnl": 48.55999999999999,
+    "rebates": 1.2801497999999993,
+    "markout10s": -11.464999999999996,
+    "markout60s": -5.240000000000002
+   },
+   "optimistic": {
+    "fills": 1851,
+    "endInventory": 90,
+    "pnl": -52.03999999999987,
+    "rebates": 28.817959800000075,
+    "markout10s": -35.415000000000056,
+    "markout60s": -23.615000000000006
+   }
+  },
+  {
+   "gameId": "espn-nba-401909282",
+   "slug": "nba-ind-mia-2026-10-30",
+   "pessimistic": {
+    "fills": 72,
+    "endInventory": 20,
+    "pnl": 4.919999999999998,
+    "rebates": 0.7649133000000004,
+    "markout10s": -6.404999999999995,
+    "markout60s": -6.515
+   },
+   "optimistic": {
+    "fills": 916,
+    "endInventory": 0,
+    "pnl": -7.139999999999901,
+    "rebates": 8.317750799999969,
+    "markout10s": 5.270000000000016,
+    "markout60s": -2.345000000000001
+   }
+  },
+  {
+   "gameId": "espn-nba-401909283",
+   "slug": "nba-hou-dal-2026-10-30",
+   "pessimistic": {
+    "fills": 252,
+    "endInventory": -100,
+    "pnl": -7.800000000000011,
+    "rebates": 3.8763149999999973,
+    "markout10s": -23.049999999999994,
+    "markout60s": -33.5
+   },
+   "optimistic": {
+    "fills": 3986,
+    "endInventory": 100,
+    "pnl": 32.55999999999953,
+    "rebates": 55.11157305000026,
+    "markout10s": -10.875,
+    "markout60s": 28.685
+   }
+  },
+  {
+   "gameId": "espn-nba-401909284",
+   "slug": "nba-lac-min-2026-10-30",
+   "pessimistic": {
+    "fills": 37,
+    "endInventory": -10,
+    "pnl": -1.8199999999999932,
+    "rebates": 0.3917756999999999,
+    "markout10s": -4.024999999999997,
+    "markout60s": -4.349999999999996
+   },
+   "optimistic": {
+    "fills": 784,
+    "endInventory": 100,
+    "pnl": 0.7500000000000142,
+    "rebates": 5.7748545749999955,
+    "markout10s": 4.530000000000014,
+    "markout60s": 2.6249999999999956
+   }
+  },
+  {
+   "gameId": "espn-nba-401909285",
+   "slug": "nba-lal-gsw-2026-10-30",
+   "pessimistic": {
+    "fills": 240,
+    "endInventory": -40,
+    "pnl": 3.1000000000000085,
+    "rebates": 3.303592500000002,
+    "markout10s": -11.549999999999988,
+    "markout60s": -15.650000000000006
+   },
+   "optimistic": {
+    "fills": 1889,
+    "endInventory": 30,
+    "pnl": -38.89999999999988,
+    "rebates": 25.353247500000066,
+    "markout10s": -28.04999999999994,
+    "markout60s": -19.84999999999973
+   }
+  },
+  {
+   "gameId": "espn-nba-401909286",
+   "slug": "nba-den-phx-2026-10-30",
+   "pessimistic": {
+    "fills": 211,
+    "endInventory": -30,
+    "pnl": 11.449999999999985,
+    "rebates": 2.577567224999997,
+    "markout10s": -18.175000000000004,
+    "markout60s": -12.315000000000001
+   },
+   "optimistic": {
+    "fills": 1668,
+    "endInventory": -100,
+    "pnl": -36.89999999999986,
+    "rebates": 20.624892150000125,
+    "markout10s": -12.145000000000003,
+    "markout60s": -18.31499999999992
+   }
+  },
+  {
+   "gameId": "espn-nba-401909896",
+   "slug": "nba-por-uta-2026-10-31",
+   "pessimistic": {
+    "fills": 104,
+    "endInventory": 80,
+    "pnl": -11.899999999999995,
+    "rebates": 1.1310144000000006,
+    "markout10s": -2.6699999999999986,
+    "markout60s": -2.5399999999999983
+   },
+   "optimistic": {
+    "fills": 613,
+    "endInventory": -70,
+    "pnl": 9.850000000000021,
+    "rebates": 4.990672275000022,
+    "markout10s": -6.745000000000018,
+    "markout60s": -4.549999999999998
+   }
+  },
+  {
+   "gameId": "espn-nba-401909897",
+   "slug": "nba-phi-cha-2026-10-31",
+   "pessimistic": {
+    "fills": 310,
+    "endInventory": -40,
+    "pnl": 18.30000000000001,
+    "rebates": 5.028587099999999,
+    "markout10s": -28.625000000000007,
+    "markout60s": -22.82499999999999
+   },
+   "optimistic": {
+    "fills": 3452,
+    "endInventory": -100,
+    "pnl": 73.20999999999978,
+    "rebates": 54.17365072500007,
+    "markout10s": 5.414999999999998,
+    "markout60s": 49.7850000000001
+   }
+  },
+  {
+   "gameId": "espn-nba-401909898",
+   "slug": "nba-atl-nop-2026-10-31",
+   "pessimistic": {
+    "fills": 69,
+    "endInventory": 70,
+    "pnl": 4.72999999999999,
+    "rebates": 0.883849875,
+    "markout10s": -5.834999999999993,
+    "markout60s": -4.889999999999996
+   },
+   "optimistic": {
+    "fills": 1078,
+    "endInventory": -80,
+    "pnl": -45.399999999999736,
+    "rebates": 11.99717969999996,
+    "markout10s": -18.76499999999997,
+    "markout60s": -22.015000000000025
+   }
+  },
+  {
+   "gameId": "espn-nba-401909899",
+   "slug": "nba-sac-mem-2026-10-31",
+   "pessimistic": {
+    "fills": 16,
+    "endInventory": -60,
+    "pnl": -2.719999999999999,
+    "rebates": 0.12905339999999998,
+    "markout10s": -0.25000000000000244,
+    "markout60s": -0.044999999999999485
+   },
+   "optimistic": {
+    "fills": 555,
+    "endInventory": 90,
+    "pnl": -21.45000000000003,
+    "rebates": 5.080776075000013,
+    "markout10s": -8.190000000000014,
+    "markout60s": -21.864999999999984
+   }
+  },
+  {
+   "gameId": "espn-nba-401909900",
+   "slug": "nba-cle-mil-2026-10-31",
+   "pessimistic": {
+    "fills": 76,
+    "endInventory": 100,
+    "pnl": -21.660000000000004,
+    "rebates": 0.8402995500000002,
+    "markout10s": -4.47,
+    "markout60s": -3.7499999999999996
+   },
+   "optimistic": {
+    "fills": 672,
+    "endInventory": -80,
+    "pnl": 0.7499999999999851,
+    "rebates": 6.624172275000014,
+    "markout10s": 0.06999999999999626,
+    "markout60s": -1.1949999999999958
+   }
+  },
+  {
+   "gameId": "espn-nba-401909901",
+   "slug": "nba-min-sas-2026-10-31",
+   "pessimistic": {
+    "fills": 87,
+    "endInventory": -10,
+    "pnl": 11.749999999999993,
+    "rebates": 0.7998653250000005,
+    "markout10s": -9.619999999999997,
+    "markout60s": -10.170000000000007
+   },
+   "optimistic": {
+    "fills": 1237,
+    "endInventory": 90,
+    "pnl": -24.780000000000058,
+    "rebates": 11.714485199999979,
+    "markout10s": -12.170000000000016,
+    "markout60s": -22.13499999999997
+   }
+  },
+  {
+   "gameId": "espn-nba-401909902",
+   "slug": "nba-okc-hou-2026-10-31",
+   "pessimistic": {
+    "fills": 56,
+    "endInventory": -100,
+    "pnl": -30.999999999999986,
+    "rebates": 0.7328700000000006,
+    "markout10s": -6.5500000000000025,
+    "markout60s": -3.150000000000003
+   },
+   "optimistic": {
+    "fills": 996,
+    "endInventory": 100,
+    "pnl": -12.470000000000056,
+    "rebates": 9.937555424999957,
+    "markout10s": 6.204999999999991,
+    "markout60s": 21.715000000000003
+   }
+  },
+  {
+   "gameId": "espn-nba-401909903",
+   "slug": "nba-bos-orl-2026-11-01",
+   "pessimistic": {
+    "fills": 106,
+    "endInventory": -40,
+    "pnl": 17.769999999999996,
+    "rebates": 1.258190775,
+    "markout10s": -6.689999999999994,
+    "markout60s": -4.389999999999997
+   },
+   "optimistic": {
+    "fills": 1568,
+    "endInventory": -80,
+    "pnl": -14.219999999999963,
+    "rebates": 16.691302200000077,
+    "markout10s": -5.800000000000045,
+    "markout60s": -22.05500000000005
+   }
+  },
+  {
+   "gameId": "espn-nba-401909904",
+   "slug": "nba-bkn-ind-2026-11-01",
+   "pessimistic": {
+    "fills": 177,
+    "endInventory": 50,
+    "pnl": -21.229999999999997,
+    "rebates": 2.421925124999998,
+    "markout10s": -23.845000000000006,
+    "markout60s": -16.894999999999985
+   },
+   "optimistic": {
+    "fills": 1468,
+    "endInventory": -80,
+    "pnl": -37.15000000000006,
+    "rebates": 15.21090982499991,
+    "markout10s": -41.18499999999997,
+    "markout60s": -35.629999999999924
+   }
+  },
+  {
+   "gameId": "espn-nba-401909905",
+   "slug": "nba-lac-gsw-2026-11-01",
+   "pessimistic": {
+    "fills": 99,
+    "endInventory": -90,
+    "pnl": -48.90999999999999,
+    "rebates": 1.2236316749999991,
+    "markout10s": -9.344999999999999,
+    "markout60s": -8.485000000000005
+   },
+   "optimistic": {
+    "fills": 1041,
+    "endInventory": 70,
+    "pnl": -21.459999999999937,
+    "rebates": 11.4126439499999,
+    "markout10s": -38.329999999999835,
+    "markout60s": -27.525000000000006
+   }
+  },
+  {
+   "gameId": "espn-nba-401909906",
+   "slug": "nba-tor-lal-2026-11-01",
+   "pessimistic": {
+    "fills": 111,
+    "endInventory": 30,
+    "pnl": 4.509999999999998,
+    "rebates": 0.8798895750000009,
+    "markout10s": -4.800000000000003,
+    "markout60s": -6.6649999999999965
+   },
+   "optimistic": {
+    "fills": 1713,
+    "endInventory": -90,
+    "pnl": 36.84000000000002,
+    "rebates": 8.15801654999993,
+    "markout10s": 24.750000000000025,
+    "markout60s": 31.565000000000033
+   }
+  },
+  {
+   "gameId": "espn-nba-401909907",
+   "slug": "nba-okc-cle-2026-11-02",
+   "pessimistic": {
+    "fills": 138,
+    "endInventory": 80,
+    "pnl": -32.80000000000002,
+    "rebates": 2.3318099999999995,
+    "markout10s": -29.100000000000023,
+    "markout60s": -34.74999999999999
+   },
+   "optimistic": {
+    "fills": 2466,
+    "endInventory": 0,
+    "pnl": -41.90000000000004,
+    "rebates": 43.08450750000042,
+    "markout10s": -89.64999999999986,
+    "markout60s": -42.29999999999985
+   }
+  },
+  {
+   "gameId": "espn-nba-401909908",
+   "slug": "nba-det-cha-2026-11-02",
+   "pessimistic": {
+    "fills": 64,
+    "endInventory": -60,
+    "pnl": 4.499999999999997,
+    "rebates": 0.8609199000000003,
+    "markout10s": -9.300000000000002,
+    "markout60s": -13.104999999999997
+   },
+   "optimistic": {
+    "fills": 863,
+    "endInventory": -70,
+    "pnl": -19.130000000000067,
+    "rebates": 7.830582075000035,
+    "markout10s": -18.900000000000045,
+    "markout60s": -23.655000000000026
+   }
+  },
+  {
+   "gameId": "espn-nba-401909909",
+   "slug": "nba-atl-ind-2026-11-02",
+   "pessimistic": {
+    "fills": 83,
+    "endInventory": -30,
+    "pnl": -2.2300000000000004,
+    "rebates": 0.6735467250000003,
+    "markout10s": -10.345,
+    "markout60s": -13.464999999999998
+   },
+   "optimistic": {
+    "fills": 2842,
+    "endInventory": 40,
+    "pnl": 22.790000000000052,
+    "rebates": 28.87731157500009,
+    "markout10s": 46.17000000000006,
+    "markout60s": 32.409999999999954
+   }
+  },
+  {
+   "gameId": "espn-nba-401909910",
+   "slug": "nba-bkn-nyk-2026-11-02",
+   "pessimistic": {
+    "fills": 68,
+    "endInventory": -80,
+    "pnl": -19.90000000000002,
+    "rebates": 0.7493584499999999,
+    "markout10s": -10.924999999999997,
+    "markout60s": -12.900000000000004
+   },
+   "optimistic": {
+    "fills": 919,
+    "endInventory": 70,
+    "pnl": 11.309999999999803,
+    "rebates": 9.249474074999926,
+    "markout10s": -16.650000000000034,
+    "markout60s": -21.32499999999996
+   }
+  },
+  {
+   "gameId": "espn-nba-401909911",
+   "slug": "nba-was-orl-2026-11-02",
+   "pessimistic": {
+    "fills": 81,
+    "endInventory": -70,
+    "pnl": 25.540000000000006,
+    "rebates": 1.2808622999999992,
+    "markout10s": -10.709999999999999,
+    "markout60s": -9.884999999999998
+   },
+   "optimistic": {
+    "fills": 1126,
+    "endInventory": -100,
+    "pnl": -51.62000000000001,
+    "rebates": 16.879341450000048,
+    "markout10s": -50.32,
+    "markout60s": -69.22499999999991
+   }
+  },
+  {
+   "gameId": "espn-nba-401909912",
+   "slug": "nba-chi-phi-2026-11-02",
+   "pessimistic": {
+    "fills": 76,
+    "endInventory": -40,
+    "pnl": 0.46000000000000796,
+    "rebates": 0.5777307,
+    "markout10s": -6.1899999999999995,
+    "markout60s": -4.024999999999995
+   },
+   "optimistic": {
+    "fills": 1283,
+    "endInventory": -90,
+    "pnl": 21.659999999999926,
+    "rebates": 6.762138300000012,
+    "markout10s": 8.654999999999943,
+    "markout60s": 20.945000000000014
+   }
+  },
+  {
+   "gameId": "espn-nba-401909913",
+   "slug": "nba-sac-dal-2026-11-02",
+   "pessimistic": {
+    "fills": 124,
+    "endInventory": 100,
+    "pnl": -1.030000000000003,
+    "rebates": 1.6928901750000005,
+    "markout10s": -18.07500000000001,
+    "markout60s": -22.450000000000006
+   },
+   "optimistic": {
+    "fills": 1212,
+    "endInventory": -60,
+    "pnl": -39.92000000000009,
+    "rebates": 16.760317200000102,
+    "markout10s": -16.01999999999998,
+    "markout60s": -10.090000000000027
+   }
+  },
+  {
+   "gameId": "espn-nba-401909914",
+   "slug": "nba-nop-mem-2026-11-02",
+   "pessimistic": {
+    "fills": 108,
+    "endInventory": 80,
+    "pnl": -53.680000000000014,
+    "rebates": 1.6861376999999989,
+    "markout10s": -11.630000000000003,
+    "markout60s": -12.985
+   },
+   "optimistic": {
+    "fills": 7163,
+    "endInventory": -90,
+    "pnl": 406.4599999999986,
+    "rebates": 118.46776364999863,
+    "markout10s": 338.4399999999998,
+    "markout60s": 335.46499999999986
+   }
+  },
+  {
+   "gameId": "espn-nba-401909915",
+   "slug": "nba-mil-min-2026-11-02",
+   "pessimistic": {
+    "fills": 49,
+    "endInventory": -30,
+    "pnl": -1.2299999999999933,
+    "rebates": 0.4845387749999999,
+    "markout10s": -3.460000000000001,
+    "markout60s": -6.659999999999997
+   },
+   "optimistic": {
+    "fills": 1037,
+    "endInventory": 90,
+    "pnl": -3.3800000000000665,
+    "rebates": 8.538969749999954,
+    "markout10s": -11.48000000000002,
+    "markout60s": -1.1999999999999946
+   }
+  },
+  {
+   "gameId": "espn-nba-401909916",
+   "slug": "nba-bos-hou-2026-11-02",
+   "pessimistic": {
+    "fills": 84,
+    "endInventory": -100,
+    "pnl": -24.88000000000001,
+    "rebates": 0.928854300000001,
+    "markout10s": -9.420000000000009,
+    "markout60s": -6.220000000000004
+   },
+   "optimistic": {
+    "fills": 925,
+    "endInventory": 70,
+    "pnl": -16.400000000000134,
+    "rebates": 11.457518549999934,
+    "markout10s": -36.48499999999994,
+    "markout60s": -19.40999999999998
+   }
+  },
+  {
+   "gameId": "espn-nba-401909917",
+   "slug": "nba-uta-sas-2026-11-02",
+   "pessimistic": {
+    "fills": 29,
+    "endInventory": -50,
+    "pnl": -1.6800000000000068,
+    "rebates": 0.11968395000000001,
+    "markout10s": -0.884999999999998,
+    "markout60s": -1.5000000000000002
+   },
+   "optimistic": {
+    "fills": 379,
+    "endInventory": 70,
+    "pnl": -5.470000000000013,
+    "rebates": 1.1594937750000025,
+    "markout10s": 3.3900000000000166,
+    "markout60s": 3.2499999999999885
+   }
+  },
+  {
+   "gameId": "espn-nba-401909918",
+   "slug": "nba-por-den-2026-11-02",
+   "pessimistic": {
+    "fills": 115,
+    "endInventory": 30,
+    "pnl": 33.13999999999999,
+    "rebates": 1.6520673,
+    "markout10s": -10.994999999999996,
+    "markout60s": -16.695
+   },
+   "optimistic": {
+    "fills": 1947,
+    "endInventory": -90,
+    "pnl": -1.319999999999939,
+    "rebates": 27.686657100000147,
+    "markout10s": -13.680000000000105,
+    "markout60s": 17.224999999999998
+   }
+  },
+  {
+   "gameId": "espn-nba-401909919",
+   "slug": "nba-phx-gsw-2026-11-02",
+   "pessimistic": {
+    "fills": 95,
+    "endInventory": 70,
+    "pnl": 17,
+    "rebates": 1.3521150000000006,
+    "markout10s": -10.549999999999997,
+    "markout60s": -18.6
+   },
+   "optimistic": {
+    "fills": 4098,
+    "endInventory": -20,
+    "pnl": 89.59999999999985,
+    "rebates": 62.04999000000058,
+    "markout10s": 116.7000000000001,
+    "markout60s": 135.65000000000006
+   }
+  },
+  {
+   "gameId": "espn-nba-401909920",
+   "slug": "nba-tor-lac-2026-11-02",
+   "pessimistic": {
+    "fills": 106,
+    "endInventory": -20,
+    "pnl": -51.099999999999994,
+    "rebates": 1.4117624999999996,
+    "markout10s": -11.900000000000002,
+    "markout60s": -17.400000000000002
+   },
+   "optimistic": {
+    "fills": 1984,
+    "endInventory": 100,
+    "pnl": -55.30000000000013,
+    "rebates": 26.818612500000086,
+    "markout10s": -36.150000000000105,
+    "markout60s": -45.10000000000004
+   }
+  },
+  {
+   "gameId": "espn-nba-401909921",
+   "slug": "nba-mia-lal-2026-11-02",
+   "pessimistic": {
+    "fills": 104,
+    "endInventory": -100,
+    "pnl": 2.7100000000000364,
+    "rebates": 1.198037325,
+    "markout10s": -11.030000000000005,
+    "markout60s": -12.504999999999997
+   },
+   "optimistic": {
+    "fills": 936,
+    "endInventory": -80,
+    "pnl": -35.37000000000009,
+    "rebates": 10.310658974999933,
+    "markout10s": -15.10500000000005,
+    "markout60s": -15.775000000000047
+   }
+  },
+  {
+   "gameId": "espn-nba-401909922",
+   "slug": "nba-phi-det-2026-11-04",
+   "pessimistic": {
+    "fills": 121,
+    "endInventory": 70,
+    "pnl": -25.17,
+    "rebates": 1.125374925,
+    "markout10s": -8.375000000000004,
+    "markout60s": -5.07
+   },
+   "optimistic": {
+    "fills": 1620,
+    "endInventory": 100,
+    "pnl": -21.439999999999955,
+    "rebates": 10.702065149999909,
+    "markout10s": -12.440000000000012,
+    "markout60s": -17.43000000000007
+   }
+  },
+  {
+   "gameId": "espn-nba-401909923",
+   "slug": "nba-atl-was-2026-11-04",
+   "pessimistic": {
+    "fills": 59,
+    "endInventory": 90,
+    "pnl": -26.560000000000002,
+    "rebates": 0.8637138000000003,
+    "markout10s": -6.1999999999999975,
+    "markout60s": -0.35000000000000037
+   },
+   "optimistic": {
+    "fills": 1014,
+    "endInventory": -60,
+    "pnl": -42.579999999999984,
+    "rebates": 11.027268299999957,
+    "markout10s": -41.44000000000003,
+    "markout60s": -51.82000000000015
+   }
+  },
+  {
+   "gameId": "espn-nba-401909924",
+   "slug": "nba-mil-bos-2026-11-04",
+   "pessimistic": {
+    "fills": 78,
+    "endInventory": 40,
+    "pnl": 2.3300000000000125,
+    "rebates": 0.7403132250000001,
+    "markout10s": -13.620000000000006,
+    "markout60s": -11.304999999999996
+   },
+   "optimistic": {
+    "fills": 4244,
+    "endInventory": 20,
+    "pnl": 127.24999999999996,
+    "rebates": 47.750005874999985,
+    "markout10s": 143.94499999999982,
+    "markout60s": 160.5
+   }
+  },
+  {
+   "gameId": "espn-nba-401909925",
+   "slug": "nba-cha-bkn-2026-11-04",
+   "pessimistic": {
+    "fills": 78,
+    "endInventory": 20,
+    "pnl": -35.74000000000001,
+    "rebates": 1.1040853499999999,
+    "markout10s": -12.765000000000006,
+    "markout60s": -4.7
+   },
+   "optimistic": {
+    "fills": 1370,
+    "endInventory": 60,
+    "pnl": -86.68000000000009,
+    "rebates": 19.80079410000002,
+    "markout10s": -68.51499999999982,
+    "markout60s": -63.92500000000004
+   }
+  },
+  {
+   "gameId": "espn-nba-401909926",
+   "slug": "nba-chi-nyk-2026-11-04",
+   "pessimistic": {
+    "fills": 18,
+    "endInventory": -20,
+    "pnl": 5.4999999999999964,
+    "rebates": 0.05349150000000001,
+    "markout10s": -0.6349999999999989,
+    "markout60s": -0.5349999999999988
+   },
+   "optimistic": {
+    "fills": 115,
+    "endInventory": -70,
+    "pnl": -1.799999999999926,
+    "rebates": 0.5078248500000001,
+    "markout10s": -2.390000000000001,
+    "markout60s": -2.8600000000000017
+   }
+  },
+  {
+   "gameId": "espn-nba-401909927",
+   "slug": "nba-ind-mem-2026-11-04",
+   "pessimistic": {
+    "fills": 134,
+    "endInventory": 60,
+    "pnl": -65.23999999999995,
+    "rebates": 2.0296757999999984,
+    "markout10s": -27.81,
+    "markout60s": -20.29000000000001
+   },
+   "optimistic": {
+    "fills": 2101,
+    "endInventory": -90,
+    "pnl": -83.6499999999995,
+    "rebates": 29.5651926750001,
+    "markout10s": -53.640000000000015,
+    "markout60s": -25.699999999999996
+   }
+  },
+  {
+   "gameId": "espn-nba-401909928",
+   "slug": "nba-uta-nop-2026-11-04",
+   "pessimistic": {
+    "fills": 142,
+    "endInventory": -100,
+    "pnl": -80.82999999999998,
+    "rebates": 2.1607341749999995,
+    "markout10s": -36.774999999999984,
+    "markout60s": -35.77000000000002
+   },
+   "optimistic": {
+    "fills": 3931,
+    "endInventory": 90,
+    "pnl": -55.59999999999974,
+    "rebates": 61.095983100000204,
+    "markout10s": 5.50999999999995,
+    "markout60s": 31.590000000000074
+   }
+  },
+  {
+   "gameId": "espn-nba-401909929",
+   "slug": "nba-cle-okc-2026-11-04",
+   "pessimistic": {
+    "fills": 78,
+    "endInventory": -40,
+    "pnl": -18.370000000000037,
+    "rebates": 0.5093985750000005,
+    "markout10s": -5.164999999999997,
+    "markout60s": -3.739999999999997
+   },
+   "optimistic": {
+    "fills": 723,
+    "endInventory": 70,
+    "pnl": -32.709999999999965,
+    "rebates": 4.78378642500001,
+    "markout10s": -11.72500000000003,
+    "markout60s": -18.434999999999988
+   }
+  },
+  {
+   "gameId": "espn-nba-401909930",
+   "slug": "nba-min-hou-2026-11-04",
+   "pessimistic": {
+    "fills": 102,
+    "endInventory": 100,
+    "pnl": -63.40000000000001,
+    "rebates": 1.6865399999999993,
+    "markout10s": -22.699999999999992,
+    "markout60s": -20.999999999999996
+   },
+   "optimistic": {
+    "fills": 1605,
+    "endInventory": -70,
+    "pnl": -53.100000000000065,
+    "rebates": 25.67421750000003,
+    "markout10s": -67.79999999999998,
+    "markout60s": -97.44999999999997
+   }
+  },
+  {
+   "gameId": "espn-nba-401909931",
+   "slug": "nba-tor-den-2026-11-04",
+   "pessimistic": {
+    "fills": 87,
+    "endInventory": 10,
+    "pnl": 18.93,
+    "rebates": 1.2160736250000002,
+    "markout10s": -9.875000000000005,
+    "markout60s": -8.199999999999998
+   },
+   "optimistic": {
+    "fills": 659,
+    "endInventory": -70,
+    "pnl": -42.00999999999996,
+    "rebates": 10.139276324999997,
+    "markout10s": -35.92999999999993,
+    "markout60s": -38.729999999999954
+   }
+  },
+  {
+   "gameId": "espn-nba-401909932",
+   "slug": "nba-por-phx-2026-11-04",
+   "pessimistic": {
+    "fills": 69,
+    "endInventory": 50,
+    "pnl": -34.769999999999996,
+    "rebates": 0.5653232250000004,
+    "markout10s": -2.049999999999998,
+    "markout60s": -2.235
+   },
+   "optimistic": {
+    "fills": 1402,
+    "endInventory": -100,
+    "pnl": -3.3800000000000154,
+    "rebates": 8.969659499999874,
+    "markout10s": 1.7350000000000125,
+    "markout60s": 7.105000000000041
+   }
+  },
+  {
+   "gameId": "espn-nba-401909933",
+   "slug": "nba-dal-sas-2026-11-04",
+   "pessimistic": {
+    "fills": 80,
+    "endInventory": -20,
+    "pnl": 2.8000000000000043,
+    "rebates": 0.9340199999999995,
+    "markout10s": -13.300000000000006,
+    "markout60s": -4.349999999999998
+   },
+   "optimistic": {
+    "fills": 1703,
+    "endInventory": -70,
+    "pnl": -23.5000000000001,
+    "rebates": 24.310252500000114,
+    "markout10s": -71.9500000000001,
+    "markout60s": 38.25000000000003
+   }
+  },
+  {
+   "gameId": "espn-nba-401909934",
+   "slug": "nba-lal-sac-2026-11-04",
+   "pessimistic": {
+    "fills": 68,
+    "endInventory": 60,
+    "pnl": -13.279999999999998,
+    "rebates": 0.49297649999999965,
+    "markout10s": -4.59,
+    "markout60s": -5.580000000000003
+   },
+   "optimistic": {
+    "fills": 1499,
+    "endInventory": -90,
+    "pnl": 17.850000000000012,
+    "rebates": 7.399785975000034,
+    "markout10s": 13.799999999999992,
+    "markout60s": 25.61500000000001
+   }
+  },
+  {
+   "gameId": "espn-nba-401909935",
+   "slug": "nba-mia-lac-2026-11-04",
+   "pessimistic": {
+    "fills": 205,
+    "endInventory": -50,
+    "pnl": 21.49999999999997,
+    "rebates": 3.3862274999999977,
+    "markout10s": -46.14999999999999,
+    "markout60s": -26.50000000000002
+   },
+   "optimistic": {
+    "fills": 6900,
+    "endInventory": 80,
+    "pnl": 115.50000000000007,
+    "rebates": 114.21875249999852,
+    "markout10s": 65.30000000000076,
+    "markout60s": 161.84999999999982
+   }
+  },
+  {
+   "gameId": "espn-nba-401909936",
+   "slug": "nba-orl-phx-2026-11-05",
+   "pessimistic": {
+    "fills": 81,
+    "endInventory": -70,
+    "pnl": -6.019999999999996,
+    "rebates": 0.7830466500000004,
+    "markout10s": -7.299999999999999,
+    "markout60s": -6.875000000000009
+   },
+   "optimistic": {
+    "fills": 620,
+    "endInventory": -100,
+    "pnl": -38.62999999999991,
+    "rebates": 5.892271275000038,
+    "markout10s": -35.199999999999946,
+    "markout60s": -29.94499999999999
+   }
+  },
+  {
+   "gameId": "espn-nba-401909937",
+   "slug": "nba-mia-gsw-2026-11-05",
+   "pessimistic": {
+    "fills": 98,
+    "endInventory": 80,
+    "pnl": 24.819999999999986,
+    "rebates": 1.3307874000000006,
+    "markout10s": -9.750000000000004,
+    "markout60s": -16.565
+   },
+   "optimistic": {
+    "fills": 1115,
+    "endInventory": 70,
+    "pnl": -51.38000000000001,
+    "rebates": 10.755058049999853,
+    "markout10s": -33.609999999999864,
+    "markout60s": -52.999999999999964
+   }
+  }
+ ]
+}
