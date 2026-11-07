@@ -1,0 +1,9092 @@
+{
+ "createdAt": "2026-11-07T04:16:27.263Z",
+ "source": "Pendulum Flow Polymarket Orderbook Archive v3.1 (CC BY-NC 4.0), https://archive.pendulumflow.com/",
+ "archiveHours": [
+  "2026-10-27T00:00:00.000Z",
+  "2026-11-06T22:00:00.000Z"
+ ],
+ "config": {
+  "signal": "model",
+  "initialCash": 1000,
+  "orderBudget": 10,
+  "maxExposure": 100,
+  "minEdge": 0.04,
+  "feeMode": "market",
+  "feePerShare": 0.02,
+  "delayMs": 3000,
+  "maxAgeMs": 2000,
+  "maxMetadataAgeMs": 21600000
+ },
+ "feeSchedule": {
+  "exponent": 1,
+  "rate": 0.05,
+  "takerOnly": true
+ },
+ "games": 74,
+ "gamesReplayed": 74,
+ "skipped": [],
+ "summary": [
+  {
+   "scoreLagMs": 5000,
+   "candidate": {
+    "games": 74,
+    "trades": 5,
+    "winningTrades": 3,
+    "netPnl": -2.130089999999882,
+    "feesPaid": 0.85009,
+    "netPnl95": [
+     -38.77875999999992,
+     31.726080000000138
+    ]
+   },
+   "baseline": {
+    "games": 74,
+    "trades": 5,
+    "winningTrades": 4,
+    "netPnl": 20.78481000000022,
+    "feesPaid": 0.98519,
+    "netPnl95": [
+     -13.75707999999986,
+     60.03596000000039
+    ]
+   }
+  },
+  {
+   "scoreLagMs": 15000,
+   "candidate": {
+    "games": 74,
+    "trades": 7,
+    "winningTrades": 4,
+    "netPnl": -10.205839999999966,
+    "feesPaid": 1.29584,
+    "netPnl95": [
+     -48.89980000000003,
+     25.036089999999945
+    ]
+   },
+   "baseline": {
+    "games": 74,
+    "trades": 4,
+    "winningTrades": 2,
+    "netPnl": -9.144809999999893,
+    "feesPaid": 0.8548100000000001,
+    "netPnl95": [
+     -41.902659999999855,
+     18.41168000000016
+    ]
+   }
+  },
+  {
+   "scoreLagMs": 30000,
+   "candidate": {
+    "games": 74,
+    "trades": 4,
+    "winningTrades": 4,
+    "netPnl": 18.269010000000094,
+    "feesPaid": 0.6209899999999999,
+    "netPnl95": [
+     2.5370400000000473,
+     37.99007000000006
+    ]
+   },
+   "baseline": {
+    "games": 74,
+    "trades": 6,
+    "winningTrades": 2,
+    "netPnl": -28.86288999999988,
+    "feesPaid": 1.51289,
+    "netPnl95": [
+     -71.7776899999999,
+     5.974650000000224
+    ]
+   }
+  }
+ ],
+ "forecastBrier": {
+  "candidate": {
+   "games": 74,
+   "model": 0.1624698311482454,
+   "market": 0.14258737950455264
+  },
+  "baseline": {
+   "games": 74,
+   "model": 0.16341165749226153,
+   "market": 0.14258737950455264
+  }
+ },
+ "assumptions": [
+  "Each game replayed on its own with the configured cash; the combined exposure cap across games is not applied",
+  "One order attempt per game, home outcome only, as the replay engine allows",
+  "Score states are the first ESPN play in each regulation minute, timed by play wall clock plus the stated lag",
+  "Book snapshots keep 30 levels per side; level changes over 5 cents from the best price are dropped",
+  "Every fill pays a 5% taker fee schedule; markets were assumed open for orders while the book updated",
+  "Market Brier uses the bid-ask midpoint at each score state, skipping states without a quote in the prior minute"
+ ],
+ "perGame": [
+  {
+   "gameId": "espn-nba-401909872",
+   "slug": "nba-ind-mil-2026-10-26",
+   "homeWon": 1,
+   "quotes": 800,
+   "bookErrors": 0,
+   "forecast": {
+    "candidate": {
+     "n": 45,
+     "model": 0.2641391050252733,
+     "market": 0.34173500000000007
+    },
+    "baseline": {
+     "n": 45,
+     "model": 0.24786996887971935,
+     "market": 0.34173500000000007
+    }
+   },
+   "scenarios": [
+    {
+     "scoreLagMs": 5000,
+     "observations": 422,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793059840641,
+        "probability": 0.5358908620001133,
+        "shares": 22
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793059845641
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793059840641,
+        "probability": 0.5484168986020356,
+        "shares": 22
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793059845641
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 15000,
+     "observations": 365,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793059840641,
+        "probability": 0.5358908620001133,
+        "shares": 22
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793059845641
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793059840641,
+        "probability": 0.5484168986020356,
+        "shares": 22
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793059845641
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 30000,
+     "observations": 260,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793059840641,
+        "probability": 0.5358908620001133,
+        "shares": 22
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793059845641
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793059840641,
+        "probability": 0.5484168986020356,
+        "shares": 22
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793059845641
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "gameId": "espn-nba-401909874",
+   "slug": "nba-atl-hou-2026-10-26",
+   "homeWon": 1,
+   "quotes": 517,
+   "bookErrors": 0,
+   "forecast": {
+    "candidate": {
+     "n": 43,
+     "model": 0.12804031926332718,
+     "market": 0.1289588430232558
+    },
+    "baseline": {
+     "n": 43,
+     "model": 0.13852770739542683,
+     "market": 0.1289588430232558
+    }
+   },
+   "scenarios": [
+    {
+     "scoreLagMs": 5000,
+     "observations": 299,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793064157861,
+        "probability": 0.7189524386164741,
+        "shares": 15
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793064162861
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793064157861,
+        "probability": 0.6940616261703291,
+        "shares": 15
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793064162861
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 15000,
+     "observations": 266,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793064157861,
+        "probability": 0.7189524386164741,
+        "shares": 15
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793064162861
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793064157861,
+        "probability": 0.6940616261703291,
+        "shares": 15
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793064162861
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 30000,
+     "observations": 221,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793064157861,
+        "probability": 0.7189524386164741,
+        "shares": 15
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793064162861
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793064157861,
+        "probability": 0.6940616261703291,
+        "shares": 15
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793064162861
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "gameId": "espn-nba-401909875",
+   "slug": "nba-mem-uta-2026-10-26",
+   "homeWon": 0,
+   "quotes": 803,
+   "bookErrors": 0,
+   "forecast": {
+    "candidate": {
+     "n": 40,
+     "model": 0.08973941771717776,
+     "market": 0.08659750000000002
+    },
+    "baseline": {
+     "n": 40,
+     "model": 0.11298400441746445,
+     "market": 0.08659750000000002
+    }
+   },
+   "scenarios": [
+    {
+     "scoreLagMs": 5000,
+     "observations": 372,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793066925148,
+        "probability": 0.24384972398465385,
+        "shares": 50
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793066930148
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793063508818,
+        "probability": 0.5156266382320753,
+        "shares": 21
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793063513818
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 15000,
+     "observations": 327,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793066925148,
+        "probability": 0.24384972398465385,
+        "shares": 50
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793066930148
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793063508818,
+        "probability": 0.5156266382320753,
+        "shares": 21
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793063513818
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 30000,
+     "observations": 282,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793066925148,
+        "probability": 0.24384972398465385,
+        "shares": 50
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793066930148
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793063508818,
+        "probability": 0.5156266382320753,
+        "shares": 21
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793063513818
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "gameId": "espn-nba-401909876",
+   "slug": "nba-gsw-den-2026-10-26",
+   "homeWon": 0,
+   "quotes": 1314,
+   "bookErrors": 0,
+   "forecast": {
+    "candidate": {
+     "n": 44,
+     "model": 0.3516859908429492,
+     "market": 0.3047321022727273
+    },
+    "baseline": {
+     "n": 44,
+     "model": 0.28576152026028695,
+     "market": 0.3047321022727273
+    }
+   },
+   "scenarios": [
+    {
+     "scoreLagMs": 5000,
+     "observations": 682,
+     "candidate": {
+      "netPnl": -9.491039999999998,
+      "fills": 1,
+      "feesPaid": 0.13104,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793067185423,
+        "probability": 0.79888282885596,
+        "shares": 13
+       },
+       {
+        "status": "filled",
+        "at": 1793067188551,
+        "shares": 13,
+        "cost": 9.49104
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793067363618,
+        "probability": 0.6555354762299791,
+        "shares": 16
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793067368618
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 15000,
+     "observations": 608,
+     "candidate": {
+      "netPnl": -9.363839999999982,
+      "fills": 1,
+      "feesPaid": 0.13384,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793067206572,
+        "probability": 0.79888282885596,
+        "shares": 13
+       },
+       {
+        "status": "filled",
+        "at": 1793067210145,
+        "shares": 13,
+        "cost": 9.36384
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793067363618,
+        "probability": 0.6555354762299791,
+        "shares": 16
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793067368618
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 30000,
+     "observations": 482,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793067210145,
+        "probability": 0.79888282885596,
+        "shares": 13
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793067215145
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793067363618,
+        "probability": 0.6555354762299791,
+        "shares": 16
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793067368618
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "gameId": "espn-nba-401909877",
+   "slug": "nba-bkn-bos-2026-10-27",
+   "homeWon": 1,
+   "quotes": 1835,
+   "bookErrors": 0,
+   "forecast": {
+    "candidate": {
+     "n": 47,
+     "model": 0.07491837709652885,
+     "market": 0.07527978723404256
+    },
+    "baseline": {
+     "n": 47,
+     "model": 0.12118740642309651,
+     "market": 0.07527978723404256
+    }
+   },
+   "scenarios": [
+    {
+     "scoreLagMs": 5000,
+     "observations": 665,
+     "candidate": {
+      "netPnl": 2.5370400000000473,
+      "fills": 1,
+      "feesPaid": 0.10296,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793145848776,
+        "probability": 0.8372461298562264,
+        "shares": 12
+       },
+       {
+        "status": "filled",
+        "at": 1793145853241,
+        "shares": 12,
+        "cost": 9.462959999999999
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793151053103,
+        "probability": 0.8371022949255617,
+        "shares": 12
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793151058103
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 15000,
+     "observations": 614,
+     "candidate": {
+      "netPnl": 2.5370400000000473,
+      "fills": 1,
+      "feesPaid": 0.10296,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793145848776,
+        "probability": 0.8372461298562264,
+        "shares": 12
+       },
+       {
+        "status": "filled",
+        "at": 1793145853241,
+        "shares": 12,
+        "cost": 9.462959999999999
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793151053103,
+        "probability": 0.8371022949255617,
+        "shares": 12
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793151058103
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 30000,
+     "observations": 463,
+     "candidate": {
+      "netPnl": 2.5370400000000473,
+      "fills": 1,
+      "feesPaid": 0.10296,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793145848776,
+        "probability": 0.8372461298562264,
+        "shares": 12
+       },
+       {
+        "status": "filled",
+        "at": 1793145853241,
+        "shares": 12,
+        "cost": 9.462959999999999
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793151053103,
+        "probability": 0.8371022949255617,
+        "shares": 12
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793151058103
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "gameId": "espn-nba-401909878",
+   "slug": "nba-det-nyk-2026-10-27",
+   "homeWon": 1,
+   "quotes": 1009,
+   "bookErrors": 0,
+   "forecast": {
+    "candidate": {
+     "n": 45,
+     "model": 0.24405536131657657,
+     "market": 0.12791756666666657
+    },
+    "baseline": {
+     "n": 45,
+     "model": 0.19964882586641355,
+     "market": 0.12791756666666657
+    }
+   },
+   "scenarios": [
+    {
+     "scoreLagMs": 5000,
+     "observations": 462,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     }
+    },
+    {
+     "scoreLagMs": 15000,
+     "observations": 389,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     }
+    },
+    {
+     "scoreLagMs": 30000,
+     "observations": 312,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     }
+    }
+   ]
+  },
+  {
+   "gameId": "espn-nba-401909879",
+   "slug": "nba-sac-sas-2026-10-27",
+   "homeWon": 1,
+   "quotes": 227,
+   "bookErrors": 0,
+   "forecast": {
+    "candidate": {
+     "n": 24,
+     "model": 0.0076995908141968905,
+     "market": 0.0019489375
+    },
+    "baseline": {
+     "n": 24,
+     "model": 0.023020362324975844,
+     "market": 0.0019489375
+    }
+   },
+   "scenarios": [
+    {
+     "scoreLagMs": 5000,
+     "observations": 97,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     }
+    },
+    {
+     "scoreLagMs": 15000,
+     "observations": 82,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     }
+    },
+    {
+     "scoreLagMs": 30000,
+     "observations": 53,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     }
+    }
+   ]
+  },
+  {
+   "gameId": "espn-nba-401909881",
+   "slug": "nba-mia-atl-2026-10-28",
+   "homeWon": 0,
+   "quotes": 507,
+   "bookErrors": 0,
+   "forecast": {
+    "candidate": {
+     "n": 38,
+     "model": 0.1818443432420546,
+     "market": 0.12337763157894734
+    },
+    "baseline": {
+     "n": 38,
+     "model": 0.1647087787316951,
+     "market": 0.12337763157894734
+    }
+   },
+   "scenarios": [
+    {
+     "scoreLagMs": 5000,
+     "observations": 280,
+     "candidate": {
+      "netPnl": -9.898339999999962,
+      "fills": 1,
+      "feesPaid": 0.20834,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793229046042,
+        "probability": 0.65979492487036,
+        "shares": 17
+       },
+       {
+        "status": "filled",
+        "at": 1793229049182,
+        "shares": 17,
+        "cost": 9.89834
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793229237863,
+        "probability": 0.6066927251975083,
+        "shares": 17
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793229242863
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 15000,
+     "observations": 253,
+     "candidate": {
+      "netPnl": -9.316080000000056,
+      "fills": 1,
+      "feesPaid": 0.19608,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793229062441,
+        "probability": 0.65979492487036,
+        "shares": 16
+       },
+       {
+        "status": "filled",
+        "at": 1793229066456,
+        "shares": 16,
+        "cost": 9.31608
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793229237863,
+        "probability": 0.6066927251975083,
+        "shares": 17
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793229242863
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 30000,
+     "observations": 209,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793229095109,
+        "probability": 0.65979492487036,
+        "shares": 17
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793229100109
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793229245718,
+        "probability": 0.6066927251975083,
+        "shares": 18
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793229250718
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "gameId": "espn-nba-401909882",
+   "slug": "nba-was-cle-2026-10-28",
+   "homeWon": 1,
+   "quotes": 557,
+   "bookErrors": 0,
+   "forecast": {
+    "candidate": {
+     "n": 43,
+     "model": 0.1435760199640083,
+     "market": 0.15873295930232556
+    },
+    "baseline": {
+     "n": 43,
+     "model": 0.20163743922471258,
+     "market": 0.15873295930232556
+    }
+   },
+   "scenarios": [
+    {
+     "scoreLagMs": 5000,
+     "observations": 327,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793230759602,
+        "probability": 0.6896001393041176,
+        "shares": 15
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793230764602
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793234440623,
+        "probability": 0.5278584618430138,
+        "shares": 21
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793234445623
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 15000,
+     "observations": 278,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793230759602,
+        "probability": 0.6896001393041176,
+        "shares": 15
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793230764602
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793234440623,
+        "probability": 0.5278584618430138,
+        "shares": 21
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793234445623
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 30000,
+     "observations": 238,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793230759602,
+        "probability": 0.6896001393041176,
+        "shares": 15
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793230764602
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793234440623,
+        "probability": 0.5278584618430138,
+        "shares": 21
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793234445623
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "gameId": "espn-nba-401909883",
+   "slug": "nba-cha-det-2026-10-28",
+   "homeWon": 1,
+   "quotes": 386,
+   "bookErrors": 0,
+   "forecast": {
+    "candidate": {
+     "n": 46,
+     "model": 0.1752405585133481,
+     "market": 0.12480678804347825
+    },
+    "baseline": {
+     "n": 46,
+     "model": 0.1888060757418294,
+     "market": 0.12480678804347825
+    }
+   },
+   "scenarios": [
+    {
+     "scoreLagMs": 5000,
+     "observations": 217,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     }
+    },
+    {
+     "scoreLagMs": 15000,
+     "observations": 196,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     }
+    },
+    {
+     "scoreLagMs": 30000,
+     "observations": 156,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     }
+    }
+   ]
+  },
+  {
+   "gameId": "espn-nba-401909884",
+   "slug": "nba-phi-ind-2026-10-28",
+   "homeWon": 0,
+   "quotes": 744,
+   "bookErrors": 0,
+   "forecast": {
+    "candidate": {
+     "n": 44,
+     "model": 0.20458165495889738,
+     "market": 0.14371590909090906
+    },
+    "baseline": {
+     "n": 44,
+     "model": 0.24611465993089335,
+     "market": 0.14371590909090906
+    }
+   },
+   "scenarios": [
+    {
+     "scoreLagMs": 5000,
+     "observations": 346,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793229186237,
+        "probability": 0.3509859969091536,
+        "shares": 35
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793229191237
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793229186237,
+        "probability": 0.46137403551564915,
+        "shares": 35
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793229191237
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 15000,
+     "observations": 300,
+     "candidate": {
+      "netPnl": -9.794930000000022,
+      "fills": 1,
+      "feesPaid": 0.34493,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793229193633,
+        "probability": 0.3509859969091536,
+        "shares": 35
+       },
+       {
+        "status": "filled",
+        "at": 1793229197144,
+        "shares": 35,
+        "cost": 9.79493
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": -9.794930000000022,
+      "fills": 1,
+      "feesPaid": 0.34493,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793229193633,
+        "probability": 0.46137403551564915,
+        "shares": 35
+       },
+       {
+        "status": "filled",
+        "at": 1793229197144,
+        "shares": 35,
+        "cost": 9.79493
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 30000,
+     "observations": 237,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793229238111,
+        "probability": 0.3509859969091536,
+        "shares": 32
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793229243111
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": -9.941550000000007,
+      "fills": 1,
+      "feesPaid": 0.33155,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793229224461,
+        "probability": 0.46137403551564915,
+        "shares": 31
+       },
+       {
+        "status": "filled",
+        "at": 1793229228181,
+        "shares": 31,
+        "cost": 9.94155
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "gameId": "espn-nba-401909885",
+   "slug": "nba-orl-tor-2026-10-28",
+   "homeWon": 1,
+   "quotes": 399,
+   "bookErrors": 0,
+   "forecast": {
+    "candidate": {
+     "n": 33,
+     "model": 0.0998971524615562,
+     "market": 0.07430619696969697
+    },
+    "baseline": {
+     "n": 33,
+     "model": 0.10156299644591452,
+     "market": 0.07430619696969697
+    }
+   },
+   "scenarios": [
+    {
+     "scoreLagMs": 5000,
+     "observations": 206,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     }
+    },
+    {
+     "scoreLagMs": 15000,
+     "observations": 176,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     }
+    },
+    {
+     "scoreLagMs": 30000,
+     "observations": 146,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     }
+    }
+   ]
+  },
+  {
+   "gameId": "espn-nba-401909886",
+   "slug": "nba-nyk-chi-2026-10-28",
+   "homeWon": 0,
+   "quotes": 635,
+   "bookErrors": 0,
+   "forecast": {
+    "candidate": {
+     "n": 38,
+     "model": 0.2704811002453658,
+     "market": 0.18924209210526316
+    },
+    "baseline": {
+     "n": 38,
+     "model": 0.31548941315927836,
+     "market": 0.18924209210526316
+    }
+   },
+   "scenarios": [
+    {
+     "scoreLagMs": 5000,
+     "observations": 340,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793232653256,
+        "probability": 0.34455192240018784,
+        "shares": 33
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793232658256
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793232653256,
+        "probability": 0.4581314766798872,
+        "shares": 33
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793232658256
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 15000,
+     "observations": 300,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793232653256,
+        "probability": 0.34455192240018784,
+        "shares": 33
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793232658256
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793232653256,
+        "probability": 0.4581314766798872,
+        "shares": 33
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793232658256
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 30000,
+     "observations": 239,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793232664079,
+        "probability": 0.34455192240018784,
+        "shares": 33
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793232669079
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793232664079,
+        "probability": 0.4581314766798872,
+        "shares": 33
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793232669079
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "gameId": "espn-nba-401909887",
+   "slug": "nba-hou-mil-2026-10-28",
+   "homeWon": 0,
+   "quotes": 207,
+   "bookErrors": 0,
+   "forecast": {
+    "candidate": {
+     "n": 23,
+     "model": 0.034455651545616355,
+     "market": 0.02957383695652174
+    },
+    "baseline": {
+     "n": 23,
+     "model": 0.07431832447080933,
+     "market": 0.02957383695652174
+    }
+   },
+   "scenarios": [
+    {
+     "scoreLagMs": 5000,
+     "observations": 112,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793232737640,
+        "probability": 0.339684939044189,
+        "shares": 34
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793232742640
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793232663258,
+        "probability": 0.42404527431824574,
+        "shares": 38
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793232668258
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 15000,
+     "observations": 103,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793232762928,
+        "probability": 0.339684939044189,
+        "shares": 37
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793232767928
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793232663258,
+        "probability": 0.42404527431824574,
+        "shares": 38
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793232668258
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 30000,
+     "observations": 85,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793232762928,
+        "probability": 0.339684939044189,
+        "shares": 37
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793232767928
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": -9.975940000000037,
+      "fills": 1,
+      "feesPaid": 0.35594,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793232678580,
+        "probability": 0.42404527431824574,
+        "shares": 37
+       },
+       {
+        "status": "filled",
+        "at": 1793232681759,
+        "shares": 37,
+        "cost": 9.975940000000001
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "gameId": "espn-nba-401909888",
+   "slug": "nba-gsw-min-2026-10-28",
+   "homeWon": 0,
+   "quotes": 533,
+   "bookErrors": 0,
+   "forecast": {
+    "candidate": {
+     "n": 45,
+     "model": 0.20045704094228425,
+     "market": 0.12777092222222225
+    },
+    "baseline": {
+     "n": 45,
+     "model": 0.1626735646334986,
+     "market": 0.12777092222222225
+    }
+   },
+   "scenarios": [
+    {
+     "scoreLagMs": 5000,
+     "observations": 269,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793232661462,
+        "probability": 0.7250080484038205,
+        "shares": 16
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793232666462
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793232661462,
+        "probability": 0.6397435594774888,
+        "shares": 16
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793232666462
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 15000,
+     "observations": 235,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793232661462,
+        "probability": 0.7250080484038205,
+        "shares": 16
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793232666462
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793232661462,
+        "probability": 0.6397435594774888,
+        "shares": 16
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793232666462
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 30000,
+     "observations": 194,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793232679522,
+        "probability": 0.7250080484038205,
+        "shares": 16
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793232684522
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793232679522,
+        "probability": 0.6397435594774888,
+        "shares": 16
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793232684522
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "gameId": "espn-nba-401909889",
+   "slug": "nba-den-nop-2026-10-28",
+   "homeWon": 0,
+   "quotes": 173,
+   "bookErrors": 0,
+   "forecast": {
+    "candidate": {
+     "n": 35,
+     "model": 0.020344254924255515,
+     "market": 0.037617142857142856
+    },
+    "baseline": {
+     "n": 35,
+     "model": 0.04231955941930616,
+     "market": 0.037617142857142856
+    }
+   },
+   "scenarios": [
+    {
+     "scoreLagMs": 5000,
+     "observations": 78,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793239645083,
+        "probability": 0.1782450382297236,
+        "shares": 106
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793239650083
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793232663707,
+        "probability": 0.4407166107567385,
+        "shares": 25
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793232668707
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 15000,
+     "observations": 69,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793239645083,
+        "probability": 0.1782450382297236,
+        "shares": 106
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793239650083
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793232663707,
+        "probability": 0.4407166107567385,
+        "shares": 25
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793232668707
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 30000,
+     "observations": 63,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793239645083,
+        "probability": 0.1782450382297236,
+        "shares": 106
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793239650083
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793232663707,
+        "probability": 0.4407166107567385,
+        "shares": 25
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793232668707
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "gameId": "espn-nba-401909890",
+   "slug": "nba-sas-uta-2026-10-28",
+   "homeWon": 0,
+   "quotes": 649,
+   "bookErrors": 0,
+   "forecast": {
+    "candidate": {
+     "n": 45,
+     "model": 0.12772468440806076,
+     "market": 0.06668000000000003
+    },
+    "baseline": {
+     "n": 45,
+     "model": 0.21441276729864214,
+     "market": 0.06668000000000003
+    }
+   },
+   "scenarios": [
+    {
+     "scoreLagMs": 5000,
+     "observations": 272,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793236496299,
+        "probability": 0.21743503966684558,
+        "shares": 56
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793236501299
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793236413231,
+        "probability": 0.34599561628897074,
+        "shares": 63
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793236418231
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 15000,
+     "observations": 251,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793236496299,
+        "probability": 0.21743503966684558,
+        "shares": 56
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793236501299
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793236413231,
+        "probability": 0.34599561628897074,
+        "shares": 63
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793236418231
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 30000,
+     "observations": 195,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793236649791,
+        "probability": 0.27129078612276236,
+        "shares": 48
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793236654791
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793236413231,
+        "probability": 0.34599561628897074,
+        "shares": 63
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793236418231
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "gameId": "espn-nba-401909891",
+   "slug": "nba-okc-dal-2026-10-28",
+   "homeWon": 1,
+   "quotes": 632,
+   "bookErrors": 0,
+   "forecast": {
+    "candidate": {
+     "n": 43,
+     "model": 0.29592634882022983,
+     "market": 0.19821482558139536
+    },
+    "baseline": {
+     "n": 43,
+     "model": 0.18761579976976742,
+     "market": 0.19821482558139536
+    }
+   },
+   "scenarios": [
+    {
+     "scoreLagMs": 5000,
+     "observations": 359,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     },
+     "baseline": {
+      "netPnl": 13.291810000000055,
+      "fills": 1,
+      "feesPaid": 0.27819,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793240188506,
+        "probability": 0.4831163186620152,
+        "shares": 23
+       },
+       {
+        "status": "filled",
+        "at": 1793240192978,
+        "shares": 23,
+        "cost": 9.70819
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 15000,
+     "observations": 325,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793239308411,
+        "probability": 0.4540131209066071,
+        "shares": 24
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793239313411
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 30000,
+     "observations": 255,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793239308411,
+        "probability": 0.4540131209066071,
+        "shares": 24
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793239313411
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "gameId": "espn-nba-401909892",
+   "slug": "nba-lal-lac-2026-10-28",
+   "homeWon": 0,
+   "quotes": 642,
+   "bookErrors": 0,
+   "forecast": {
+    "candidate": {
+     "n": 42,
+     "model": 0.096329561547501,
+     "market": 0.12500386309523812
+    },
+    "baseline": {
+     "n": 42,
+     "model": 0.1228930036964232,
+     "market": 0.12500386309523812
+    }
+   },
+   "scenarios": [
+    {
+     "scoreLagMs": 5000,
+     "observations": 325,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793243153052,
+        "probability": 0.4840424478553919,
+        "shares": 22
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793243158052
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793242082149,
+        "probability": 0.48703370897633425,
+        "shares": 22
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793242087149
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 15000,
+     "observations": 292,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793243153052,
+        "probability": 0.4840424478553919,
+        "shares": 22
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793243158052
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793242082149,
+        "probability": 0.48703370897633425,
+        "shares": 22
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793242087149
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 30000,
+     "observations": 231,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793243153052,
+        "probability": 0.4840424478553919,
+        "shares": 22
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793243158052
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793242082149,
+        "probability": 0.48703370897633425,
+        "shares": 22
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793242087149
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "gameId": "espn-nba-401909893",
+   "slug": "nba-cle-atl-2026-10-29",
+   "homeWon": 1,
+   "quotes": 518,
+   "bookErrors": 0,
+   "forecast": {
+    "candidate": {
+     "n": 47,
+     "model": 0.23463966465994499,
+     "market": 0.21227925531914904
+    },
+    "baseline": {
+     "n": 47,
+     "model": 0.211856803416225,
+     "market": 0.21227925531914904
+    }
+   },
+   "scenarios": [
+    {
+     "scoreLagMs": 5000,
+     "observations": 260,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793322213814,
+        "probability": 0.6262071419881844,
+        "shares": 17
+       },
+       {
+        "status": "unfilled",
+        "reason": "price-or-contract-changed",
+        "at": 1793322217639
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 6.8428800000000365,
+      "fills": 1,
+      "feesPaid": 0.19712,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793322211211,
+        "probability": 0.6382040086839925,
+        "shares": 16
+       },
+       {
+        "status": "filled",
+        "at": 1793322215329,
+        "shares": 16,
+        "cost": 9.15712
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 15000,
+     "observations": 229,
+     "candidate": {
+      "netPnl": 6.049679999999967,
+      "fills": 1,
+      "feesPaid": 0.19032,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793322162792,
+        "probability": 0.6783887949964413,
+        "shares": 16
+       },
+       {
+        "status": "filled",
+        "at": 1793322167760,
+        "shares": 16,
+        "cost": 9.95032
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793320316185,
+        "probability": 0.373188730015869,
+        "shares": 32
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793320321185
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 30000,
+     "observations": 198,
+     "candidate": {
+      "netPnl": 6.049679999999967,
+      "fills": 1,
+      "feesPaid": 0.19032,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793322162792,
+        "probability": 0.6783887949964413,
+        "shares": 16
+       },
+       {
+        "status": "filled",
+        "at": 1793322167760,
+        "shares": 16,
+        "cost": 9.95032
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793320316185,
+        "probability": 0.373188730015869,
+        "shares": 32
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793320321185
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "gameId": "espn-nba-401909894",
+   "slug": "nba-sac-nop-2026-10-29",
+   "homeWon": 1,
+   "quotes": 259,
+   "bookErrors": 0,
+   "forecast": {
+    "candidate": {
+     "n": 38,
+     "model": 0.12880775105830064,
+     "market": 0.0833710855263158
+    },
+    "baseline": {
+     "n": 38,
+     "model": 0.13216520459889622,
+     "market": 0.0833710855263158
+    }
+   },
+   "scenarios": [
+    {
+     "scoreLagMs": 5000,
+     "observations": 117,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793322342363,
+        "probability": 0.5428850965575762,
+        "shares": 19
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793322347363
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793325535210,
+        "probability": 0.9450379780792862,
+        "shares": 11
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793325540210
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 15000,
+     "observations": 100,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793322342363,
+        "probability": 0.5428850965575762,
+        "shares": 19
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793322347363
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793325535210,
+        "probability": 0.9450379780792862,
+        "shares": 11
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793325540210
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 30000,
+     "observations": 77,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793322342363,
+        "probability": 0.5428850965575762,
+        "shares": 19
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793322347363
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793325535210,
+        "probability": 0.9450379780792862,
+        "shares": 11
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793325540210
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "gameId": "espn-nba-401909895",
+   "slug": "nba-mem-por-2026-10-29",
+   "homeWon": 0,
+   "quotes": 144,
+   "bookErrors": 0,
+   "forecast": {
+    "candidate": {
+     "n": 30,
+     "model": 0.34994022249235146,
+     "market": 0.38005583333333326
+    },
+    "baseline": {
+     "n": 30,
+     "model": 0.31265614352372767,
+     "market": 0.38005583333333326
+    }
+   },
+   "scenarios": [
+    {
+     "scoreLagMs": 5000,
+     "observations": 69,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793331082056,
+        "probability": 0.6735402189250321,
+        "shares": 16
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793331087056
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793331858290,
+        "probability": 0.47863255002478544,
+        "shares": 23
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793331863290
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 15000,
+     "observations": 61,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793331858290,
+        "probability": 0.48684965870056746,
+        "shares": 23
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793331863290
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793331858290,
+        "probability": 0.47863255002478544,
+        "shares": 23
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793331863290
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 30000,
+     "observations": 48,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793331858290,
+        "probability": 0.48684965870056746,
+        "shares": 23
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793331863290
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793331858290,
+        "probability": 0.47863255002478544,
+        "shares": 23
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793331863290
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "gameId": "espn-nba-401909277",
+   "slug": "nba-cha-was-2026-10-30",
+   "homeWon": 1,
+   "quotes": 434,
+   "bookErrors": 0,
+   "forecast": {
+    "candidate": {
+     "n": 38,
+     "model": 0.3356303953914369,
+     "market": 0.18173982236842107
+    },
+    "baseline": {
+     "n": 38,
+     "model": 0.23987360350812492,
+     "market": 0.18173982236842107
+    }
+   },
+   "scenarios": [
+    {
+     "scoreLagMs": 5000,
+     "observations": 210,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     }
+    },
+    {
+     "scoreLagMs": 15000,
+     "observations": 179,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     }
+    },
+    {
+     "scoreLagMs": 30000,
+     "observations": 154,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     }
+    }
+   ]
+  },
+  {
+   "gameId": "espn-nba-401909278",
+   "slug": "nba-chi-bos-2026-10-30",
+   "homeWon": 1,
+   "quotes": 149,
+   "bookErrors": 0,
+   "forecast": {
+    "candidate": {
+     "n": 22,
+     "model": 0.002523416423265939,
+     "market": 0.0021744431818181828
+    },
+    "baseline": {
+     "n": 22,
+     "model": 0.008125831839579491,
+     "market": 0.0021744431818181828
+    }
+   },
+   "scenarios": [
+    {
+     "scoreLagMs": 5000,
+     "observations": 76,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     }
+    },
+    {
+     "scoreLagMs": 15000,
+     "observations": 66,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     }
+    },
+    {
+     "scoreLagMs": 30000,
+     "observations": 47,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     }
+    }
+   ]
+  },
+  {
+   "gameId": "espn-nba-401909279",
+   "slug": "nba-det-bkn-2026-10-30",
+   "homeWon": 0,
+   "quotes": 169,
+   "bookErrors": 0,
+   "forecast": {
+    "candidate": {
+     "n": 23,
+     "model": 0.035439960114769714,
+     "market": 0.05321790217391303
+    },
+    "baseline": {
+     "n": 23,
+     "model": 0.08686608841145456,
+     "market": 0.05321790217391303
+    }
+   },
+   "scenarios": [
+    {
+     "scoreLagMs": 5000,
+     "observations": 84,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793404064346,
+        "probability": 0.4032412509946951,
+        "shares": 32
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793404069346
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 15000,
+     "observations": 76,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793404064346,
+        "probability": 0.4032412509946951,
+        "shares": 32
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793404069346
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 30000,
+     "observations": 57,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793405140091,
+        "probability": 0.4286070244225675,
+        "shares": 28
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793405145091
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "gameId": "espn-nba-401909280",
+   "slug": "nba-nyk-phi-2026-10-30",
+   "homeWon": 1,
+   "quotes": 422,
+   "bookErrors": 0,
+   "forecast": {
+    "candidate": {
+     "n": 45,
+     "model": 0.06656591909803812,
+     "market": 0.143821111111111
+    },
+    "baseline": {
+     "n": 45,
+     "model": 0.06886972692818207,
+     "market": 0.143821111111111
+    }
+   },
+   "scenarios": [
+    {
+     "scoreLagMs": 5000,
+     "observations": 233,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793403792288,
+        "probability": 0.5376505792383026,
+        "shares": 23
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793403797288
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793403792288,
+        "probability": 0.5492234045931202,
+        "shares": 23
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793403797288
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 15000,
+     "observations": 205,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793403797878,
+        "probability": 0.5376505792383026,
+        "shares": 23
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793403802878
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793403797878,
+        "probability": 0.5492234045931202,
+        "shares": 23
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793403802878
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 30000,
+     "observations": 163,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793403819092,
+        "probability": 0.5376505792383026,
+        "shares": 21
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793403824092
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793403819092,
+        "probability": 0.5492234045931202,
+        "shares": 21
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793403824092
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "gameId": "espn-nba-401909281",
+   "slug": "nba-orl-tor-2026-10-30",
+   "homeWon": 0,
+   "quotes": 137,
+   "bookErrors": 0,
+   "forecast": {
+    "candidate": {
+     "n": 30,
+     "model": 0.1618834245671971,
+     "market": 0.23419500000000004
+    },
+    "baseline": {
+     "n": 30,
+     "model": 0.16443594236854303,
+     "market": 0.23419500000000004
+    }
+   },
+   "scenarios": [
+    {
+     "scoreLagMs": 5000,
+     "observations": 53,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793411581183,
+        "probability": 0.264814022952477,
+        "shares": 53
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793411586183
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793411581183,
+        "probability": 0.29962443287830326,
+        "shares": 53
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793411586183
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 15000,
+     "observations": 49,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793411581183,
+        "probability": 0.264814022952477,
+        "shares": 53
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793411586183
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793411581183,
+        "probability": 0.29962443287830326,
+        "shares": 53
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793411586183
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 30000,
+     "observations": 41,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793412021850,
+        "probability": 0.15723402002072778,
+        "shares": 317
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793412026850
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793411773185,
+        "probability": 0.2297600104243259,
+        "shares": 59
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793411778185
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "gameId": "espn-nba-401909282",
+   "slug": "nba-ind-mia-2026-10-30",
+   "homeWon": 1,
+   "quotes": 253,
+   "bookErrors": 0,
+   "forecast": {
+    "candidate": {
+     "n": 36,
+     "model": 0.07076376526948791,
+     "market": 0.05402943055555556
+    },
+    "baseline": {
+     "n": 36,
+     "model": 0.09179602403415184,
+     "market": 0.05402943055555556
+    }
+   },
+   "scenarios": [
+    {
+     "scoreLagMs": 5000,
+     "observations": 140,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     }
+    },
+    {
+     "scoreLagMs": 15000,
+     "observations": 122,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793406086231,
+        "probability": 0.7581624301057116,
+        "shares": 14
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793406091231
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     }
+    },
+    {
+     "scoreLagMs": 30000,
+     "observations": 101,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793406086231,
+        "probability": 0.7581624301057116,
+        "shares": 14
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793406091231
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     }
+    }
+   ]
+  },
+  {
+   "gameId": "espn-nba-401909283",
+   "slug": "nba-hou-dal-2026-10-30",
+   "homeWon": 1,
+   "quotes": 319,
+   "bookErrors": 0,
+   "forecast": {
+    "candidate": {
+     "n": 36,
+     "model": 0.4473278985985061,
+     "market": 0.4053423611111111
+    },
+    "baseline": {
+     "n": 36,
+     "model": 0.3522963017869561,
+     "market": 0.4053423611111111
+    }
+   },
+   "scenarios": [
+    {
+     "scoreLagMs": 5000,
+     "observations": 142,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793411277894,
+        "probability": 0.21647119067436765,
+        "shares": 68
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793411282894
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793405491742,
+        "probability": 0.4348676123300616,
+        "shares": 28
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793405496742
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 15000,
+     "observations": 118,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793411277894,
+        "probability": 0.21647119067436765,
+        "shares": 68
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793411282894
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793405491742,
+        "probability": 0.4348676123300616,
+        "shares": 28
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793405496742
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 30000,
+     "observations": 88,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793411277894,
+        "probability": 0.21647119067436765,
+        "shares": 68
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793411282894
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793405503413,
+        "probability": 0.4348676123300616,
+        "shares": 30
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793405508413
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "gameId": "espn-nba-401909284",
+   "slug": "nba-lac-min-2026-10-30",
+   "homeWon": 1,
+   "quotes": 163,
+   "bookErrors": 0,
+   "forecast": {
+    "candidate": {
+     "n": 26,
+     "model": 0.0378621241046072,
+     "market": 0.031293596153846165
+    },
+    "baseline": {
+     "n": 26,
+     "model": 0.048868022126638114,
+     "market": 0.031293596153846165
+    }
+   },
+   "scenarios": [
+    {
+     "scoreLagMs": 5000,
+     "observations": 88,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     }
+    },
+    {
+     "scoreLagMs": 15000,
+     "observations": 73,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     }
+    },
+    {
+     "scoreLagMs": 30000,
+     "observations": 53,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     }
+    }
+   ]
+  },
+  {
+   "gameId": "espn-nba-401909285",
+   "slug": "nba-lal-gsw-2026-10-30",
+   "homeWon": 1,
+   "quotes": 334,
+   "bookErrors": 0,
+   "forecast": {
+    "candidate": {
+     "n": 35,
+     "model": 0.5053076860804759,
+     "market": 0.425082857142857
+    },
+    "baseline": {
+     "n": 35,
+     "model": 0.4282030970862076,
+     "market": 0.425082857142857
+    }
+   },
+   "scenarios": [
+    {
+     "scoreLagMs": 5000,
+     "observations": 135,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793420204832,
+        "probability": 0.7246481827428056,
+        "shares": 14
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793420209832
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793412960252,
+        "probability": 0.4046264876456653,
+        "shares": 31
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793412965252
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 15000,
+     "observations": 121,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793421234440,
+        "probability": 0.9643018727171891,
+        "shares": 10
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793421239440
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793412960252,
+        "probability": 0.4046264876456653,
+        "shares": 31
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793412965252
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 30000,
+     "observations": 97,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793412960252,
+        "probability": 0.4046264876456653,
+        "shares": 31
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793412965252
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "gameId": "espn-nba-401909286",
+   "slug": "nba-den-phx-2026-10-30",
+   "homeWon": 0,
+   "quotes": 260,
+   "bookErrors": 0,
+   "forecast": {
+    "candidate": {
+     "n": 32,
+     "model": 0.1288971728358851,
+     "market": 0.09342265625000003
+    },
+    "baseline": {
+     "n": 32,
+     "model": 0.15398411276497187,
+     "market": 0.09342265625000003
+    }
+   },
+   "scenarios": [
+    {
+     "scoreLagMs": 5000,
+     "observations": 124,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793412722517,
+        "probability": 0.4671798116181973,
+        "shares": 24
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793412727517
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793412722517,
+        "probability": 0.5168899645230934,
+        "shares": 24
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793412727517
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 15000,
+     "observations": 110,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793412722517,
+        "probability": 0.4671798116181973,
+        "shares": 24
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793412727517
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793412722517,
+        "probability": 0.5168899645230934,
+        "shares": 24
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793412727517
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 30000,
+     "observations": 92,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793412722517,
+        "probability": 0.4671798116181973,
+        "shares": 24
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793412727517
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793412722517,
+        "probability": 0.5168899645230934,
+        "shares": 24
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793412727517
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "gameId": "espn-nba-401909896",
+   "slug": "nba-por-uta-2026-10-31",
+   "homeWon": 0,
+   "quotes": 178,
+   "bookErrors": 0,
+   "forecast": {
+    "candidate": {
+     "n": 30,
+     "model": 0.025122750545745736,
+     "market": 0.02472854166666666
+    },
+    "baseline": {
+     "n": 30,
+     "model": 0.05110647474461978,
+     "market": 0.02472854166666666
+    }
+   },
+   "scenarios": [
+    {
+     "scoreLagMs": 5000,
+     "observations": 81,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793474065910,
+        "probability": 0.34398791474665585,
+        "shares": 33
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793474070910
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793473902243,
+        "probability": 0.44546554947786926,
+        "shares": 31
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793473907243
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 15000,
+     "observations": 71,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793474065910,
+        "probability": 0.34398791474665585,
+        "shares": 33
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793474070910
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793473912710,
+        "probability": 0.44546554947786926,
+        "shares": 30
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793473917710
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 30000,
+     "observations": 57,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793474065910,
+        "probability": 0.34398791474665585,
+        "shares": 33
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793474070910
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": -9.595519999999965,
+      "fills": 1,
+      "feesPaid": 0.31552,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793473925284,
+        "probability": 0.44546554947786926,
+        "shares": 29
+       },
+       {
+        "status": "filled",
+        "at": 1793473929406,
+        "shares": 29,
+        "cost": 9.595519999999999
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "gameId": "espn-nba-401909897",
+   "slug": "nba-phi-cha-2026-10-31",
+   "homeWon": 0,
+   "quotes": 643,
+   "bookErrors": 0,
+   "forecast": {
+    "candidate": {
+     "n": 44,
+     "model": 0.4052067956657071,
+     "market": 0.3252522727272726
+    },
+    "baseline": {
+     "n": 44,
+     "model": 0.41394147626903843,
+     "market": 0.3252522727272726
+    }
+   },
+   "scenarios": [
+    {
+     "scoreLagMs": 5000,
+     "observations": 244,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793484680181,
+        "probability": 0.511999352503389,
+        "shares": 21
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793484685181
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793484680181,
+        "probability": 0.5374758255759915,
+        "shares": 21
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793484685181
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 15000,
+     "observations": 216,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793484680181,
+        "probability": 0.511999352503389,
+        "shares": 21
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793484685181
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793484680181,
+        "probability": 0.5374758255759915,
+        "shares": 21
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793484685181
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 30000,
+     "observations": 186,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793484728642,
+        "probability": 0.511999352503389,
+        "shares": 23
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793484733642
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793484728642,
+        "probability": 0.5374758255759915,
+        "shares": 23
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793484733642
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "gameId": "espn-nba-401909898",
+   "slug": "nba-atl-nop-2026-10-31",
+   "homeWon": 1,
+   "quotes": 385,
+   "bookErrors": 0,
+   "forecast": {
+    "candidate": {
+     "n": 37,
+     "model": 0.09348309021693786,
+     "market": 0.11172973648648653
+    },
+    "baseline": {
+     "n": 37,
+     "model": 0.0654739474053455,
+     "market": 0.11172973648648653
+    }
+   },
+   "scenarios": [
+    {
+     "scoreLagMs": 5000,
+     "observations": 183,
+     "candidate": {
+      "netPnl": 9.642879999999991,
+      "fills": 1,
+      "feesPaid": 0.23712,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793489267932,
+        "probability": 0.5959651001482342,
+        "shares": 19
+       },
+       {
+        "status": "filled",
+        "at": 1793489271573,
+        "shares": 19,
+        "cost": 9.357119999999998
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793488256043,
+        "probability": 0.45809377530457235,
+        "shares": 27
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793488261043
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 15000,
+     "observations": 162,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793489326448,
+        "probability": 0.5959651001482342,
+        "shares": 18
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793489331448
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793488256043,
+        "probability": 0.45809377530457235,
+        "shares": 27
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793488261043
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 30000,
+     "observations": 134,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793489326448,
+        "probability": 0.5959651001482342,
+        "shares": 18
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793489331448
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793488278519,
+        "probability": 0.45809377530457235,
+        "shares": 26
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793488283519
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "gameId": "espn-nba-401909899",
+   "slug": "nba-sac-mem-2026-10-31",
+   "homeWon": 1,
+   "quotes": 288,
+   "bookErrors": 0,
+   "forecast": {
+    "candidate": {
+     "n": 31,
+     "model": 0.036410393136276,
+     "market": 0.03067501612903226
+    },
+    "baseline": {
+     "n": 31,
+     "model": 0.051313236653597355,
+     "market": 0.03067501612903226
+    }
+   },
+   "scenarios": [
+    {
+     "scoreLagMs": 5000,
+     "observations": 160,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793495472024,
+        "probability": 0.8496085792268665,
+        "shares": 12
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793495477024
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     }
+    },
+    {
+     "scoreLagMs": 15000,
+     "observations": 143,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793495472024,
+        "probability": 0.8496085792268665,
+        "shares": 12
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793495477024
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     }
+    },
+    {
+     "scoreLagMs": 30000,
+     "observations": 122,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793495472024,
+        "probability": 0.8496085792268665,
+        "shares": 12
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793495477024
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     }
+    }
+   ]
+  },
+  {
+   "gameId": "espn-nba-401909900",
+   "slug": "nba-cle-mil-2026-10-31",
+   "homeWon": 0,
+   "quotes": 211,
+   "bookErrors": 0,
+   "forecast": {
+    "candidate": {
+     "n": 24,
+     "model": 0.08852724418864132,
+     "market": 0.05635840625
+    },
+    "baseline": {
+     "n": 24,
+     "model": 0.15063749705630483,
+     "market": 0.05635840625
+    }
+   },
+   "scenarios": [
+    {
+     "scoreLagMs": 5000,
+     "observations": 118,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793491888451,
+        "probability": 0.32535454116499485,
+        "shares": 35
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793491893451
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793491877307,
+        "probability": 0.4483010874454548,
+        "shares": 34
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793491882307
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 15000,
+     "observations": 106,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793491888451,
+        "probability": 0.32535454116499485,
+        "shares": 35
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793491893451
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793491877307,
+        "probability": 0.4483010874454548,
+        "shares": 34
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793491882307
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 30000,
+     "observations": 84,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793491888451,
+        "probability": 0.32535454116499485,
+        "shares": 35
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793491893451
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793491877307,
+        "probability": 0.4483010874454548,
+        "shares": 34
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793491882307
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "gameId": "espn-nba-401909901",
+   "slug": "nba-min-sas-2026-10-31",
+   "homeWon": 1,
+   "quotes": 286,
+   "bookErrors": 0,
+   "forecast": {
+    "candidate": {
+     "n": 35,
+     "model": 0.0865343038277842,
+     "market": 0.027986171428571426
+    },
+    "baseline": {
+     "n": 35,
+     "model": 0.09838157424192596,
+     "market": 0.027986171428571426
+    }
+   },
+   "scenarios": [
+    {
+     "scoreLagMs": 5000,
+     "observations": 136,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     }
+    },
+    {
+     "scoreLagMs": 15000,
+     "observations": 121,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     }
+    },
+    {
+     "scoreLagMs": 30000,
+     "observations": 94,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     }
+    }
+   ]
+  },
+  {
+   "gameId": "espn-nba-401909902",
+   "slug": "nba-okc-hou-2026-10-31",
+   "homeWon": 1,
+   "quotes": 182,
+   "bookErrors": 0,
+   "forecast": {
+    "candidate": {
+     "n": 25,
+     "model": 0.08818987233898817,
+     "market": 0.05880821000000002
+    },
+    "baseline": {
+     "n": 25,
+     "model": 0.07691194997801024,
+     "market": 0.05880821000000002
+    }
+   },
+   "scenarios": [
+    {
+     "scoreLagMs": 5000,
+     "observations": 112,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793496942322,
+        "probability": 0.8396247646506501,
+        "shares": 12
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793496947322
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793496942322,
+        "probability": 0.8355211053240477,
+        "shares": 12
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793496947322
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 15000,
+     "observations": 103,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793496942322,
+        "probability": 0.8396247646506501,
+        "shares": 12
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793496947322
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793496942322,
+        "probability": 0.8355211053240477,
+        "shares": 12
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793496947322
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 30000,
+     "observations": 72,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793496942322,
+        "probability": 0.8396247646506501,
+        "shares": 12
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793496947322
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793496942322,
+        "probability": 0.8355211053240477,
+        "shares": 12
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793496947322
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "gameId": "espn-nba-401909903",
+   "slug": "nba-bos-orl-2026-11-01",
+   "homeWon": 0,
+   "quotes": 114,
+   "bookErrors": 0,
+   "forecast": {
+    "candidate": {
+     "n": 3,
+     "model": 0.06061261455451183,
+     "market": 0.05555000000000001
+    },
+    "baseline": {
+     "n": 3,
+     "model": 0.08130759588253608,
+     "market": 0.05555000000000001
+    }
+   },
+   "scenarios": [
+    {
+     "scoreLagMs": 5000,
+     "observations": 9,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793568224580,
+        "probability": 0.33668874599480186,
+        "shares": 43
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793568229580
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793567980107,
+        "probability": 0.29122458306122784,
+        "shares": 40
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793567985107
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 15000,
+     "observations": 7,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793567980107,
+        "probability": 0.29122458306122784,
+        "shares": 40
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793567985107
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 30000,
+     "observations": 6,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793567980107,
+        "probability": 0.29122458306122784,
+        "shares": 40
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793567985107
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "gameId": "espn-nba-401909904",
+   "slug": "nba-bkn-ind-2026-11-01",
+   "homeWon": 0,
+   "quotes": 141,
+   "bookErrors": 0,
+   "forecast": {
+    "candidate": {
+     "n": 13,
+     "model": 0.09720572801582351,
+     "market": 0.18903461538461536
+    },
+    "baseline": {
+     "n": 13,
+     "model": 0.10102357232247777,
+     "market": 0.18903461538461536
+    }
+   },
+   "scenarios": [
+    {
+     "scoreLagMs": 5000,
+     "observations": 23,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793578976148,
+        "probability": 0.2064456702810994,
+        "shares": 63
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793578981148
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793578976148,
+        "probability": 0.2363147796209196,
+        "shares": 63
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793578981148
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 15000,
+     "observations": 22,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793578976148,
+        "probability": 0.2064456702810994,
+        "shares": 63
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793578981148
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793578976148,
+        "probability": 0.2363147796209196,
+        "shares": 63
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793578981148
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 30000,
+     "observations": 18,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793578976148,
+        "probability": 0.2064456702810994,
+        "shares": 63
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793578981148
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793578976148,
+        "probability": 0.2363147796209196,
+        "shares": 63
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793578981148
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "gameId": "espn-nba-401909905",
+   "slug": "nba-lac-gsw-2026-11-01",
+   "homeWon": 1,
+   "quotes": 47,
+   "bookErrors": 0,
+   "forecast": {
+    "candidate": {
+     "n": 10,
+     "model": 0.1413349423694668,
+     "market": 0.128422375
+    },
+    "baseline": {
+     "n": 10,
+     "model": 0.13222080002141484,
+     "market": 0.128422375
+    }
+   },
+   "scenarios": [
+    {
+     "scoreLagMs": 5000,
+     "observations": 21,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793584798528,
+        "probability": 0.5230407215115686,
+        "shares": 21
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793584803528
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 15000,
+     "observations": 19,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793584798528,
+        "probability": 0.5230407215115686,
+        "shares": 21
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793584803528
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 30000,
+     "observations": 16,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793584798528,
+        "probability": 0.5230407215115686,
+        "shares": 21
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793584803528
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "gameId": "espn-nba-401909906",
+   "slug": "nba-tor-lal-2026-11-01",
+   "homeWon": 1,
+   "quotes": 351,
+   "bookErrors": 0,
+   "forecast": {
+    "candidate": {
+     "n": 39,
+     "model": 0.027212290789487552,
+     "market": 0.03363641025641025
+    },
+    "baseline": {
+     "n": 39,
+     "model": 0.03595598159291479,
+     "market": 0.03363641025641025
+    }
+   },
+   "scenarios": [
+    {
+     "scoreLagMs": 5000,
+     "observations": 173,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793585566982,
+        "probability": 0.6468460469282049,
+        "shares": 16
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793585571982
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793588025656,
+        "probability": 0.8532136922561295,
+        "shares": 12
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793588030656
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 15000,
+     "observations": 145,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793585566982,
+        "probability": 0.6468460469282049,
+        "shares": 16
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793585571982
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793588025656,
+        "probability": 0.8532136922561295,
+        "shares": 12
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793588030656
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 30000,
+     "observations": 117,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793585566982,
+        "probability": 0.6468460469282049,
+        "shares": 16
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793585571982
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793588025656,
+        "probability": 0.8532136922561295,
+        "shares": 12
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793588030656
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "gameId": "espn-nba-401909907",
+   "slug": "nba-okc-cle-2026-11-02",
+   "homeWon": 0,
+   "quotes": 446,
+   "bookErrors": 0,
+   "forecast": {
+    "candidate": {
+     "n": 46,
+     "model": 0.17181130177184278,
+     "market": 0.28561956521739124
+    },
+    "baseline": {
+     "n": 46,
+     "model": 0.20413737870852433,
+     "market": 0.28561956521739124
+    }
+   },
+   "scenarios": [
+    {
+     "scoreLagMs": 5000,
+     "observations": 229,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     }
+    },
+    {
+     "scoreLagMs": 15000,
+     "observations": 216,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     }
+    },
+    {
+     "scoreLagMs": 30000,
+     "observations": 169,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     }
+    }
+   ]
+  },
+  {
+   "gameId": "espn-nba-401909908",
+   "slug": "nba-det-cha-2026-11-02",
+   "homeWon": 0,
+   "quotes": 104,
+   "bookErrors": 0,
+   "forecast": {
+    "candidate": {
+     "n": 21,
+     "model": 0.09548915320844321,
+     "market": 0.08018655952380953
+    },
+    "baseline": {
+     "n": 21,
+     "model": 0.14078363838554156,
+     "market": 0.08018655952380953
+    }
+   },
+   "scenarios": [
+    {
+     "scoreLagMs": 5000,
+     "observations": 57,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793668670929,
+        "probability": 0.4782960626467505,
+        "shares": 24
+       },
+       {
+        "status": "unfilled",
+        "reason": "price-or-contract-changed",
+        "at": 1793668674142
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793666712771,
+        "probability": 0.49606100881839654,
+        "shares": 25
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793666717771
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 15000,
+     "observations": 53,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793668670929,
+        "probability": 0.4782960626467505,
+        "shares": 24
+       },
+       {
+        "status": "unfilled",
+        "reason": "price-or-contract-changed",
+        "at": 1793668674142
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793666712771,
+        "probability": 0.49606100881839654,
+        "shares": 25
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793666717771
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 30000,
+     "observations": 46,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793668670929,
+        "probability": 0.4782960626467505,
+        "shares": 24
+       },
+       {
+        "status": "unfilled",
+        "reason": "price-or-contract-changed",
+        "at": 1793668674142
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793666712771,
+        "probability": 0.49606100881839654,
+        "shares": 25
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793666717771
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "gameId": "espn-nba-401909909",
+   "slug": "nba-atl-ind-2026-11-02",
+   "homeWon": 0,
+   "quotes": 37,
+   "bookErrors": 0,
+   "forecast": {
+    "candidate": {
+     "n": 11,
+     "model": 0.043030963372125315,
+     "market": 0.019652500000000003
+    },
+    "baseline": {
+     "n": 11,
+     "model": 0.0808246161389692,
+     "market": 0.019652500000000003
+    }
+   },
+   "scenarios": [
+    {
+     "scoreLagMs": 5000,
+     "observations": 8,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793666521345,
+        "probability": 0.31687985433390314,
+        "shares": 56
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793666526345
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793666521345,
+        "probability": 0.4438801695318939,
+        "shares": 56
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793666526345
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 15000,
+     "observations": 8,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793666521345,
+        "probability": 0.31687985433390314,
+        "shares": 56
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793666526345
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793666521345,
+        "probability": 0.4438801695318939,
+        "shares": 56
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793666526345
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 30000,
+     "observations": 6,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793666521345,
+        "probability": 0.31687985433390314,
+        "shares": 56
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793666526345
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793666521345,
+        "probability": 0.4438801695318939,
+        "shares": 56
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793666526345
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "gameId": "espn-nba-401909910",
+   "slug": "nba-bkn-nyk-2026-11-02",
+   "homeWon": 1,
+   "quotes": 138,
+   "bookErrors": 0,
+   "forecast": {
+    "candidate": {
+     "n": 25,
+     "model": 0.05290791351492455,
+     "market": 0.03167664
+    },
+    "baseline": {
+     "n": 25,
+     "model": 0.08033586416806349,
+     "market": 0.03167664
+    }
+   },
+   "scenarios": [
+    {
+     "scoreLagMs": 5000,
+     "observations": 69,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     }
+    },
+    {
+     "scoreLagMs": 15000,
+     "observations": 60,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     }
+    },
+    {
+     "scoreLagMs": 30000,
+     "observations": 51,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     }
+    }
+   ]
+  },
+  {
+   "gameId": "espn-nba-401909911",
+   "slug": "nba-was-orl-2026-11-02",
+   "homeWon": 0,
+   "quotes": 151,
+   "bookErrors": 0,
+   "forecast": {
+    "candidate": {
+     "n": 33,
+     "model": 0.38613312113609394,
+     "market": 0.2232696969696969
+    },
+    "baseline": {
+     "n": 33,
+     "model": 0.32585486822458704,
+     "market": 0.2232696969696969
+    }
+   },
+   "scenarios": [
+    {
+     "scoreLagMs": 5000,
+     "observations": 81,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793666494771,
+        "probability": 0.734012384039891,
+        "shares": 16
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793666499771
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793666494771,
+        "probability": 0.644569684836538,
+        "shares": 16
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793666499771
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 15000,
+     "observations": 73,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793666494771,
+        "probability": 0.734012384039891,
+        "shares": 16
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793666499771
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793666494771,
+        "probability": 0.644569684836538,
+        "shares": 16
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793666499771
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 30000,
+     "observations": 62,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793666494771,
+        "probability": 0.734012384039891,
+        "shares": 16
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793666499771
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793666494771,
+        "probability": 0.644569684836538,
+        "shares": 16
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793666499771
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "gameId": "espn-nba-401909912",
+   "slug": "nba-chi-phi-2026-11-02",
+   "homeWon": 1,
+   "quotes": 114,
+   "bookErrors": 0,
+   "forecast": {
+    "candidate": {
+     "n": 20,
+     "model": 0.01860735976958031,
+     "market": 0.019597525000000005
+    },
+    "baseline": {
+     "n": 20,
+     "model": 0.03251877111105655,
+     "market": 0.019597525000000005
+    }
+   },
+   "scenarios": [
+    {
+     "scoreLagMs": 5000,
+     "observations": 63,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793668767542,
+        "probability": 0.7959747876978145,
+        "shares": 13
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793668772542
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     }
+    },
+    {
+     "scoreLagMs": 15000,
+     "observations": 53,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793668767542,
+        "probability": 0.7959747876978145,
+        "shares": 13
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793668772542
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     }
+    },
+    {
+     "scoreLagMs": 30000,
+     "observations": 42,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793669703879,
+        "probability": 0.9084533407195291,
+        "shares": 11
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793669708879
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     }
+    }
+   ]
+  },
+  {
+   "gameId": "espn-nba-401909913",
+   "slug": "nba-sac-dal-2026-11-02",
+   "homeWon": 0,
+   "quotes": 226,
+   "bookErrors": 0,
+   "forecast": {
+    "candidate": {
+     "n": 30,
+     "model": 0.30092329636580434,
+     "market": 0.33428434166666665
+    },
+    "baseline": {
+     "n": 30,
+     "model": 0.2634252545636391,
+     "market": 0.33428434166666665
+    }
+   },
+   "scenarios": [
+    {
+     "scoreLagMs": 5000,
+     "observations": 94,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793675936072,
+        "probability": 0.23467981505917787,
+        "shares": 63
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793675941072
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793675936072,
+        "probability": 0.26692385563608206,
+        "shares": 63
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793675941072
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 15000,
+     "observations": 86,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793675936072,
+        "probability": 0.23467981505917787,
+        "shares": 63
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793675941072
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793675936072,
+        "probability": 0.26692385563608206,
+        "shares": 63
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793675941072
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 30000,
+     "observations": 69,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793675936072,
+        "probability": 0.23467981505917787,
+        "shares": 63
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793675941072
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793675936072,
+        "probability": 0.26692385563608206,
+        "shares": 63
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793675941072
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "gameId": "espn-nba-401909914",
+   "slug": "nba-nop-mem-2026-11-02",
+   "homeWon": 0,
+   "quotes": 36,
+   "bookErrors": 0,
+   "forecast": {
+    "candidate": {
+     "n": 9,
+     "model": 0.1673727848747604,
+     "market": 0.19313233333333332
+    },
+    "baseline": {
+     "n": 9,
+     "model": 0.16638233526507376,
+     "market": 0.19313233333333332
+    }
+   },
+   "scenarios": [
+    {
+     "scoreLagMs": 5000,
+     "observations": 11,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793675601943,
+        "probability": 0.1704820385745974,
+        "shares": 119
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793675606943
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793675570304,
+        "probability": 0.1949088611682134,
+        "shares": 68
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793675575304
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 15000,
+     "observations": 11,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793675601943,
+        "probability": 0.1704820385745974,
+        "shares": 119
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793675606943
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793675570304,
+        "probability": 0.1949088611682134,
+        "shares": 68
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793675575304
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 30000,
+     "observations": 9,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793675570304,
+        "probability": 0.1949088611682134,
+        "shares": 68
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793675575304
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "gameId": "espn-nba-401909915",
+   "slug": "nba-mil-min-2026-11-02",
+   "homeWon": 1,
+   "quotes": 94,
+   "bookErrors": 0,
+   "forecast": {
+    "candidate": {
+     "n": 18,
+     "model": 0.03407446587447358,
+     "market": 0.031214138888888895
+    },
+    "baseline": {
+     "n": 18,
+     "model": 0.05084094475518854,
+     "market": 0.031214138888888895
+    }
+   },
+   "scenarios": [
+    {
+     "scoreLagMs": 5000,
+     "observations": 34,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     }
+    },
+    {
+     "scoreLagMs": 15000,
+     "observations": 30,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     }
+    },
+    {
+     "scoreLagMs": 30000,
+     "observations": 26,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     }
+    }
+   ]
+  },
+  {
+   "gameId": "espn-nba-401909916",
+   "slug": "nba-bos-hou-2026-11-02",
+   "homeWon": 1,
+   "quotes": 25,
+   "bookErrors": 0,
+   "forecast": {
+    "candidate": {
+     "n": 8,
+     "model": 0.05825849697489063,
+     "market": 0.035418156249999985
+    },
+    "baseline": {
+     "n": 8,
+     "model": 0.055329129709924485,
+     "market": 0.035418156249999985
+    }
+   },
+   "scenarios": [
+    {
+     "scoreLagMs": 5000,
+     "observations": 16,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     }
+    },
+    {
+     "scoreLagMs": 15000,
+     "observations": 15,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     }
+    },
+    {
+     "scoreLagMs": 30000,
+     "observations": 11,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     }
+    }
+   ]
+  },
+  {
+   "gameId": "espn-nba-401909917",
+   "slug": "nba-uta-sas-2026-11-02",
+   "homeWon": 1,
+   "quotes": 30,
+   "bookErrors": 0,
+   "forecast": {
+    "candidate": {
+     "n": 9,
+     "model": 0.0030175590954685024,
+     "market": 0.003766027777777775
+    },
+    "baseline": {
+     "n": 9,
+     "model": 0.01340613766715722,
+     "market": 0.003766027777777775
+    }
+   },
+   "scenarios": [
+    {
+     "scoreLagMs": 5000,
+     "observations": 19,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     }
+    },
+    {
+     "scoreLagMs": 15000,
+     "observations": 16,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     }
+    },
+    {
+     "scoreLagMs": 30000,
+     "observations": 14,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     }
+    }
+   ]
+  },
+  {
+   "gameId": "espn-nba-401909918",
+   "slug": "nba-por-den-2026-11-02",
+   "homeWon": 0,
+   "quotes": 13,
+   "bookErrors": 0,
+   "forecast": {
+    "candidate": {
+     "n": 5,
+     "model": 0.39012638646618425,
+     "market": 0.343825
+    },
+    "baseline": {
+     "n": 5,
+     "model": 0.3757338295646829,
+     "market": 0.343825
+    }
+   },
+   "scenarios": [
+    {
+     "scoreLagMs": 5000,
+     "observations": 5,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793675388661,
+        "probability": 0.8012727817278403,
+        "shares": 13
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793675393661
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": -9.17999999999995,
+      "fills": 1,
+      "feesPaid": 0.18,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793677904374,
+        "probability": 0.7036383907372462,
+        "shares": 15
+       },
+       {
+        "status": "filled",
+        "at": 1793677909374,
+        "shares": 15,
+        "cost": 9.18
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 15000,
+     "observations": 3,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793675388661,
+        "probability": 0.8012727817278403,
+        "shares": 13
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793675393661
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": -9.17999999999995,
+      "fills": 1,
+      "feesPaid": 0.18,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793677904374,
+        "probability": 0.7036383907372462,
+        "shares": 15
+       },
+       {
+        "status": "filled",
+        "at": 1793677909374,
+        "shares": 15,
+        "cost": 9.18
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 30000,
+     "observations": 3,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793675388661,
+        "probability": 0.8012727817278403,
+        "shares": 13
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793675393661
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": -9.17999999999995,
+      "fills": 1,
+      "feesPaid": 0.18,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793677904374,
+        "probability": 0.7036383907372462,
+        "shares": 15
+       },
+       {
+        "status": "filled",
+        "at": 1793677909374,
+        "shares": 15,
+        "cost": 9.18
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "gameId": "espn-nba-401909919",
+   "slug": "nba-phx-gsw-2026-11-02",
+   "homeWon": 1,
+   "quotes": 53,
+   "bookErrors": 0,
+   "forecast": {
+    "candidate": {
+     "n": 10,
+     "model": 0.5073739890289967,
+     "market": 0.3854999999999999
+    },
+    "baseline": {
+     "n": 10,
+     "model": 0.4676772126050831,
+     "market": 0.3854999999999999
+    }
+   },
+   "scenarios": [
+    {
+     "scoreLagMs": 5000,
+     "observations": 16,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     }
+    },
+    {
+     "scoreLagMs": 15000,
+     "observations": 14,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     }
+    },
+    {
+     "scoreLagMs": 30000,
+     "observations": 11,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     }
+    }
+   ]
+  },
+  {
+   "gameId": "espn-nba-401909920",
+   "slug": "nba-tor-lac-2026-11-02",
+   "homeWon": 0,
+   "quotes": 14,
+   "bookErrors": 0,
+   "forecast": {
+    "candidate": {
+     "n": 5,
+     "model": 0.6232467973355663,
+     "market": 0.45552000000000004
+    },
+    "baseline": {
+     "n": 5,
+     "model": 0.615309849624591,
+     "market": 0.45552000000000004
+    }
+   },
+   "scenarios": [
+    {
+     "scoreLagMs": 5000,
+     "observations": 4,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793675647607,
+        "probability": 0.6276015929370237,
+        "shares": 25
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793675652607
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793675647607,
+        "probability": 0.6392371913806077,
+        "shares": 25
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793675652607
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 15000,
+     "observations": 4,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793675647607,
+        "probability": 0.5831854601953825,
+        "shares": 25
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793675652607
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793675647607,
+        "probability": 0.5995860956487966,
+        "shares": 25
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793675652607
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 30000,
+     "observations": 3,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793675647607,
+        "probability": 0.5831854601953825,
+        "shares": 25
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793675652607
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793675647607,
+        "probability": 0.5995860956487966,
+        "shares": 25
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793675652607
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "gameId": "espn-nba-401909921",
+   "slug": "nba-mia-lal-2026-11-02",
+   "homeWon": 1,
+   "quotes": 32,
+   "bookErrors": 0,
+   "forecast": {
+    "candidate": {
+     "n": 10,
+     "model": 0.0415087211215127,
+     "market": 0.10550272500000002
+    },
+    "baseline": {
+     "n": 10,
+     "model": 0.061306823655932874,
+     "market": 0.10550272500000002
+    }
+   },
+   "scenarios": [
+    {
+     "scoreLagMs": 5000,
+     "observations": 11,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793676126092,
+        "probability": 0.8074729862278619,
+        "shares": 15
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793676131092
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793676126092,
+        "probability": 0.7484906602329209,
+        "shares": 15
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793676131092
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 15000,
+     "observations": 10,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793676126092,
+        "probability": 0.8074729862278619,
+        "shares": 15
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793676131092
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793676126092,
+        "probability": 0.7484906602329209,
+        "shares": 15
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793676131092
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 30000,
+     "observations": 7,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793676126092,
+        "probability": 0.8074729862278619,
+        "shares": 15
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793676131092
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793676126092,
+        "probability": 0.7484906602329209,
+        "shares": 15
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793676131092
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "gameId": "espn-nba-401909922",
+   "slug": "nba-phi-det-2026-11-04",
+   "homeWon": 0,
+   "quotes": 74,
+   "bookErrors": 0,
+   "forecast": {
+    "candidate": {
+     "n": 12,
+     "model": 0.09042988976730987,
+     "market": 0.06545833333333333
+    },
+    "baseline": {
+     "n": 12,
+     "model": 0.08848035869437117,
+     "market": 0.06545833333333333
+    }
+   },
+   "scenarios": [
+    {
+     "scoreLagMs": 5000,
+     "observations": 23,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793838709436,
+        "probability": 0.596223987214478,
+        "shares": 20
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793838714436
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793838709436,
+        "probability": 0.5577807225564902,
+        "shares": 20
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793838714436
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 15000,
+     "observations": 22,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793838709436,
+        "probability": 0.596223987214478,
+        "shares": 20
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793838714436
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793838709436,
+        "probability": 0.5577807225564902,
+        "shares": 20
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793838714436
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 30000,
+     "observations": 14,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793838739927,
+        "probability": 0.596223987214478,
+        "shares": 21
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793838744927
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793838739927,
+        "probability": 0.5577807225564902,
+        "shares": 21
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793838744927
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "gameId": "espn-nba-401909923",
+   "slug": "nba-atl-was-2026-11-04",
+   "homeWon": 0,
+   "quotes": 52,
+   "bookErrors": 0,
+   "forecast": {
+    "candidate": {
+     "n": 11,
+     "model": 0.040531878935335205,
+     "market": 0.07930909090909091
+    },
+    "baseline": {
+     "n": 11,
+     "model": 0.06922427792877983,
+     "market": 0.07930909090909091
+    }
+   },
+   "scenarios": [
+    {
+     "scoreLagMs": 5000,
+     "observations": 17,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793838729856,
+        "probability": 0.47692986162612144,
+        "shares": 24
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793838734856
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 15000,
+     "observations": 14,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793838729856,
+        "probability": 0.47692986162612144,
+        "shares": 24
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793838734856
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 30000,
+     "observations": 9,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793838729856,
+        "probability": 0.47692986162612144,
+        "shares": 24
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793838734856
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "gameId": "espn-nba-401909924",
+   "slug": "nba-mil-bos-2026-11-04",
+   "homeWon": 1,
+   "quotes": 57,
+   "bookErrors": 0,
+   "forecast": {
+    "candidate": {
+     "n": 15,
+     "model": 0.029787235906541157,
+     "market": 0.036906699999999994
+    },
+    "baseline": {
+     "n": 15,
+     "model": 0.03474519825404643,
+     "market": 0.036906699999999994
+    }
+   },
+   "scenarios": [
+    {
+     "scoreLagMs": 5000,
+     "observations": 26,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793845684452,
+        "probability": 0.7973433839904088,
+        "shares": 15
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793845689452
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793845684452,
+        "probability": 0.7766375045431236,
+        "shares": 15
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793845689452
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 15000,
+     "observations": 23,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793845684452,
+        "probability": 0.7973433839904088,
+        "shares": 15
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793845689452
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793845684452,
+        "probability": 0.7766375045431236,
+        "shares": 15
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793845689452
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 30000,
+     "observations": 22,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793845684452,
+        "probability": 0.7973433839904088,
+        "shares": 15
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793845689452
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793845684452,
+        "probability": 0.7766375045431236,
+        "shares": 15
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793845689452
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "gameId": "espn-nba-401909925",
+   "slug": "nba-cha-bkn-2026-11-04",
+   "homeWon": 1,
+   "quotes": 24,
+   "bookErrors": 0,
+   "forecast": {
+    "candidate": {
+     "n": 8,
+     "model": 0.35237172510259246,
+     "market": 0.297628125
+    },
+    "baseline": {
+     "n": 8,
+     "model": 0.2552531543375902,
+     "market": 0.297628125
+    }
+   },
+   "scenarios": [
+    {
+     "scoreLagMs": 5000,
+     "observations": 14,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793839611454,
+        "probability": 0.5492316834777824,
+        "shares": 20
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793839616454
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 15000,
+     "observations": 13,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793839611454,
+        "probability": 0.5492316834777824,
+        "shares": 20
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793839616454
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 30000,
+     "observations": 9,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793839611454,
+        "probability": 0.5492316834777824,
+        "shares": 20
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793839616454
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "gameId": "espn-nba-401909926",
+   "slug": "nba-chi-nyk-2026-11-04",
+   "homeWon": 1,
+   "quotes": 11,
+   "bookErrors": 0,
+   "forecast": {
+    "candidate": {
+     "n": 6,
+     "model": 0.0022089026749824428,
+     "market": 0.0017686666666666667
+    },
+    "baseline": {
+     "n": 6,
+     "model": 0.005966434294915922,
+     "market": 0.0017686666666666667
+    }
+   },
+   "scenarios": [
+    {
+     "scoreLagMs": 5000,
+     "observations": 6,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     }
+    },
+    {
+     "scoreLagMs": 15000,
+     "observations": 5,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     }
+    },
+    {
+     "scoreLagMs": 30000,
+     "observations": 3,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     }
+    }
+   ]
+  },
+  {
+   "gameId": "espn-nba-401909927",
+   "slug": "nba-ind-mem-2026-11-04",
+   "homeWon": 0,
+   "quotes": 62,
+   "bookErrors": 0,
+   "forecast": {
+    "candidate": {
+     "n": 15,
+     "model": 0.36076670539550165,
+     "market": 0.319575
+    },
+    "baseline": {
+     "n": 15,
+     "model": 0.3390289236608438,
+     "market": 0.319575
+    }
+   },
+   "scenarios": [
+    {
+     "scoreLagMs": 5000,
+     "observations": 23,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793846117525,
+        "probability": 0.809218869819034,
+        "shares": 13
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793846122525
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793846187977,
+        "probability": 0.7771660387939124,
+        "shares": 14
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793846192977
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 15000,
+     "observations": 20,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793846117525,
+        "probability": 0.809218869819034,
+        "shares": 13
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793846122525
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793846187977,
+        "probability": 0.7771660387939124,
+        "shares": 14
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793846192977
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 30000,
+     "observations": 12,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793846187977,
+        "probability": 0.809218869819034,
+        "shares": 14
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793846192977
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793846187977,
+        "probability": 0.7771660387939124,
+        "shares": 14
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793846192977
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "gameId": "espn-nba-401909928",
+   "slug": "nba-uta-nop-2026-11-04",
+   "homeWon": 1,
+   "quotes": 41,
+   "bookErrors": 0,
+   "forecast": {
+    "candidate": {
+     "n": 7,
+     "model": 0.2028153631812754,
+     "market": 0.21076785714285715
+    },
+    "baseline": {
+     "n": 7,
+     "model": 0.2104994437320691,
+     "market": 0.21076785714285715
+    }
+   },
+   "scenarios": [
+    {
+     "scoreLagMs": 5000,
+     "observations": 14,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793842203146,
+        "probability": 0.7363819804811026,
+        "shares": 14
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793842208146
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793845733552,
+        "probability": 0.6470781974235205,
+        "shares": 16
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793845738552
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 15000,
+     "observations": 13,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793842203146,
+        "probability": 0.7363819804811026,
+        "shares": 14
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793842208146
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793845733552,
+        "probability": 0.6470781974235205,
+        "shares": 16
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793845738552
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 30000,
+     "observations": 10,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793842203146,
+        "probability": 0.7363819804811026,
+        "shares": 14
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793842208146
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793845733552,
+        "probability": 0.6470781974235205,
+        "shares": 16
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793845738552
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "gameId": "espn-nba-401909929",
+   "slug": "nba-cle-okc-2026-11-04",
+   "homeWon": 1,
+   "quotes": 55,
+   "bookErrors": 0,
+   "forecast": {
+    "candidate": {
+     "n": 17,
+     "model": 0.011534131949332274,
+     "market": 0.023949073529411762
+    },
+    "baseline": {
+     "n": 17,
+     "model": 0.018265916130893848,
+     "market": 0.023949073529411762
+    }
+   },
+   "scenarios": [
+    {
+     "scoreLagMs": 5000,
+     "observations": 31,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793841830669,
+        "probability": 0.8538619051838113,
+        "shares": 12
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793841835669
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793842565778,
+        "probability": 0.8936866961081539,
+        "shares": 11
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793842570778
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 15000,
+     "observations": 29,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793841830669,
+        "probability": 0.8538619051838113,
+        "shares": 12
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793841835669
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793842565778,
+        "probability": 0.8936866961081539,
+        "shares": 11
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793842570778
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 30000,
+     "observations": 20,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793841830669,
+        "probability": 0.8538619051838113,
+        "shares": 12
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793841835669
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793842565778,
+        "probability": 0.8936866961081539,
+        "shares": 11
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793842570778
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "gameId": "espn-nba-401909930",
+   "slug": "nba-min-hou-2026-11-04",
+   "homeWon": 0,
+   "quotes": 68,
+   "bookErrors": 0,
+   "forecast": {
+    "candidate": {
+     "n": 11,
+     "model": 0.31003237015922525,
+     "market": 0.3709022727272728
+    },
+    "baseline": {
+     "n": 11,
+     "model": 0.2985039623381439,
+     "market": 0.3709022727272728
+    }
+   },
+   "scenarios": [
+    {
+     "scoreLagMs": 5000,
+     "observations": 29,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793849010024,
+        "probability": 0.7069910241968261,
+        "shares": 15
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793849015024
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793849010024,
+        "probability": 0.6922228657351852,
+        "shares": 15
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793849015024
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 15000,
+     "observations": 26,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793849010024,
+        "probability": 0.7069910241968261,
+        "shares": 15
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793849015024
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793849010024,
+        "probability": 0.6922228657351852,
+        "shares": 15
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793849015024
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 30000,
+     "observations": 20,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793849010024,
+        "probability": 0.7069910241968261,
+        "shares": 15
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793849015024
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793849010024,
+        "probability": 0.6922228657351852,
+        "shares": 15
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793849015024
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "gameId": "espn-nba-401909931",
+   "slug": "nba-tor-den-2026-11-04",
+   "homeWon": 1,
+   "quotes": 29,
+   "bookErrors": 0,
+   "forecast": {
+    "candidate": {
+     "n": 7,
+     "model": 0.1531533651182488,
+     "market": 0.13084674999999998
+    },
+    "baseline": {
+     "n": 7,
+     "model": 0.16641397282076878,
+     "market": 0.13084674999999998
+    }
+   },
+   "scenarios": [
+    {
+     "scoreLagMs": 5000,
+     "observations": 20,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     }
+    },
+    {
+     "scoreLagMs": 15000,
+     "observations": 17,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     }
+    },
+    {
+     "scoreLagMs": 30000,
+     "observations": 13,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": []
+     }
+    }
+   ]
+  },
+  {
+   "gameId": "espn-nba-401909932",
+   "slug": "nba-por-phx-2026-11-04",
+   "homeWon": 0,
+   "quotes": 69,
+   "bookErrors": 0,
+   "forecast": {
+    "candidate": {
+     "n": 8,
+     "model": 0.024916777091084787,
+     "market": 0.017729375000000006
+    },
+    "baseline": {
+     "n": 8,
+     "model": 0.03159488161227415,
+     "market": 0.017729375000000006
+    }
+   },
+   "scenarios": [
+    {
+     "scoreLagMs": 5000,
+     "observations": 29,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793845307252,
+        "probability": 0.5664499729587409,
+        "shares": 20
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793845312252
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793845307252,
+        "probability": 0.5923493430068747,
+        "shares": 20
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793845312252
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 15000,
+     "observations": 25,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793845307252,
+        "probability": 0.5664499729587409,
+        "shares": 20
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793845312252
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793845307252,
+        "probability": 0.5923493430068747,
+        "shares": 20
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793845312252
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 30000,
+     "observations": 20,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793845332575,
+        "probability": 0.5664499729587409,
+        "shares": 19
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793845337575
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793845332575,
+        "probability": 0.5923493430068747,
+        "shares": 19
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793845337575
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "gameId": "espn-nba-401909933",
+   "slug": "nba-dal-sas-2026-11-04",
+   "homeWon": 1,
+   "quotes": 40,
+   "bookErrors": 0,
+   "forecast": {
+    "candidate": {
+     "n": 7,
+     "model": 0.06523377725015933,
+     "market": 0.09683571428571427
+    },
+    "baseline": {
+     "n": 7,
+     "model": 0.06654213070049582,
+     "market": 0.09683571428571427
+    }
+   },
+   "scenarios": [
+    {
+     "scoreLagMs": 5000,
+     "observations": 18,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793849957702,
+        "probability": 0.8788200058222728,
+        "shares": 12
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793849962702
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793855464289,
+        "probability": 0.6837125222322231,
+        "shares": 17
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793855469289
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 15000,
+     "observations": 17,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793849957702,
+        "probability": 0.8788200058222728,
+        "shares": 12
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793849962702
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793855464289,
+        "probability": 0.6837125222322231,
+        "shares": 17
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793855469289
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 30000,
+     "observations": 13,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793849957702,
+        "probability": 0.8788200058222728,
+        "shares": 12
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793849962702
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793855464289,
+        "probability": 0.6837125222322231,
+        "shares": 17
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793855469289
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "gameId": "espn-nba-401909934",
+   "slug": "nba-lal-sac-2026-11-04",
+   "homeWon": 0,
+   "quotes": 42,
+   "bookErrors": 0,
+   "forecast": {
+    "candidate": {
+     "n": 10,
+     "model": 0.04489209959943636,
+     "market": 0.019457450000000005
+    },
+    "baseline": {
+     "n": 10,
+     "model": 0.09998581526615863,
+     "market": 0.019457450000000005
+    }
+   },
+   "scenarios": [
+    {
+     "scoreLagMs": 5000,
+     "observations": 16,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793848351445,
+        "probability": 0.19415440671696554,
+        "shares": 68
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793848356445
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793848351445,
+        "probability": 0.34213245893824384,
+        "shares": 68
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793848356445
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 15000,
+     "observations": 12,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793848899720,
+        "probability": 0.34707932394681185,
+        "shares": 41
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793848904720
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793848390648,
+        "probability": 0.34213245893824384,
+        "shares": 59
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793848395648
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 30000,
+     "observations": 7,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793848899720,
+        "probability": 0.34707932394681185,
+        "shares": 41
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793848904720
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793848390648,
+        "probability": 0.34213245893824384,
+        "shares": 59
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793848395648
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "gameId": "espn-nba-401909935",
+   "slug": "nba-mia-lac-2026-11-04",
+   "homeWon": 0,
+   "quotes": 77,
+   "bookErrors": 0,
+   "forecast": {
+    "candidate": {
+     "n": 13,
+     "model": 0.5186064459037155,
+     "market": 0.30236346153846155
+    },
+    "baseline": {
+     "n": 13,
+     "model": 0.5149011048244853,
+     "market": 0.30236346153846155
+    }
+   },
+   "scenarios": [
+    {
+     "scoreLagMs": 5000,
+     "observations": 14,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793850289596,
+        "probability": 0.5084148414559686,
+        "shares": 32
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793850294596
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793850289596,
+        "probability": 0.52542483735993,
+        "shares": 32
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793850294596
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 15000,
+     "observations": 13,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793850289596,
+        "probability": 0.5084148414559686,
+        "shares": 32
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793850294596
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793850289596,
+        "probability": 0.52542483735993,
+        "shares": 32
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793850294596
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 30000,
+     "observations": 11,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793851337267,
+        "probability": 0.3873681217177112,
+        "shares": 38
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793851342267
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793851337267,
+        "probability": 0.41266486112486656,
+        "shares": 38
+       },
+       {
+        "status": "unfilled",
+        "reason": "execution-window-expired",
+        "at": 1793851342267
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "gameId": "espn-nba-401909936",
+   "slug": "nba-orl-phx-2026-11-05",
+   "homeWon": 1,
+   "quotes": 16921,
+   "bookErrors": 18,
+   "forecast": {
+    "candidate": {
+     "n": 44,
+     "model": 0.07128939943602178,
+     "market": 0.08238002840909094
+    },
+    "baseline": {
+     "n": 44,
+     "model": 0.07137545523055057,
+     "market": 0.08238002840909094
+    }
+   },
+   "scenarios": [
+    {
+     "scoreLagMs": 5000,
+     "observations": 8807,
+     "candidate": {
+      "netPnl": 0,
+      "fills": 0,
+      "feesPaid": 0,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793932290853,
+        "probability": 0.7237899629819671,
+        "shares": 14
+       },
+       {
+        "status": "unfilled",
+        "reason": "price-or-contract-changed",
+        "at": 1793932294038
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 4.60292000000004,
+      "fills": 1,
+      "feesPaid": 0.15708,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793932365830,
+        "probability": 0.7179472806150995,
+        "shares": 14
+       },
+       {
+        "status": "filled",
+        "at": 1793932369702,
+        "shares": 14,
+        "cost": 9.39708
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 15000,
+     "observations": 7720,
+     "candidate": {
+      "netPnl": 4.60292000000004,
+      "fills": 1,
+      "feesPaid": 0.15708,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793932365650,
+        "probability": 0.7237899629819671,
+        "shares": 14
+       },
+       {
+        "status": "filled",
+        "at": 1793932368704,
+        "shares": 14,
+        "cost": 9.39708
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 4.60292000000004,
+      "fills": 1,
+      "feesPaid": 0.15708,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793932365830,
+        "probability": 0.7162284667604817,
+        "shares": 14
+       },
+       {
+        "status": "filled",
+        "at": 1793932369702,
+        "shares": 14,
+        "cost": 9.39708
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 30000,
+     "observations": 6245,
+     "candidate": {
+      "netPnl": 4.60292000000004,
+      "fills": 1,
+      "feesPaid": 0.15708,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793932365650,
+        "probability": 0.7237899629819671,
+        "shares": 14
+       },
+       {
+        "status": "filled",
+        "at": 1793932368704,
+        "shares": 14,
+        "cost": 9.39708
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 4.60292000000004,
+      "fills": 1,
+      "feesPaid": 0.15708,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793932365830,
+        "probability": 0.7162284667604817,
+        "shares": 14
+       },
+       {
+        "status": "filled",
+        "at": 1793932369702,
+        "shares": 14,
+        "cost": 9.39708
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "gameId": "espn-nba-401909937",
+   "slug": "nba-mia-gsw-2026-11-05",
+   "homeWon": 1,
+   "quotes": 28850,
+   "bookErrors": 23,
+   "forecast": {
+    "candidate": {
+     "n": 45,
+     "model": 0.18374916759588414,
+     "market": 0.1390039611111111
+    },
+    "baseline": {
+     "n": 45,
+     "model": 0.17799178380095262,
+     "market": 0.1390039611111111
+    }
+   },
+   "scenarios": [
+    {
+     "scoreLagMs": 5000,
+     "observations": 14852,
+     "candidate": {
+      "netPnl": 5.07937000000004,
+      "fills": 1,
+      "feesPaid": 0.17063,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793939224940,
+        "probability": 0.7026098414178386,
+        "shares": 15
+       },
+       {
+        "status": "filled",
+        "at": 1793939229196,
+        "shares": 15,
+        "cost": 9.92063
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 5.227200000000039,
+      "fills": 1,
+      "feesPaid": 0.1728,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793939244894,
+        "probability": 0.6936887517577116,
+        "shares": 15
+       },
+       {
+        "status": "filled",
+        "at": 1793939249009,
+        "shares": 15,
+        "cost": 9.7728
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 15000,
+     "observations": 12681,
+     "candidate": {
+      "netPnl": 5.07937000000004,
+      "fills": 1,
+      "feesPaid": 0.17063,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793939224940,
+        "probability": 0.7026098414178386,
+        "shares": 15
+       },
+       {
+        "status": "filled",
+        "at": 1793939229196,
+        "shares": 15,
+        "cost": 9.92063
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 5.227200000000039,
+      "fills": 1,
+      "feesPaid": 0.1728,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793939244894,
+        "probability": 0.6936887517577116,
+        "shares": 15
+       },
+       {
+        "status": "filled",
+        "at": 1793939249009,
+        "shares": 15,
+        "cost": 9.7728
+       }
+      ]
+     }
+    },
+    {
+     "scoreLagMs": 30000,
+     "observations": 9556,
+     "candidate": {
+      "netPnl": 5.07937000000004,
+      "fills": 1,
+      "feesPaid": 0.17063,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793939224940,
+        "probability": 0.7026098414178386,
+        "shares": 15
+       },
+       {
+        "status": "filled",
+        "at": 1793939229196,
+        "shares": 15,
+        "cost": 9.92063
+       }
+      ]
+     },
+     "baseline": {
+      "netPnl": 5.227200000000039,
+      "fills": 1,
+      "feesPaid": 0.1728,
+      "decisions": [
+       {
+        "status": "proposed",
+        "at": 1793939244894,
+        "probability": 0.6936887517577116,
+        "shares": 15
+       },
+       {
+        "status": "filled",
+        "at": 1793939249009,
+        "shares": 15,
+        "cost": 9.7728
+       }
+      ]
+     }
+    }
+   ]
+  }
+ ]
+}
