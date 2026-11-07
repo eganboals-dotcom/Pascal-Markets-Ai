@@ -62,11 +62,27 @@ def levels(xs, bids):
 
 
 num = lambda x: None if x is None else float(x)
+flip = lambda x: None if x is None else round(1 - x, 4)
+
+
+def mirror(row):
+    """Away-token row as the equivalent home-token row: buying home at p is selling away at 1 - p."""
+    if row[0] == "b":
+        _, source, received, bids, asks = row
+        return ["b", source, received, [[flip(p), s] for p, s in asks or []], [[flip(p), s] for p, s in bids or []]]
+    if row[0] == "p":
+        _, source, received, price, size, side, bb, ba = row
+        return ["p", source, received, flip(price), size, "SELL" if side == "BUY" else "BUY", flip(ba), flip(bb)]
+    return row
 
 
 def extract(con, path, games):
-    # Model replay trades the home outcome only, so the away book is not needed.
-    tokens = {format(int(m["homeAssetId"]), "064x"): m["gameId"] for m in games}
+    # The archive keeps one token per market and drops its exact mirror (manifest mirror_rule), so
+    # read both outcome tokens and convert the stored one to the home outcome replay trades.
+    tokens = {}
+    for m in games:
+        tokens[format(int(m["homeAssetId"]), "064x")] = (m["gameId"], "home")
+        tokens[format(int(m["awayAssetId"]), "064x")] = (m["gameId"], "away")
     hex_list = ",".join(f"from_hex('{h}')" for h in tokens)
     # Level changes more than 5 cents outside the best bid and ask cannot reach the top of the book
     # before the next snapshot (several per minute), so they are dropped to keep the output small.
@@ -78,7 +94,7 @@ def extract(con, path, games):
           AND (event_type <> 'price_change' OR best_bid IS NULL OR best_ask IS NULL
                OR price BETWEEN best_bid - 0.05 AND best_ask + 0.05)
         ORDER BY epoch_ms(timestamp) + recv_lag_ms, timestamp, row_ordinal""").fetchall()  # files group rows by event type; replay needs arrival order
-    out = {}
+    by_side = {}
     for asset, kind, source, received, bids, asks, price, size, side, bb, ba in rows:
         if kind == "book":
             row = ["b", source, received, levels(bids, True), levels(asks, False)]
@@ -86,7 +102,15 @@ def extract(con, path, games):
             row = ["p", source, received, num(price), num(size), side, num(bb), num(ba)]
         else:
             row = ["t", source, received]
-        out.setdefault(tokens[asset.lower()], []).append(row)
+        by_side.setdefault(tokens[asset.lower()], []).append(row)
+    out = {}
+    for m in games:
+        home = by_side.get((m["gameId"], "home"), [])
+        away = by_side.get((m["gameId"], "away"), [])
+        # Whichever token the archive kept for this hour carries the full book; the other has stray rows.
+        rows_for_game = home if len(home) >= len(away) else [mirror(r) for r in away]
+        if rows_for_game:
+            out[m["gameId"]] = rows_for_game
     return out
 
 
