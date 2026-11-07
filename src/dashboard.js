@@ -1,33 +1,29 @@
 import { createServer } from 'node:http';
 import { readFileSync } from 'node:fs';
 import { projectPath } from './files.js';
-import { runScan } from './scan.js';
+import { createDashboardRunner } from './dashboard-runner.js';
 
-const CACHE_MS = 5 * 60000;
-const SHOWN = 25;
+const LEASE_MS = 20000;
 
 function readJson(path, fallback) {
   try { return JSON.parse(readFileSync(projectPath(path), 'utf8')); }
   catch { return fallback; }
 }
 
-export function createDashboardServer({ scan = () => runScan(readJson('config/scan.json'), readJson('config/pairs.json', [])),
-  research = () => ({ report: readJson('research/kalshi/report.json', null), mm: readJson('research/kalshi/mm-sim.json', null) }) } = {}) {
-  let cached = null;
-  const latest = () => {
-    if (!cached || Date.now() - cached.at > CACHE_MS) {
-      const entry = { at: Infinity, promise: scan() };
-      entry.promise.then(() => { entry.at = Date.now(); }, () => { if (cached === entry) cached = null; });
-      cached = entry;
-    }
-    return cached.promise;
-  };
+export function createDashboardServer({ runner = createDashboardRunner(),
+  research = () => ({ report: readJson('research/kalshi/report.json', null), mm: readJson('research/kalshi/mm-sim.json', null) }),
+  now = Date.now, leaseMs = LEASE_MS } = {}) {
+  let lastContact = now();
+  const lease = setInterval(() => {
+    if (now() - lastContact > leaseMs) void runner.stop();
+  }, Math.min(5000, leaseMs));
+  lease.unref();
   const staticFiles = new Map([
     ['/', ['web/index.html', 'text/html; charset=utf-8']],
     ['/app.js', ['web/app.js', 'text/javascript; charset=utf-8']],
     ['/style.css', ['web/style.css', 'text/css; charset=utf-8']]
   ]);
-  return createServer(async (request, response) => {
+  const server = createServer(async (request, response) => {
     response.setHeader('Cache-Control', 'no-store');
     response.setHeader('X-Content-Type-Options', 'nosniff');
     response.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'");
@@ -36,6 +32,16 @@ export function createDashboardServer({ scan = () => runScan(readJson('config/sc
       response.end(JSON.stringify(body));
     };
     if (!/^(?:127\.0\.0\.1|localhost):\d+$/.test(request.headers.host ?? '')) { json(403, { error: 'Local dashboard access only' }); return; }
+    if (['/api/start', '/api/stop'].includes(request.url)) {
+      const origin = request.headers.origin;
+      if (request.method !== 'POST') { json(405, { error: 'POST required' }); return; }
+      if (request.headers['content-type'] !== 'application/json' || request.headers['x-pascal-control'] !== '1' ||
+          (origin && origin !== `http://${request.headers.host}`)) { json(403, { error: 'Local dashboard controls only' }); return; }
+      lastContact = now();
+      try { json(200, request.url === '/api/start' ? runner.start() : await runner.stop()); }
+      catch { json(500, { error: 'Scanner control failed' }); }
+      return;
+    }
     if (request.method !== 'GET') { response.writeHead(405); response.end('Method not allowed'); return; }
     if (request.url === '/api/research') {
       try { json(200, research()); }
@@ -43,13 +49,8 @@ export function createDashboardServer({ scan = () => runScan(readJson('config/sc
       return;
     }
     if (request.url === '/api/scan') {
-      try {
-        const result = await latest();
-        const near = result.candidates.filter(c => !result.hits.includes(c)).sort((a, b) => b.returnPct - a.returnPct);
-        json(200, { scannedAt: result.scannedAt, events: result.events, markets: result.markets, errors: result.errors,
-          hits: result.hits.slice(0, SHOWN), hitCount: result.hits.length, near: near.slice(0, SHOWN),
-          tracked: Object.values(readJson('research/kalshi/state.json', { open: {} }).open) });
-      } catch (error) { json(502, { error: `Scan failed: ${error.message}` }); }
+      lastContact = now();
+      json(200, runner.snapshot());
       return;
     }
     const file = staticFiles.get(request.url);
@@ -60,6 +61,8 @@ export function createDashboardServer({ scan = () => runScan(readJson('config/sc
       response.end(content);
     } catch { response.writeHead(500); response.end('Dashboard asset unavailable'); }
   });
+  server.on('close', () => { clearInterval(lease); void runner.stop(); });
+  return server;
 }
 
 export function serveDashboard(port = 8787) {

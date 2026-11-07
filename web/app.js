@@ -39,30 +39,47 @@ async function loadResearch() {
   } catch (error) { el('research-status').textContent = error.message; }
 }
 
+let busy = false;
+function render(data) {
+  el('start').disabled = data.running;
+  el('stop').disabled = !data.running || data.phase === 'stopping';
+  el('events').textContent = data.events.toLocaleString();
+  el('markets').textContent = data.markets.toLocaleString();
+  el('hit-count').textContent = data.hitCount;
+  el('tracked-count').textContent = data.lastRound?.candidates ?? 0;
+  table('hits', data.hits);
+  table('near', data.near);
+  const updated = data.scannedAt ? ` Last update: ${new Date(data.scannedAt).toLocaleTimeString()}.` : '';
+  el('status').textContent = data.error ?? (data.running ?
+    `${data.phase === 'stopping' ? 'Stopping' : 'Running'} (${data.mode ?? 'starting'}).${updated}` :
+    'Stopped. Press Start to scan markets.');
+}
 async function load() {
-  const research = loadResearch();
-  el('refresh').disabled = true;
-  el('status').textContent = 'Scanning every open Kalshi event…';
+  if (busy) return;
+  busy = true;
   try {
     const response = await fetch('/api/scan');
     const data = await response.json();
-    if (!response.ok) throw new Error(data.error ?? 'Scan failed');
-    el('events').textContent = data.events.toLocaleString();
-    el('markets').textContent = data.markets.toLocaleString();
-    el('hit-count').textContent = data.hitCount;
-    el('tracked-count').textContent = data.tracked.length;
-    table('hits', data.hits);
-    table('tracked', data.tracked, true);
-    table('near', data.near);
-    el('status').textContent = `Scanned ${new Date(data.scannedAt).toLocaleTimeString()}. Results are cached for five minutes.` +
-      (data.errors.length ? ` Pair errors: ${data.errors.map(e => e.pair).join(', ')}.` : '');
-  } catch (error) {
-    el('status').textContent = error.message;
-  } finally {
-    await research;
-    el('refresh').disabled = false;
-  }
+    if (!response.ok) throw new Error(data.error ?? 'Status unavailable');
+    render(data);
+  } catch (error) { el('status').textContent = error.message; }
+  finally { busy = false; }
 }
-
-el('refresh').addEventListener('click', load);
+async function control(action) {
+  el('start').disabled = true;
+  el('stop').disabled = true;
+  try {
+    const response = await fetch(`/api/${action}`, { method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Pascal-Control': '1' } });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error ?? 'Control failed');
+    render(data);
+  } catch (error) { el('status').textContent = error.message; }
+  finally { await load(); }
+}
+el('start').addEventListener('click', () => control('start'));
+el('stop').addEventListener('click', () => control('stop'));
+// Status reads keep the dashboard lease alive; they never start a market scan.
+setInterval(load, 5000);
+loadResearch();
 load();

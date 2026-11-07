@@ -23,23 +23,17 @@ node src/cli.js serve
 
 `scan` prints the current hits. `kalshi-scan.js` also updates the tracked hits in `research/kalshi/`.
 
-## Scheduled scan on GitHub Actions
+## Dashboard-controlled scanning
 
-`.github/workflows/kalshi-scan.yml` runs the tests and a scan every 15 minutes, with no data stored on the local machine. Results live in `research/kalshi/`:
+Double-click `scripts/open-dashboard.cmd`. The dashboard opens idle. **Start** launches one market-data loop; repeated clicks cannot launch a second loop. **Stop** ends its feed, scans and dry-run subprocesses. Closing the dashboard window stops the loop after at most 20 seconds without status heartbeats. Opening the dashboard again requires Start again. Stopping preserves the last displayed results.
 
-- `latest.md`: open hits and the closest misses from the latest committed scan.
-- `state.json`: hits currently open, with first and last sighting.
-- `log.jsonl`: hits that disappeared, one per line. `minDurationMs` is a lower bound on each hit's lifetime, measured between scans.
+Start selects the production WebSocket feed when `KALSHI_KEY_ID` and `KALSHI_KEY_PATH` are configured; otherwise the 15-second REST watch list is used. Full discovery runs every five minutes. The first discovery can take several minutes. Results and rounds from dashboard sessions are saved under `data/dashboard/`.
 
-A 15-minute scan commits only when the tracked hits change. A run every 6 hours, and any manual run, also refreshes `latest.md`. GitHub may delay scheduled runs and pauses them after 60 days without repository activity.
+The GitHub workflow has no scheduled trigger. A manual archival scan remains available under Actions → Kalshi scan → Run workflow. Explicit command-line scans remain available for research.
 
 ## Dry run
 
-After each scheduled scan, a dry-run replays open hits against current market data. It plans which orders the bot would send, waits `dryRunDelayMs` (30 s by default), then checks whether every order would still fill at today's top-of-book price and depth. The three outcomes are: **filled** (all legs catchable), **missed** (none catchable), or **legged** (some filled, some not). No real orders are placed; the file `research/kalshi/dryrun.jsonl` records every replay line by line.
-
-## Open the dashboard
-
-Double-click `scripts/open-dashboard.cmd`, or run `powershell -ExecutionPolicy Bypass -File scripts\open-dashboard.ps1`. It starts the local server when needed and opens http://127.0.0.1:8787 in its own window. The dashboard runs a live scan (cached for five minutes) and lists the hits, the hits tracked by the scheduled scan, and the closest misses.
+New hits in the active loop are checked against public prices after `dryRunDelayMs`. The outcomes filled, missed and legged describe observed price and size availability; they do not establish a real execution. Local records stay in `data/dashboard/dryrun.jsonl`.
 
 ## Limits
 

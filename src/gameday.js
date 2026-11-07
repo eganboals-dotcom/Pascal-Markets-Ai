@@ -72,7 +72,8 @@ export async function runGameday({ config, pairs = [], until, state = null, onRo
       closed = tracked.closed;
       const edges = scan.candidates.map(c => c.profit / c.contracts).filter(Number.isFinite);
       Object.assign(round, { events: scan.events, candidates: scan.candidates.length, hits: scan.hits.length,
-        bestProfitPerContract: edges.length ? edges.reduce((best, edge) => Math.max(best, edge), -Infinity) : null, errors: scan.errors ?? [] });
+        bestProfitPerContract: edges.length ? edges.reduce((best, edge) => Math.max(best, edge), -Infinity) : null, errors: scan.errors ?? [],
+        near: scan.candidates.filter(c => !isHit(c, config)).sort((a, b) => b.returnPct - a.returnPct).slice(0, 25) });
       const newHits = Object.values(state.open).filter(h => h.scans === 1 && h.lastSeen === scan.scannedAt);
       if (newHits.length) {
         if (dryrun) round.dryrunSkipped = true;
@@ -166,6 +167,8 @@ export async function runFeedGameday({ config, pairs = [], until, state = null, 
     const round = { tier, at: new Date(started).toISOString(), durationMs: now() - started,
       events: scan.events, candidates: scan.candidates.length, hits: scan.hits.length,
       bestProfitPerContract: edges.length ? edges.reduce((a, b) => Math.max(a, b), -Infinity) : null, errors: scan.errors ?? [] };
+    if (tier !== 'feed') round.near = scan.candidates.filter(c => !isHit(c, config))
+      .sort((a, b) => b.returnPct - a.returnPct).slice(0, 25);
     replay(round, scan.scannedAt);
     if (tier === 'full') round.watchList = watch.map(e => e.ticker);
     log(round, tracked.closed);

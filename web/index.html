@@ -15,18 +15,17 @@
   <main>
     <div class="heading">
       <div><div class="eyebrow">KALSHI · MISPRICING AND ARBITRAGE</div><h1>Scanner</h1></div>
-      <button id="refresh" type="button">Refresh</button>
+      <div><button id="start" type="button">Start</button> <button id="stop" type="button" disabled>Stop</button></div>
     </div>
-    <p id="status" class="muted" role="status">Scanning every open Kalshi event…</p>
+    <p id="status" class="muted" role="status">Stopped. Press Start to scan markets.</p>
     <div class="stats">
       <div><span>EVENTS</span><strong id="events">—</strong></div>
-      <div><span>MARKETS</span><strong id="markets">—</strong></div>
+      <div><span>WATCHED EVENTS</span><strong id="markets">—</strong></div>
       <div><span>HITS NOW</span><strong id="hit-count">—</strong></div>
-      <div><span>TRACKED BY SCHEDULED SCAN</span><strong id="tracked-count">—</strong></div>
+      <div><span>CANDIDATES IN LAST UPDATE</span><strong id="tracked-count">—</strong></div>
     </div>
     <section class="panel"><h2>Research summary</h2><p id="research-status" class="muted" role="status">Loading saved reports…</p><div id="research" class="table-wrap"></div></section>
     <section class="panel"><h2>Hits after fees</h2><div id="hits" class="table-wrap"></div></section>
-    <section class="panel"><h2>Tracked hits (GitHub Actions scan)</h2><div id="tracked" class="table-wrap"></div></section>
     <section class="panel"><h2>Closest misses</h2><div id="near" class="table-wrap"></div></section>
     <p class="muted">Profit uses top-of-book depth and the Kalshi taker fee. Every hit needs its settlement rules read before any trade.</p>
   </main>

@@ -9,7 +9,7 @@ const help = `Pascal Markets: Kalshi mispricing scanner (research only, no order
   scan          Scan every open Kalshi event once and print the hits
   serve [port]  Open the local dashboard server (default 8787)
 
-The scheduled scan that records hit lifetimes is scripts/kalshi-scan.js.`;
+The dashboard stays idle until Start is pressed. Manual archival scans use scripts/kalshi-scan.js.`;
 const readJson = path => JSON.parse(readFileSync(projectPath(path), 'utf8'));
 try {
   switch (command) {
