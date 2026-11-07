@@ -1,6 +1,5 @@
 // Fake-money demo only. No production host or redirect is accepted.
-import { readFileSync } from 'node:fs';
-import { createPrivateKey, sign, constants } from 'node:crypto';
+import { signedHeaders } from './auth.js';
 import { readResearch } from './report.js';
 
 export const DEMO_BASE = 'https://demo-api.kalshi.co/trade-api/v2';
@@ -22,21 +21,11 @@ export function createDemoClient({ config = loadTradingConfig, env = process.env
     if (!env.KALSHI_DEMO_KEY_ID?.trim() || !env.KALSHI_DEMO_KEY_PATH?.trim()) throw new Error('Both demo credential environment variables are required');
     const url = new URL(DEMO_BASE + path);
     if (url.origin !== 'https://demo-api.kalshi.co' || !url.pathname.startsWith('/trade-api/v2/')) throw new Error('Non-demo request refused');
-    let key;
-    try {
-      // The explicit demo-key path is the sole external file input; credentials are kept outside the repository.
-      key = createPrivateKey(readFileSync(env.KALSHI_DEMO_KEY_PATH));
-      if (key.asymmetricKeyType !== 'rsa') throw new Error();
-    } catch { throw new Error('Unable to load demo RSA private key'); }
-    const timestamp = String(now());
-    const signature = sign('sha256', Buffer.from(timestamp + method + url.pathname), {
-      key, padding: constants.RSA_PKCS1_PSS_PADDING, saltLength: constants.RSA_PSS_SALTLEN_DIGEST
-    }).toString('base64');
+    const headers = signedHeaders(env.KALSHI_DEMO_KEY_ID, env.KALSHI_DEMO_KEY_PATH, method, url.pathname, now(), 'demo');
     let response;
     try {
       response = await send(url.href, { method, redirect: 'error', signal: AbortSignal.timeout(20000),
-        headers: { 'Content-Type': 'application/json', 'KALSHI-ACCESS-KEY': env.KALSHI_DEMO_KEY_ID,
-          'KALSHI-ACCESS-TIMESTAMP': timestamp, 'KALSHI-ACCESS-SIGNATURE': signature },
+        headers: { 'Content-Type': 'application/json', ...headers },
         ...(body ? { body: JSON.stringify(body) } : {}) });
     } catch { throw new Error('Demo request failed; no automatic retry'); }
     if (!response.ok) throw new Error(`Demo HTTP ${response.status}`);

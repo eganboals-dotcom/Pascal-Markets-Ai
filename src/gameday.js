@@ -1,8 +1,10 @@
-// Public-data research scheduling; rounds are awaited so they never overlap.
+// Market-data research scheduling; REST rounds are serial, feed scans run in the background.
 import { fetchEvent } from './kalshi.js';
 import { publicLookup } from './polymarket.js';
 import { mapConcurrent } from './dryrun.js';
 import { isHit, ladders, noBaskets, runScan, scanCrossVenue, track } from './scan.js';
+import { createFeed } from './feed.js';
+import { backgroundScan } from './scan-worker.js';
 
 export function selectWatchList(candidates, { events = [], pairs = [] } = {}, size = 20) {
   if (!Number.isInteger(size) || size < 0) throw new Error('Invalid watch size');
@@ -44,9 +46,11 @@ export async function fastRound(config, watch, series, now = Date.now(), { loadE
     scope: events.map(e => e.event_ticker), errors: [...errors, ...cross.errors] };
 }
 
-export async function runGameday({ config, pairs = [], until, state = null, onRound = async () => {},
+export async function runGameday({ config, pairs = [], until, state = null, onRound = async () => {}, feedMode, feedFactory,
   runDryRun = async () => {}, onDryRunError = async () => {}, fullScan = runScan, fastScan = fastRound, now = Date.now,
   sleep = ms => new Promise(resolve => setTimeout(resolve, ms)) }) {
+  if (feedMode) return runFeedGameday({ config, pairs, until, state, onRound, runDryRun, onDryRunError,
+    fullScan, now, sleep, feedMode, feedFactory });
   const { fullMinutes = 5, fastSeconds = 15, watchSize = 20 } = config.gameday ?? {};
   if (![fullMinutes, fastSeconds].every(n => Number.isFinite(n) && n > 0) || !Number.isInteger(watchSize) || watchSize < 0 || !Number.isFinite(until)) throw new Error('Invalid game-day schedule');
   let nextFull = -Infinity, nextFast = -Infinity, watch = [], series = {}, dryrun;
@@ -89,5 +93,175 @@ export async function runGameday({ config, pairs = [], until, state = null, onRo
     await onRound(round, state, closed);
   }
   if (dryrun) await dryrun;
+  return state;
+}
+
+export function latencySummary(samples) {
+  const sorted = [...samples].sort((a, b) => a - b);
+  const percentile = p => sorted.length ? sorted[Math.ceil(sorted.length * p) - 1] : null;
+  return { samples: sorted.length, p50: percentile(0.5), p95: percentile(0.95), max: sorted.at(-1) ?? null };
+}
+
+export function feedWatchSize(size, maximum, p95, limit, fullScan = false) {
+  if (p95 == null) return size;
+  if (!fullScan && p95 > limit) return size ? Math.max(1, Math.floor(size * 0.8)) : 0;
+  if (fullScan && p95 < limit / 2) return Math.min(maximum, Math.max(size + 1, Math.ceil(size * 1.1)));
+  return size;
+}
+
+// The full scan owns all events except those currently maintained by the feed.
+export function trackFullScan(state, scan, watched) {
+  const owned = new Set(watched);
+  const scope = new Set([...Object.values(state?.open ?? {}).map(h => h.event),
+    ...scan.hits.map(h => h.event)].filter(t => !owned.has(t)));
+  return track(state, scan.hits, scan.scannedAt, scope);
+}
+
+export function coalesceEvents(priceEvent, { schedule = setImmediate, cancel = clearImmediate } = {}) {
+  const pending = new Map();
+  let handle;
+  return {
+    add(ticker, receivedAt) {
+      pending.set(ticker, Math.min(pending.get(ticker) ?? Infinity, receivedAt));
+      if (handle != null) return;
+      handle = schedule(() => {
+        handle = undefined;
+        const batch = [...pending]; pending.clear();
+        for (const [event, receipt] of batch) priceEvent(event, receipt);
+      });
+    },
+    stop() { if (handle != null) cancel(handle); pending.clear(); handle = undefined; }
+  };
+}
+
+export async function runFeedGameday({ config, pairs = [], until, state = null, onRound = async () => {},
+  runDryRun = async () => {}, onDryRunError = async () => {}, fullScan = runScan,
+  now = Date.now, sleep = ms => new Promise(resolve => setTimeout(resolve, ms)),
+  feedMode = 'production', feedFactory = createFeed, lookup = publicLookup(), coalesceOptions } = {}) {
+  const { fullMinutes = 5, fastSeconds = 15, feedWatchSize: maximum = 300, maxLatencyMs = 100 } = config.gameday ?? {};
+  if (![fullMinutes, fastSeconds, maxLatencyMs].every(n => Number.isFinite(n) && n > 0) ||
+      !Number.isInteger(maximum) || maximum < 0 || !Number.isFinite(until)) throw new Error('Invalid feed schedule');
+  let watch = [], context = { events: [], series: {}, pairs: [] }, capacity = maximum;
+  let full, fast, dryrun, output = Promise.resolve(), running = true, latestP95 = null;
+  let samples = [], nextFull = -Infinity, nextFast = Infinity, nextLatency = now() + 60000;
+  const marketEvents = new Map(), eventsByTicker = new Map();
+  const scanAbort = new AbortController();
+  const scanFull = fullScan === runScan ? (...args) => backgroundScan(...args, scanAbort.signal) : fullScan;
+  const log = (round, closed = []) => {
+    const snapshot = state;
+    output = output.then(() => onRound({ mode: feedMode, ...round }, snapshot, closed));
+  };
+  const replay = (round, at) => {
+    const hits = Object.values(state?.open ?? {}).filter(h => h.scans === 1 && h.lastSeen === at);
+    if (!hits.length) return;
+    if (dryrun) { round.dryrunSkipped = true; return; }
+    // shortcut: new hits during an active replay are skipped, queue batches when replay coverage is required.
+    dryrun = Promise.resolve().then(() => runDryRun({ open: Object.fromEntries(hits.map(h => [h.id, h])) }))
+      .catch(error => onDryRunError({ at: new Date(now()).toISOString(), error: error.message }))
+      .finally(() => { dryrun = null; });
+  };
+  function accept(scan, tier, started, tracked) {
+    state = { ...tracked.state, scannedAt: scan.scannedAt };
+    const edges = scan.candidates.map(c => c.profit / c.contracts).filter(Number.isFinite);
+    const round = { tier, at: new Date(started).toISOString(), durationMs: now() - started,
+      events: scan.events, candidates: scan.candidates.length, hits: scan.hits.length,
+      bestProfitPerContract: edges.length ? edges.reduce((a, b) => Math.max(a, b), -Infinity) : null, errors: scan.errors ?? [] };
+    replay(round, scan.scannedAt);
+    if (tier === 'full') round.watchList = watch.map(e => e.ticker);
+    log(round, tracked.closed);
+  }
+  function swapWatch(next) {
+    watch = next; marketEvents.clear(); eventsByTicker.clear();
+    for (const entry of watch) {
+      const event = context.events.find(e => e.event_ticker === entry.ticker);
+      if (!event) continue;
+      eventsByTicker.set(entry.ticker, event);
+      for (const m of event.markets ?? []) marketEvents.set(m.ticker, entry.ticker);
+    }
+    feed.setMarkets([...marketEvents.keys()]);
+    for (const entry of watch) coalescer.add(entry.ticker, now());
+  }
+  function liveEvent(ticker) {
+    // shortcut: metadata refreshes on full scans, add lifecycle messages before relying on intraday status changes.
+    const event = eventsByTicker.get(ticker);
+    if (!event || !event.markets.every(m => feed.top(m.ticker))) return null;
+    return { ...event, markets: event.markets.map(m => ({ ...m, ...feed.top(m.ticker) })) };
+  }
+  const coalescer = coalesceEvents((ticker, receivedAt) => {
+    if (!running) return;
+    const event = liveEvent(ticker);
+    if (!event) return;
+    const started = now(), options = { ...config, now: started, series: context.series };
+    const candidates = [...noBaskets([event], options), ...ladders([event], options)].filter(c => !c.checks.includes('horizon'));
+    const hits = candidates.filter(c => isHit(c, config));
+    const preserved = Object.values(state?.open ?? {}).filter(h => h.event === ticker && h.kind === 'cross-venue');
+    const tracked = track(state, [...hits, ...preserved], started, [ticker]);
+    // Preserve the cross-venue polling clock and scan count.
+    for (const h of preserved) tracked.state.open[h.id] = h;
+    samples.push(now() - receivedAt);
+    accept({ scannedAt: started, events: 1, candidates, hits }, 'feed', started, tracked);
+  }, coalesceOptions);
+  const feed = feedFactory({ mode: feedMode, now,
+    onTop: (ticker, receivedAt) => { const event = marketEvents.get(ticker); if (event) coalescer.add(event, receivedAt); },
+    onError: error => log({ tier: 'feed-error', at: new Date(now()).toISOString(), errors: [{ error: error.message }] }) });
+  feed.start();
+  try {
+    while (now() < until) {
+      const at = now();
+      if (at >= nextFull && !full) {
+        nextFull = at + fullMinutes * 60000;
+        full = Promise.resolve().then(() => scanFull(config, pairs, at, { retainContext: true, demo: feedMode === 'demo' }))
+          .then(scan => {
+            if (!running) return;
+            const tracked = trackFullScan(state, scan, watch.map(e => e.ticker));
+            context = scan.context;
+            capacity = feedWatchSize(capacity, maximum, latestP95, maxLatencyMs, true);
+            swapWatch(selectWatchList(scan.candidates, context, capacity));
+            nextFast = Math.min(nextFast, now());
+            accept(scan, 'full', at, tracked);
+          }).catch(error => { if (running) log({ tier: 'full', at: new Date(at).toISOString(), errors: [{ error: error.message }] }); })
+          .finally(() => { full = null; });
+      }
+      if (at >= nextFast && !fast) {
+        nextFast = at + fastSeconds * 1000;
+        const selected = watch.map(entry => ({ entry, event: liveEvent(entry.ticker) })).filter(x => x.event && x.entry.pairs.length);
+        const generation = context;
+        const pairList = selected.flatMap(({ entry, event }) => entry.pairs.flatMap(pair => {
+          const market = event.markets.find(m => m.ticker === pair.kalshiTicker);
+          return market ? [{ ...pair, event, kalshiMarket: market, polymarketMarket: undefined }] : [];
+        }));
+        if (pairList.length) fast = scanCrossVenue(pairList, { ...config, now: at, series: context.series, lookup })
+          .then(cross => {
+            if (!running || context !== generation) return;
+            const failed = new Set(cross.errors.map(e => e.pair));
+            const scope = selected.filter(x => watch.some(w => w.ticker === x.entry.ticker) && liveEvent(x.entry.ticker) &&
+              !x.entry.pairs.some(p => failed.has(p.kalshiTicker))).map(x => x.entry.ticker);
+            const candidates = cross.found.filter(c => scope.includes(c.event) && !c.checks.includes('horizon'));
+            const hits = candidates.filter(c => isHit(c, config));
+            const preserved = Object.values(state?.open ?? {}).filter(h => scope.includes(h.event) && h.kind !== 'cross-venue');
+            const tracked = track(state, [...hits, ...preserved], at, scope);
+            for (const h of preserved) tracked.state.open[h.id] = h;
+            accept({ scannedAt: at, events: scope.length, candidates, hits, errors: cross.errors }, 'fast', at, tracked);
+          }).catch(error => log({ tier: 'fast', at: new Date(at).toISOString(), errors: [{ error: error.message }] }))
+          .finally(() => { fast = null; });
+      }
+      if (at >= nextLatency) {
+        const latency = latencySummary(samples); samples = []; latestP95 = latency.p95;
+        const previous = capacity;
+        capacity = feedWatchSize(capacity, maximum, latestP95, maxLatencyMs);
+        if (capacity < previous) swapWatch(watch.slice(0, capacity));
+        log({ tier: 'latency', at: new Date(at).toISOString(), ...latency, watchSize: watch.length,
+          ...(capacity < previous ? { shrunkFrom: previous, capacity } : {}), messages: { ...feed.counts } });
+        nextLatency = at + 60000;
+      }
+      await sleep(Math.min(100, Math.max(0, until - now())));
+    }
+  } finally {
+    running = false; coalescer.stop(); feed.stop(); scanAbort.abort();
+    await Promise.allSettled([full, fast, dryrun]);
+    log({ tier: 'latency', final: true, at: new Date(now()).toISOString(), ...latencySummary(samples),
+      watchSize: watch.length, messages: { ...feed.counts } });
+    await output;
+  }
   return state;
 }

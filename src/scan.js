@@ -187,17 +187,18 @@ export async function scanCrossVenue(pairs, options) {
   return { found, errors };
 }
 
-export async function runScan(config, pairs = [], now = Date.now(), { retainContext = false } = {}) {
+export async function runScan(config, pairs = [], now = Date.now(), { retainContext = false, demo = false } = {}) {
   // seriesTickers narrows a scan to named series (a game-day loop), avoiding the ~3-minute full listing.
   const fetchEvents = config.seriesTickers?.length ?
-    Promise.all(config.seriesTickers.map(seriesTicker => fetchOpenEvents({ seriesTicker }))).then(lists => lists.flat()) : fetchOpenEvents();
-  const [allEvents, seriesList] = await Promise.all([fetchEvents, fetchSeries()]);
+    Promise.all(config.seriesTickers.map(seriesTicker => fetchOpenEvents({ seriesTicker, demo }))).then(lists => lists.flat()) : fetchOpenEvents({ demo });
+  const [allEvents, seriesList] = await Promise.all([fetchEvents, fetchSeries(undefined, { demo })]);
   const series = Object.fromEntries(seriesList.map(s => [s.ticker, s]));
   const events = allEvents.filter(e => inFocus(e, series, config.focus));
   const lookup = publicLookup();
   const options = { ...config, now, events, series, lookup };
   const minVolume = config.verified?.minLegVolume24h ?? 500;
-  const auto = await autoMatch(events.filter(e => e.markets?.some(m => Number(m.volume_24h_fp) >= minVolume)), lookup);
+  const auto = demo ? { pairs: [], errors: [] } : await autoMatch(events.filter(e => e.markets?.some(m => Number(m.volume_24h_fp) >= minVolume)), lookup);
+  if (demo) pairs = [];
   const reviewedTickers = new Set(pairs.map(p => p.kalshiTicker));
   const matchedPairs = [...pairs, ...auto.pairs.filter(p => !reviewedTickers.has(p.kalshiTicker) &&
     Number(p.kalshiMarket.volume_24h_fp) >= minVolume)];

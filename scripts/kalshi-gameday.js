@@ -1,8 +1,9 @@
-// Two-tier public-data research loop; no authentication and no orders.
+// Market-data research loop; no orders.
 import { spawn } from 'node:child_process';
 import { readFileSync, appendFileSync, mkdirSync } from 'node:fs';
 import { PROJECT_ROOT, projectPath, writeProjectFile } from '../src/files.js';
 import { runGameday } from '../src/gameday.js';
+import { feedCredentials } from '../src/feed.js';
 
 const arg = (name, fallback) => process.argv.find(a => a.startsWith(`--${name}=`))?.slice(name.length + 3) ?? fallback;
 if (process.argv.some(a => a.startsWith('--minutes'))) throw new Error('Use gameday.fullMinutes and gameday.fastSeconds in config/scan.json');
@@ -18,9 +19,15 @@ const readJson = (path, fallback) => {
   catch (error) { if (error.code === 'ENOENT') return fallback; throw error; }
 };
 const config = { ...readJson('config/scan.json'), ...(seriesTickers.length ? { seriesTickers } : {}) };
+const feedArg = process.argv.includes('--feed') ? 'production' : arg('feed', '');
+if (!['', 'production', 'demo'].includes(feedArg)) throw new Error('Use --feed or --feed=demo');
+const credentials = feedCredentials(feedArg);
+const feedMode = feedArg && credentials.keyId?.trim() && credentials.keyPath?.trim() ? feedArg : undefined;
+console.log(feedMode ? `Live feed: ${feedMode}${feedMode === 'demo' ? ' (demo prices; plumbing only)' : ''}.` :
+  `REST fast tier: ${feedArg ? 'feed credentials are missing' : '--feed was not requested'}.`);
 const until = new Date(); until.setHours(...time.split(':').map(Number), 0, 0);
 console.log(`Game-day loop: ${seriesArg || 'all focus markets'} until ${until.toLocaleTimeString()}. No orders.`);
-await runGameday({ config, pairs: readJson('config/pairs.json', []), until: until.getTime(), state: readJson(`${out}/state.json`, null),
+await runGameday({ config, feedMode, pairs: readJson('config/pairs.json', []), until: until.getTime(), state: readJson(`${out}/state.json`, null),
   onDryRunError: error => {
     appendFileSync(projectPath(`${out}/dryrun.jsonl`), JSON.stringify({ ...error, outcome: 'error' }) + '\n');
     console.error(JSON.stringify({ dryrunError: error }));
