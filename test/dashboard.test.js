@@ -62,3 +62,14 @@ test('dashboard shares long-running scans and caches for five minutes after comp
     assert.equal(scans, 2);
   });
 });
+
+test('saved research endpoint returns report and simulator data without a network scan', async () => {
+  const fixture = { report: { hitsToday: 3, outcomes: { filled: 2 }, nearMissSummary: { '0..1c': 4 } }, mm: { total: { netPnl: -.5 } } };
+  const server = createDashboardServer({ scan: () => { throw new Error('Scan must not run'); }, research: () => fixture });
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  try {
+    const base = `http://127.0.0.1:${server.address().port}`;
+    assert.deepEqual(await (await fetch(`${base}/api/research`)).json(), fixture);
+    assert.match(await (await fetch(`${base}/`)).text(), /id="research"/);
+  } finally { await new Promise(resolve => server.close(resolve)); }
+});

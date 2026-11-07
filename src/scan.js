@@ -34,9 +34,10 @@ export function price(kind, title, legs, payout, { maxContracts = 100, now = Dat
   // A game in play keeps a far close_time; its expected expiration (or Polymarket end date) marks it as live.
   if (!legs.every(l => Math.min(l.closesAt, l.expiresAt ?? l.closesAt) - now > (verified.minHoursToClose ?? 2) * 3600000)) checks.push('notClosing');
   if (new Set(kalshi.map(l => l.closesAt)).size !== 1) checks.push('sameClose');
+  if (legs.some(l => Number.isFinite(l.gameStartAt) && l.gameStartAt <= now)) checks.push('gameStarted');
   return {
     id: `${kind}:${legs.map(leg => `${leg.venue}:${leg.ticker}:${leg.side}`).join('+')}`,
-    kind, title, event: event.event_ticker, verified: checks.length === 0, checks,
+    kind, title, event: event.event_ticker, series: event.series_ticker, verified: checks.length === 0, checks,
     reviewed: (verified.reviewedSeries ?? []).includes(event.series_ticker),
     contracts, cost: round(cost), payout: payout * contracts, profit: round(profit),
     returnPct: profit / cost, annualized: round(annualized), closesAt, expiresAt, longHold: extended,
@@ -148,7 +149,7 @@ export function crossVenue(pair, kalshiMarket, polymarketMarket, books, { feeRat
     const ask = bestAsk(books[index]);
     if (!ask || polymarketMarket.acceptingOrders !== true) return null;
     return { venue: 'polymarket', ticker: `${pair.polymarketMarketId}#${tokens?.[index]}`, side: `outcome ${index}`,
-      price: ask.price, size: ask.size, closesAt, fee: (contracts, p = ask.price) => contracts * (polymarketMarket.feesEnabled ? takerFeePerShare(p, polymarketMarket.feeSchedule) : 0) };
+      price: ask.price, size: ask.size, closesAt, gameStartAt: Date.parse(polymarketMarket.gameStartTime), fee: (contracts, p = ask.price) => contracts * (polymarketMarket.feesEnabled ? takerFeePerShare(p, polymarketMarket.feeSchedule) : 0) };
   };
   const same = pair.polymarketOutcome;
   const found = [];
@@ -198,8 +199,40 @@ export async function runScan(config, pairs = [], now = Date.now()) {
   const cross = await scanCrossVenue([...pairs, ...auto.pairs.filter(p => !reviewedTickers.has(p.kalshiTicker) &&
     Number(p.kalshiMarket.volume_24h_fp) >= minVolume)], options);
   const candidates = [...noBaskets(events, options), ...ladders(events, options), ...cross.found].filter(c => !c.checks.includes('horizon'));
+  const hits = candidates.filter(c => isHit(c, config));
   return { scannedAt: now, events: events.length, markets: events.reduce((n, e) => n + (e.markets?.length ?? 0), 0),
-    candidates, hits: candidates.filter(c => isHit(c, config)), errors: [...auto.errors, ...cross.errors] };
+    candidates, hits, books: quotingCandidates(events, series, config, now), nearMissSummary: nearMissSummary(candidates.filter(c => !hits.includes(c))), errors: [...auto.errors, ...cross.errors] };
+}
+
+export function quotingCandidates(events, series, config, now = Date.now()) {
+  // shortcut: eligibility is sampled anew each scan, retain a fixed cohort through close when measuring selection bias and off-focus moves.
+  const cap = config.mm?.maxMarkets ?? 50;
+  if (!Number.isInteger(cap) || cap < 0) throw new Error('Invalid MM market cap');
+  const books = [];
+  for (const event of events) {
+    const s = series[event.series_ticker];
+    if (!inFocus(event, series, config.focus) || !s?.contract_url?.startsWith('https://assets.kalshi.com/regulatory/product-certifications/') || !event.settlement_sources?.length) continue;
+    for (const m of event.markets ?? []) {
+      const bid = Number(m.yes_bid_dollars), ask = Number(m.yes_ask_dollars), spread = ask - bid;
+      const close = Date.parse(m.close_time), expiry = Date.parse(m.expected_expiration_time || m.close_time);
+      if (m.status !== 'active' || !(bid > 0 && ask < 1) || spread < 0.02 - 1e-9 || spread > 0.06 + 1e-9 ||
+          Number(m.volume_24h_fp) < 500 || !Number.isFinite(Number(m.volume_24h_fp)) || !(Number(m.yes_bid_size_fp) > 0 && Number(m.yes_ask_size_fp) > 0) ||
+          !(Math.min(close, expiry) - now > 2 * 3600000)) continue;
+      books.push({ ticker: m.ticker, time: now, yesBid: bid, yesAsk: ask, yesBidSize: Number(m.yes_bid_size_fp), yesAskSize: Number(m.yes_ask_size_fp),
+        volume_24h: Number(m.volume_24h_fp), close_time: m.close_time, fee_type: s.fee_type, fee_multiplier: s.fee_multiplier ?? 1 });
+    }
+  }
+  return books.sort((a, b) => b.volume_24h - a.volume_24h || a.ticker.localeCompare(b.ticker)).slice(0, cap);
+}
+
+export function nearMissSummary(candidates) {
+  const buckets = { '<-2c': 0, '-2..0c': 0, '0..1c': 0, '1..2c': 0, '>=2c': 0 };
+  for (const c of candidates) {
+    const p = c.profit / c.contracts;
+    if (!Number.isFinite(p)) continue;
+    buckets[p < -0.02 ? '<-2c' : p < 0 ? '-2..0c' : p < 0.01 ? '0..1c' : p < 0.02 ? '1..2c' : '>=2c']++;
+  }
+  return buckets;
 }
 
 export function inFocus(event, series, focus = {}) {

@@ -25,22 +25,48 @@ jobs:
           node-version: 22
       - name: Test
         run: node --test
+      - name: Restore uncommitted book snapshots
+        uses: actions/cache/restore@v4
+        with:
+          path: research/kalshi/books.jsonl
+          key: mm-books-${{ github.ref_name }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: mm-books-${{ github.ref_name }}-
       - name: Scan
         run: node scripts/kalshi-scan.js
+      - name: Save book snapshots between scans
+        uses: actions/cache/save@v4
+        with:
+          path: research/kalshi/books.jsonl
+          key: mm-books-${{ github.ref_name }}-${{ github.run_id }}-${{ github.run_attempt }}
       - name: Dry run
         run: node scripts/kalshi-dryrun.js
+      - name: Results report
+        if: github.event.schedule != '*/15 * * * *'
+        run: |
+          node scripts/kalshi-report.js
+          node scripts/kalshi-mm-sim.js
       - name: Commit results
         # Every 15-minute scan commits only when tracked hits change; the 6-hourly run and manual runs
         # also refresh latest.md, so the summary on GitHub stays current without a commit per scan.
         run: |
           git config user.name "Pascal Markets"
           git config user.email "pascal-markets@example.com"
-          git add research/kalshi
-          if git diff --cached --quiet -- research/kalshi/state.json research/kalshi/log.jsonl research/kalshi/dryrun.jsonl &&
-             [ "${{ github.event.schedule }}" = "*/15 * * * *" ]; then
-            echo "No change in tracked hits"; exit 0
+          git add research/kalshi/state.json research/kalshi/latest.md
+          for file in log.jsonl dryrun.jsonl; do
+            if [ -f "research/kalshi/$file" ]; then git add "research/kalshi/$file"; fi
+          done
+          if [ "${{ github.event.schedule }}" != "*/15 * * * *" ]; then
+            git add research/kalshi/books.jsonl research/kalshi/report.md research/kalshi/report.json research/kalshi/mm-sim.md research/kalshi/mm-sim.json
+          fi
+          if [ "${{ github.event.schedule }}" = "*/15 * * * *" ]; then
+            if git diff --cached --quiet -- research/kalshi/log.jsonl research/kalshi/dryrun.jsonl &&
+               node --input-type=module -e 'import {readFileSync} from "node:fs"; import {execFileSync} from "node:child_process"; let old={}; try { old=JSON.parse(execFileSync("git",["show","HEAD:research/kalshi/state.json"],{stdio:["ignore","pipe","ignore"]})); } catch {} const next=JSON.parse(readFileSync("research/kalshi/state.json")); const ids=s=>JSON.stringify(Object.keys(s.open??{}).sort()); process.exit(ids(old)===ids(next)?0:1)'; then
+              echo "No change in tracked hits"; exit 0
+            fi
           fi
           if git diff --cached --quiet; then echo "Nothing to commit"; exit 0; fi
+          node scripts/check-publish.js
           git commit -m "chore: kalshi scan results"
           git pull --rebase origin main
+          node scripts/check-publish.js
           git push origin HEAD:main
