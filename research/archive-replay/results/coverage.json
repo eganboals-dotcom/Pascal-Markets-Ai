@@ -1,0 +1,414 @@
+[
+ {
+  "hour": "2026-10-26T23",
+  "missing": "HTTP 404"
+ },
+ {
+  "hour": "2026-10-27T00",
+  "files": 1,
+  "games": 3,
+  "rows": 399
+ },
+ {
+  "hour": "2026-10-27T01",
+  "files": 1,
+  "games": 4,
+  "rows": 568
+ },
+ {
+  "hour": "2026-10-27T02",
+  "files": 1,
+  "games": 4,
+  "rows": 1072
+ },
+ {
+  "hour": "2026-10-27T03",
+  "files": 1,
+  "games": 2,
+  "rows": 1329
+ },
+ {
+  "hour": "2026-10-27T04",
+  "files": 1,
+  "games": 1,
+  "rows": 246
+ },
+ {
+  "hour": "2026-10-27T23",
+  "files": 1,
+  "games": 3,
+  "rows": 255
+ },
+ {
+  "hour": "2026-10-28T00",
+  "files": 1,
+  "games": 3,
+  "rows": 630
+ },
+ {
+  "hour": "2026-10-28T01",
+  "files": 1,
+  "games": 3,
+  "rows": 1186
+ },
+ {
+  "hour": "2026-10-28T02",
+  "files": 1,
+  "games": 3,
+  "rows": 1220
+ },
+ {
+  "hour": "2026-10-28T22",
+  "files": 1,
+  "games": 4,
+  "rows": 45
+ },
+ {
+  "hour": "2026-10-28T23",
+  "files": 1,
+  "games": 9,
+  "rows": 1009
+ },
+ {
+  "hour": "2026-10-29T00",
+  "files": 1,
+  "games": 10,
+  "rows": 1481
+ },
+ {
+  "hour": "2026-10-29T01",
+  "files": 1,
+  "games": 11,
+  "rows": 1509
+ },
+ {
+  "hour": "2026-10-29T02",
+  "files": 1,
+  "games": 7,
+  "rows": 1293
+ },
+ {
+  "hour": "2026-10-29T03",
+  "files": 1,
+  "games": 3,
+  "rows": 866
+ },
+ {
+  "hour": "2026-10-29T04",
+  "files": 1,
+  "games": 2,
+  "rows": 161
+ },
+ {
+  "hour": "2026-10-29T05",
+  "files": 1,
+  "games": 1,
+  "rows": 4
+ },
+ {
+  "hour": "2026-10-29T23",
+  "files": 1,
+  "games": 2,
+  "rows": 36
+ },
+ {
+  "hour": "2026-10-30T00",
+  "files": 1,
+  "games": 2,
+  "rows": 260
+ },
+ {
+  "hour": "2026-10-30T01",
+  "files": 1,
+  "games": 3,
+  "rows": 282
+ },
+ {
+  "hour": "2026-10-30T02",
+  "files": 1,
+  "games": 3,
+  "rows": 276
+ },
+ {
+  "hour": "2026-10-30T03",
+  "files": 1,
+  "games": 1,
+  "rows": 65
+ },
+ {
+  "hour": "2026-10-30T04",
+  "files": 1,
+  "games": 1,
+  "rows": 35
+ },
+ {
+  "hour": "2026-10-30T22",
+  "files": 1,
+  "games": 1,
+  "rows": 36
+ },
+ {
+  "hour": "2026-10-30T23",
+  "files": 1,
+  "games": 8,
+  "rows": 290
+ },
+ {
+  "hour": "2026-10-31T00",
+  "files": 1,
+  "games": 8,
+  "rows": 971
+ },
+ {
+  "hour": "2026-10-31T01",
+  "files": 1,
+  "games": 10,
+  "rows": 627
+ },
+ {
+  "hour": "2026-10-31T02",
+  "files": 1,
+  "games": 8,
+  "rows": 497
+ },
+ {
+  "hour": "2026-10-31T03",
+  "files": 1,
+  "games": 2,
+  "rows": 213
+ },
+ {
+  "hour": "2026-10-31T04",
+  "files": 1,
+  "games": 2,
+  "rows": 210
+ },
+ {
+  "hour": "2026-10-31T18",
+  "files": 1,
+  "games": 1,
+  "rows": 23
+ },
+ {
+  "hour": "2026-10-31T19",
+  "files": 2,
+  "games": 1,
+  "rows": 84
+ },
+ {
+  "hour": "2026-10-31T20",
+  "files": 1,
+  "games": 1,
+  "rows": 53
+ },
+ {
+  "hour": "2026-10-31T21",
+  "files": 1,
+  "games": 2,
+  "rows": 149
+ },
+ {
+  "hour": "2026-10-31T22",
+  "files": 1,
+  "games": 2,
+  "rows": 115
+ },
+ {
+  "hour": "2026-10-31T23",
+  "files": 1,
+  "games": 5,
+  "rows": 307
+ },
+ {
+  "hour": "2026-11-01T00",
+  "files": 1,
+  "games": 6,
+  "rows": 1179
+ },
+ {
+  "hour": "2026-11-01T01",
+  "files": 1,
+  "games": 5,
+  "rows": 280
+ },
+ {
+  "hour": "2026-11-01T02",
+  "files": 1,
+  "games": 4,
+  "rows": 249
+ },
+ {
+  "hour": "2026-11-01T20",
+  "files": 1,
+  "games": 1,
+  "rows": 43
+ },
+ {
+  "hour": "2026-11-01T21",
+  "files": 1,
+  "games": 2,
+  "rows": 37
+ },
+ {
+  "hour": "2026-11-01T22",
+  "files": 1,
+  "games": 2,
+  "rows": 116
+ },
+ {
+  "hour": "2026-11-01T23",
+  "files": 1,
+  "games": 1,
+  "rows": 61
+ },
+ {
+  "hour": "2026-11-02T00",
+  "files": 1,
+  "games": 1,
+  "rows": 19
+ },
+ {
+  "hour": "2026-11-02T01",
+  "files": 1,
+  "games": 2,
+  "rows": 38
+ },
+ {
+  "hour": "2026-11-02T02",
+  "files": 1,
+  "games": 2,
+  "rows": 115
+ },
+ {
+  "hour": "2026-11-02T03",
+  "files": 1,
+  "games": 2,
+  "rows": 158
+ },
+ {
+  "hour": "2026-11-02T04",
+  "files": 1,
+  "games": 1,
+  "rows": 121
+ },
+ {
+  "hour": "2026-11-02T23",
+  "files": 1,
+  "games": 1,
+  "rows": 7
+ },
+ {
+  "hour": "2026-11-03T00",
+  "files": 1,
+  "games": 9,
+  "rows": 385
+ },
+ {
+  "hour": "2026-11-03T01",
+  "files": 1,
+  "games": 12,
+  "rows": 400
+ },
+ {
+  "hour": "2026-11-03T02",
+  "files": 1,
+  "games": 15,
+  "rows": 559
+ },
+ {
+  "hour": "2026-11-03T03",
+  "files": 1,
+  "games": 11,
+  "rows": 198
+ },
+ {
+  "hour": "2026-11-03T04",
+  "files": 1,
+  "games": 5,
+  "rows": 19
+ },
+ {
+  "hour": "2026-11-03T05",
+  "files": 1,
+  "games": 3,
+  "rows": 29
+ },
+ {
+  "hour": "2026-11-04T23",
+  "files": 1,
+  "games": 2,
+  "rows": 3
+ },
+ {
+  "hour": "2026-11-05T00",
+  "files": 1,
+  "games": 8,
+  "rows": 30
+ },
+ {
+  "hour": "2026-11-05T01",
+  "files": 2,
+  "games": 11,
+  "rows": 145
+ },
+ {
+  "hour": "2026-11-05T02",
+  "files": 2,
+  "games": 13,
+  "rows": 211
+ },
+ {
+  "hour": "2026-11-05T03",
+  "files": 1,
+  "games": 11,
+  "rows": 179
+ },
+ {
+  "hour": "2026-11-05T04",
+  "files": 1,
+  "games": 7,
+  "rows": 83
+ },
+ {
+  "hour": "2026-11-05T05",
+  "files": 1,
+  "games": 3,
+  "rows": 85
+ },
+ {
+  "hour": "2026-11-05T06",
+  "files": 1,
+  "games": 1,
+  "rows": 24
+ },
+ {
+  "hour": "2026-11-06T01",
+  "files": 1,
+  "games": 1,
+  "rows": 4287
+ },
+ {
+  "hour": "2026-11-06T02",
+  "files": 1,
+  "games": 2,
+  "rows": 187829
+ },
+ {
+  "hour": "2026-11-06T03",
+  "files": 1,
+  "games": 2,
+  "rows": 314247
+ },
+ {
+  "hour": "2026-11-06T04",
+  "files": 1,
+  "games": 2,
+  "rows": 214178
+ },
+ {
+  "hour": "2026-11-06T05",
+  "files": 1,
+  "games": 1,
+  "rows": 81945
+ }
+]
