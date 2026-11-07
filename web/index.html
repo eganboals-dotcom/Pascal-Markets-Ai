@@ -63,6 +63,18 @@
       <div class="panel-head"><div><div class="eyebrow">ACCOUNT ACTIVITY</div><h2 id="ledger-title">Paper ledger</h2></div><button type="button" id="settle" class="quiet">Check settlements</button></div>
       <p id="settle-status" role="status" class="muted"></p><div class="table-wrap" id="orders"><p class="muted">Paper orders will appear here.</p></div>
     </section>
+    <section class="panel ledger" id="model" aria-labelledby="model-title">
+      <div class="panel-head"><div><div class="eyebrow">FORECAST RESEARCH</div><h2 id="model-title">NBA win probability</h2></div><span class="chip violet" id="model-state">AWAITING MODEL</span></div>
+      <p class="muted" id="model-report">Train on archived NBA games to enable forecasts.</p>
+      <form class="forecast-form" id="forecast">
+        <label>Home score<input name="homeScore" type="number" min="0" step="1" required></label>
+        <label>Away score<input name="awayScore" type="number" min="0" step="1" required></label>
+        <label>Seconds left in regulation<input name="secondsRemaining" type="number" min="1" max="2880" required></label>
+        <label>Pregame home win chance (%)<input name="pregameHomeProbability" type="number" min="0.01" max="99.99" step="0.01" required></label>
+        <button class="quiet" type="submit" id="forecast-submit" disabled>Calculate forecast</button>
+      </form>
+      <p class="muted" id="forecast-result" role="status"></p>
+    </section>
     <details class="panel demo"><summary>Pipeline demonstration <span class="chip violet">SYNTHETIC DATA</span></summary><div id="demo-details" class="muted">Run the demo to see the baseline model and sportsbook comparison.</div></details>
   </main>
   <footer><span class="dot green"></span> Pascal Markets <span>Local paper trading</span><span>Market data from Polymarket</span></footer>

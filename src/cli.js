@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
-import { train } from './model.js';
+import { predict, train } from './model.js';
+import { trainNbaHistory } from './nba-history.js';
 import { replay } from './replay.js';
 import { discoverNba, recordSports, recordBooks, fetchBook } from './polymarket.js';
 import { nbaMoneylines } from './catalog.js';
@@ -33,6 +34,8 @@ const help = `Pascal Markets
   build-training states pregame settlements output.jsonl
   build-replay quotes sportsbook settlements output.jsonl
   train rows.jsonl cutoff-ISO model.json     Train and evaluate the baseline chronologically
+  train-nba-history start-date end-date cutoff-date
+  predict model.json home-score away-score seconds-remaining pregame-home-probability
   replay rows.jsonl config.json [model.json] Run delayed paper execution
 
 All file paths resolve inside this project folder.`;
@@ -96,6 +99,13 @@ try {
       const trained = train(readRows(args[0]), Date.parse(args[1]));
       writeProjectFile(output, JSON.stringify(trained.model, null, 2));
       result = trained.evaluation;
+      break;
+    }
+    case 'train-nba-history': result = await trainNbaHistory(...args); break;
+    case 'predict': {
+      const model = JSON.parse(readFileSync(projectPath(args[0]), 'utf8'));
+      const [homeScore, awayScore, secondsRemaining, pregameHomeProbability] = args.slice(1).map(Number);
+      result = { homeWinProbability: predict(model, { homeScore, awayScore, secondsRemaining, pregameHomeProbability }) };
       break;
     }
     case 'replay': {

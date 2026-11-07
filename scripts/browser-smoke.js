@@ -33,6 +33,14 @@ try {
     await page.getByRole('button', { name: 'Refresh data' }).click();
     await page.waitForFunction(() => !document.getElementById('refresh').disabled);
     await page.waitForFunction(() => !document.getElementById('chart').textContent.includes('Loading price history'));
+    if (await page.getByRole('button', { name: 'Calculate forecast' }).isEnabled()) {
+      await page.getByLabel('Home score').fill('82');
+      await page.getByLabel('Away score').fill('76');
+      await page.getByLabel('Seconds left in regulation').fill('600');
+      await page.getByLabel('Pregame home win chance (%)').fill('55');
+      await page.getByRole('button', { name: 'Calculate forecast' }).click();
+      await page.waitForFunction(() => document.getElementById('forecast-result').textContent.includes('%'));
+    }
     await page.screenshot({ path: projectPath(`outputs/dashboard-${name}.png`), fullPage: true });
     assert.deepEqual(errors, []);
     console.log(`${name}: dashboard loaded, refresh worked, no horizontal overflow or script errors`);

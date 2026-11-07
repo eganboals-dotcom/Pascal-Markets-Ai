@@ -723,3 +723,21 @@ footer span:last-child {
     transition: background .15s,border-color .15s,color .15s;
   }
 }
+
+.forecast-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(155px, 1fr));
+  align-items: end;
+  gap: 12px;
+  margin: 12px 0;
+}
+.forecast-form label {
+  font-size: 12px;
+  color: var(--muted);
+}
+.forecast-form input {
+  display: block;
+  width: 100%;
+  margin-top: 5px;
+  padding: 7px 9px;
+}

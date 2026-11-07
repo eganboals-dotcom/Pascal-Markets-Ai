@@ -107,6 +107,14 @@ function renderStatus(data) {
   captureRows = data.captures;
   showCaptures();
   showLedger(data.paper);
+  if (data.nbaModel) {
+    const model = data.nbaModel;
+    text('model-state', 'HISTORICAL NBA');
+    text('model-report', model.trainingGames + ' training games · ' + model.evaluation.games +
+      ' later test games · Brier ' + model.evaluation.brier.toFixed(4) +
+      ' (pregame baseline ' + model.evaluation.baselineBrier.toFixed(4) + ')');
+    el('forecast-submit').disabled = false;
+  }
   if (data.demo) {
     el('demo-details').replaceChildren(table(['Synthetic experiment', 'Fills', 'Example P&L'], [
       ['Sportsbook odds', number(data.demo.sportsbookReplay.fills), money(data.demo.sportsbookReplay.netPnl)],
@@ -332,6 +340,15 @@ el('settle').addEventListener('click', async () => {
     text('settle-status', result.count + ' orders settled' + (result.failures ? ' · ' + result.failures + ' checks unavailable' : ''));
   } catch (error) { text('settle-status', error.message); }
   finally { el('settle').disabled = false; }
+});
+el('forecast').addEventListener('submit', async event => {
+  event.preventDefault();
+  const input = new URLSearchParams(new FormData(event.currentTarget));
+  input.set('pregameHomeProbability', Number(input.get('pregameHomeProbability')) / 100);
+  try {
+    const forecast = await api('/api/nba-forecast?' + input);
+    text('forecast-result', 'Estimated home win probability · ' + (forecast.homeWinProbability * 100).toFixed(1) + '%');
+  } catch (error) { text('forecast-result', error.message); }
 });
 refresh();
 setInterval(refresh, 30000);

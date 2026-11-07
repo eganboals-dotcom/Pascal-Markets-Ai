@@ -5,6 +5,7 @@ import { projectPath } from './files.js';
 import { discoverSports, fetchBook, fetchMarket, fetchPriceHistory, fetchResolution } from './polymarket.js';
 import { sportsBoard } from './catalog.js';
 import { bookTop, createPaperDesk } from './paper.js';
+import { predict } from './model.js';
 
 function readJson(path) {
   try { return JSON.parse(readFileSync(projectPath(path), 'utf8')); }
@@ -36,7 +37,7 @@ export function dashboardStatus() {
   } catch { /* A fresh installation may not have recordings yet. */ }
   const demo = readJson('data/demo/report.json');
   return { name: 'Pascal Markets', mode: 'Research and paper trading',
-    checkedAt: Date.now(), captures: captures.slice(0, 10), demo };
+    checkedAt: Date.now(), captures: captures.slice(0, 10), demo, nbaModel: readJson('models/nba-history.json')?.report ?? null };
 }
 
 async function readOrder(request) {
@@ -99,6 +100,16 @@ export function createDashboardServer({ loadSports = discoverSports, loadMarket 
       return;
     }
     if (request.method !== 'GET') { response.writeHead(405); response.end('Method not allowed'); return; }
+    if (url.pathname === '/api/nba-forecast') {
+      const model = readJson('models/nba-history.json');
+      if (!model?.report) { json(404, { error: 'Train the historical NBA model first' }); return; }
+      const names = ['homeScore', 'awayScore', 'secondsRemaining', 'pregameHomeProbability'];
+      const state = Object.fromEntries(names.map(name => [name, url.searchParams.get(name)?.trim() ?
+        Number(url.searchParams.get(name)) : NaN]));
+      try { json(200, { homeWinProbability: predict(model, state) }); }
+      catch (error) { json(400, { error: error.message }); }
+      return;
+    }
     if (url.pathname === '/api/markets') {
       try {
         const events = await marketBoard((url.searchParams.get('search') ?? '').trim().slice(0, 100));
