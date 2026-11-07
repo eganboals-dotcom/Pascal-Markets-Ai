@@ -22,12 +22,25 @@ function timing(text) {
   return null;
 }
 
+// How a market settles if the game is cancelled or postponed: 'yes', 'no', 'half', or null (unstated or a
+// "fair price" set later). A pair is only safe when both venues settle a called-off game the same fixed way.
+export function cancellation(text) {
+  const sentences = text.toLowerCase().split(/\.(?:\s|$)|\n/).filter(s => /cancel|postpone|does not start|reschedul/.test(s));
+  if (!sentences.length || sentences.some(s => /fair price/.test(s))) return null;
+  const outcomes = new Set(sentences.map(s => /0\.50|50[ -]50|50%|half/.test(s) ? 'half' :
+    /resolves? (?:to )?"?yes/.test(s) ? 'yes' : /resolves? (?:to )?"?no\b/.test(s) ? 'no' : null));
+  return outcomes.size === 1 ? [...outcomes][0] : null;
+}
+
 // Default full-game NBA/NFL periods include overtime in the linked Kalshi contract terms.
+
 export function rulesAgree(event, market, poly) {
-  // shortcut: cancellation/postponement equivalence needs manual review, require reviewed config pairs before any live use.
   const k = `${market.rules_primary ?? ''} ${market.rules_secondary ?? ''}`;
   const p = poly.description ?? '';
   if (!k.trim() || !p.trim()) return false;
+  // A Polymarket draw market that resolves Yes on cancellation against a Kalshi "fair price" lost most of a basket's stake.
+  const called = cancellation(k);
+  if (called === null || called !== cancellation(p)) return false;
   if (['KXUFCFIGHT', 'KXBOXING'].includes(event.series_ticker)) {
     const handling = text => {
       const sentences = text.toLowerCase().split(/\.(?:\s|$)|\n/).filter(s => /draw|no[ -]contest/.test(s));
