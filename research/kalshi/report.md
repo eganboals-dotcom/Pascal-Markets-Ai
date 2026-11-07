@@ -1,6 +1,6 @@
 # Kalshi results report
 
-Generated 2026-11-07T12:57:04.736Z. Research only. Counts include closed and open hit episodes; today uses UTC.
+Generated 2026-11-07T21:46:26.455Z. Research only. Counts include closed and open hit episodes; today uses UTC.
 
 Hits today: 2
 
@@ -41,11 +41,11 @@ Hits today: 2
 
 | Category | Count |
 | --- | --- |
-| <-2c | 5657 |
-| -2..0c | 355 |
-| 0..1c | 27 |
-| 1..2c | 1 |
-| >=2c | 1 |
+| <-2c | 5032 |
+| -2..0c | 1512 |
+| 0..1c | 30 |
+| 1..2c | 0 |
+| >=2c | 0 |
 
 ## Cross-venue games already started at sighting
 

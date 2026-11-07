@@ -1,112 +1,11 @@
 {
- "open": {
-  "cross-venue:kalshi:KXEFLL1GAME-26NOV14STEMAT-TIE:yes+polymarket:6512588#106500599161785338725220249036010653008756335794651357238682605190240463362193:outcome 1": {
-   "id": "cross-venue:kalshi:KXEFLL1GAME-26NOV14STEMAT-TIE:yes+polymarket:6512588#106500599161785338725220249036010653008756335794651357238682605190240463362193:outcome 1",
-   "kind": "cross-venue",
-   "title": "Tie is the result",
-   "event": "KXEFLL1GAME-26NOV14STEMAT",
-   "series": "KXEFLL1GAME",
-   "verified": true,
-   "checks": [],
-   "reviewed": false,
-   "contracts": 9,
-   "cost": 7.8566,
-   "payout": 9,
-   "profit": 1.1434,
-   "returnPct": 0.14553570353495254,
-   "annualized": 7.365,
-   "closesAt": 1794841200000,
-   "expiresAt": 1794679200000,
-   "longHold": false,
-   "legs": [
-    {
-     "venue": "kalshi",
-     "ticker": "KXEFLL1GAME-26NOV14STEMAT-TIE",
-     "side": "yes",
-     "price": 0.79,
-     "size": 9,
-     "volume24h": 3966,
-     "feeRate": 0.07,
-     "bid": 0.51,
-     "closesAt": 1794841200000,
-     "expiresAt": 1794679200000,
-     "costPrice": 0.8
-    },
-    {
-     "venue": "polymarket",
-     "ticker": "6512588#106500599161785338725220249036010653008756335794651357238682605190240463362193",
-     "side": "outcome 1",
-     "price": 0.048,
-     "size": 5515.57,
-     "closesAt": 1794668400000,
-     "gameStartAt": 1794668400000,
-     "costPrice": 0.058,
-     "feePerShare": 0.0027318
-    }
-   ],
-   "autoMatched": true,
-   "firstSeen": 1794053939374,
-   "lastSeen": 1794056034794,
-   "scans": 2,
-   "bestProfit": 3.548
-  },
-  "cross-venue:kalshi:KXEFLL1GAME-26NOV14DRLEY-TIE:yes+polymarket:6512726#24744687854477667767248484611425791996202613510589350787911468989011479992346:outcome 1": {
-   "id": "cross-venue:kalshi:KXEFLL1GAME-26NOV14DRLEY-TIE:yes+polymarket:6512726#24744687854477667767248484611425791996202613510589350787911468989011479992346:outcome 1",
-   "kind": "cross-venue",
-   "title": "Tie is the result",
-   "event": "KXEFLL1GAME-26NOV14DRLEY",
-   "series": "KXEFLL1GAME",
-   "verified": true,
-   "checks": [],
-   "reviewed": false,
-   "contracts": 15,
-   "cost": 13.9723,
-   "payout": 15,
-   "profit": 1.0277,
-   "returnPct": 0.07355267207260074,
-   "annualized": 3.7222,
-   "closesAt": 1794841200000,
-   "expiresAt": 1794679200000,
-   "longHold": false,
-   "legs": [
-    {
-     "venue": "kalshi",
-     "ticker": "KXEFLL1GAME-26NOV14DRLEY-TIE",
-     "side": "yes",
-     "price": 0.85,
-     "size": 22,
-     "volume24h": 1891,
-     "feeRate": 0.07,
-     "bid": 0.31,
-     "closesAt": 1794841200000,
-     "expiresAt": 1794679200000,
-     "costPrice": 0.86
-    },
-    {
-     "venue": "polymarket",
-     "ticker": "6512726#24744687854477667767248484611425791996202613510589350787911468989011479992346",
-     "side": "outcome 1",
-     "price": 0.05,
-     "size": 15.15,
-     "closesAt": 1794668400000,
-     "gameStartAt": 1794668400000,
-     "costPrice": 0.060000000000000005,
-     "feePerShare": 0.0028200000000000005
-    }
-   ],
-   "autoMatched": true,
-   "firstSeen": 1794053939374,
-   "lastSeen": 1794056034794,
-   "scans": 2,
-   "bestProfit": 1.4264
-  }
- },
- "scannedAt": 1794056034794,
+ "open": {},
+ "scannedAt": 1794087869614,
  "nearMissSummary": {
-  "<-2c": 5657,
-  "-2..0c": 355,
-  "0..1c": 27,
-  "1..2c": 1,
-  ">=2c": 1
+  "<-2c": 5032,
+  "-2..0c": 1512,
+  "0..1c": 30,
+  "1..2c": 0,
+  ">=2c": 0
  }
 }
