@@ -187,7 +187,7 @@ export async function scanCrossVenue(pairs, options) {
   return { found, errors };
 }
 
-export async function runScan(config, pairs = [], now = Date.now()) {
+export async function runScan(config, pairs = [], now = Date.now(), { retainContext = false } = {}) {
   // seriesTickers narrows a scan to named series (a game-day loop), avoiding the ~3-minute full listing.
   const fetchEvents = config.seriesTickers?.length ?
     Promise.all(config.seriesTickers.map(seriesTicker => fetchOpenEvents({ seriesTicker }))).then(lists => lists.flat()) : fetchOpenEvents();
@@ -199,12 +199,14 @@ export async function runScan(config, pairs = [], now = Date.now()) {
   const minVolume = config.verified?.minLegVolume24h ?? 500;
   const auto = await autoMatch(events.filter(e => e.markets?.some(m => Number(m.volume_24h_fp) >= minVolume)), lookup);
   const reviewedTickers = new Set(pairs.map(p => p.kalshiTicker));
-  const cross = await scanCrossVenue([...pairs, ...auto.pairs.filter(p => !reviewedTickers.has(p.kalshiTicker) &&
-    Number(p.kalshiMarket.volume_24h_fp) >= minVolume)], options);
+  const matchedPairs = [...pairs, ...auto.pairs.filter(p => !reviewedTickers.has(p.kalshiTicker) &&
+    Number(p.kalshiMarket.volume_24h_fp) >= minVolume)];
+  const cross = await scanCrossVenue(matchedPairs, options);
   const candidates = [...noBaskets(events, options), ...ladders(events, options), ...cross.found].filter(c => !c.checks.includes('horizon'));
   const hits = candidates.filter(c => isHit(c, config));
   return { scannedAt: now, events: events.length, markets: events.reduce((n, e) => n + (e.markets?.length ?? 0), 0),
-    candidates, hits, books: quotingCandidates(events, series, config, now), nearMissSummary: nearMissSummary(candidates.filter(c => !hits.includes(c))), errors: [...auto.errors, ...cross.errors] };
+    candidates, hits, books: quotingCandidates(events, series, config, now), nearMissSummary: nearMissSummary(candidates.filter(c => !hits.includes(c))), errors: [...auto.errors, ...cross.errors],
+    ...(retainContext ? { context: { events, series, pairs: matchedPairs } } : {}) };
 }
 
 export function quotingCandidates(events, series, config, now = Date.now()) {
@@ -250,10 +252,12 @@ export function isHit(candidate, { minProfit = 1, minReturn = 0.03 } = {}) {
 
 // Keeps hits open across scans so each one's lifetime can be measured. Duration is a lower bound:
 // the gap between the first and last scan that saw it.
-export function track(state, hits, now) {
+export function track(state, hits, now, scopeEventTickers) {
   const previous = state?.open ?? {};
-  const open = {};
+  const scope = scopeEventTickers == null ? null : new Set(scopeEventTickers);
+  const open = Object.fromEntries(Object.entries(previous).filter(([, hit]) => scope && !scope.has(hit.event)));
   for (const hit of hits) {
+    if (scope && !scope.has(hit.event)) continue;
     const before = previous[hit.id];
     open[hit.id] = { ...hit, firstSeen: before?.firstSeen ?? now, lastSeen: now, scans: (before?.scans ?? 0) + 1,
       bestProfit: Math.max(before?.bestProfit ?? -Infinity, hit.profit) };

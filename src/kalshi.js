@@ -55,6 +55,16 @@ export async function fetchMarket(ticker, load = getJson) {
   return (await load(`${BASE}/markets/${encodeURIComponent(ticker)}`)).market;
 }
 
+export async function fetchEvent(ticker, load = getJson) {
+  if (!/^[A-Z0-9._-]{1,120}$/i.test(ticker ?? '')) throw new Error('Invalid Kalshi ticker');
+  const body = await load(`${BASE}/events/${encodeURIComponent(ticker)}?with_nested_markets=true`);
+  const markets = body.event?.markets ?? body.markets;
+  if (!body.event || body.event.event_ticker !== ticker || !Array.isArray(markets)) {
+    throw new Error('Unexpected Kalshi event response');
+  }
+  return { ...body.event, markets };
+}
+
 export async function fetchSeries(load = getJson) {
   const body = await load(`${BASE}/series`);
   if (!Array.isArray(body.series)) throw new Error('Unexpected Kalshi series response');

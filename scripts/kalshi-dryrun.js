@@ -11,7 +11,9 @@ const readJson = (path, fallback) => {
   try { return JSON.parse(readFileSync(projectPath(path), 'utf8')); }
   catch (error) { if (error.code === 'ENOENT') return fallback; throw error; }
 };
-const state = readJson(`${out}/state.json`, null);
+let snapshot = '';
+if (process.argv.includes('--stdin')) for await (const chunk of process.stdin) snapshot += chunk;
+const state = process.argv.includes('--stdin') ? JSON.parse(snapshot) : readJson(`${out}/state.json`, null);
 // Only hits new in the latest scan: re-checking the same open hit every 15 minutes would log it again each run.
 const hits = Object.values(state?.open ?? {}).filter(hit => hit.scans === 1);
 if (!hits.length) { console.log(JSON.stringify({ checked: 0 })); process.exit(0); }

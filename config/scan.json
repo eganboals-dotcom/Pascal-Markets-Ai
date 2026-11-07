@@ -4,6 +4,7 @@
   "feeRate": 0.07,
   "nearMisses": 10,
   "dryRunDelayMs": 30000,
+  "gameday": { "fullMinutes": 5, "fastSeconds": 15, "watchSize": 20 },
   "minReturn": 0.03,
   "slippageTicks": 1,
   "verified": {

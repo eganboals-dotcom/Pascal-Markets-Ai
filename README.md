@@ -55,7 +55,11 @@ Quoting candidates require a certified series with settlement sources, focus mem
 
 ## Game-day loop
 
-`node scripts/kalshi-gameday.js [--until=23:59] [--minutes=2] [--series=KXNBAGAME,...]` repeats the scan and the dry run until the given local time, writing to `data/gameday/` (gitignored): `state.json` tracks open hits and `rounds.jsonl` records one line per round. By default each round scans every focus market (about three minutes, so rounds run back to back) and the dry run funds all new hits together under the shared budget. `--series` limits a round to named series, which takes seconds. It reads public data only and places no orders.
+`node scripts/kalshi-gameday.js [--until=23:59] [--series=KXNBAGAME,...] [--out=data/gameday]` runs until the given local time. A full focus scan, including Polymarket auto-matching, starts every five minutes. Between full scans, up to 20 events are refreshed every 15 seconds using at most eight concurrent event reads. `gameday.fullMinutes`, `gameday.fastSeconds` and `gameday.watchSize` in `config/scan.json` control these settings; `--series` narrows full scans. Rounds never overlap, and an overlong round makes the next due round start immediately.
+
+The watch list ranks each event's best eligible candidate by profit per basket contract, breaking ties by total event 24-hour volume. Candidates must pass liquidity, closing-time and certification checks. Fast rounds reuse the full scan's series map and matched cross-venue pairs, refreshing public metadata and books without new Polymarket searches. Only successfully refreshed events can close tracked hits in a fast round; full rounds can close any hit. Watched hit durations have roughly 15-second resolution when rounds finish on time.
+
+The output directory holds open hits in `state.json`, closed episodes in `log.jsonl`, dry-run results in `dryrun.jsonl`, and one `rounds.jsonl` line per round with tier, timestamp, duration, event/candidate/hit counts, best profit per contract, errors and full-round watch-list tickers. New hits trigger the shared-budget dry run in a background child using a fixed hit snapshot. If a replay is already running, the round records `dryrunSkipped: true`. The loop reads public data only and places no orders. Use `--out=work/codex-gameday` for isolated test runs.
 
 ## Demo exchange (fake money)
 
