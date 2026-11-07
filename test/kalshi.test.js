@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { fetchOpenEvents, fetchSeries, kalshiFee, quote } from '../src/kalshi.js';
 import { crossVenue, inFocus, isHit, ladders, noBaskets, runScan, scanCrossVenue, track } from '../src/scan.js';
-import { autoMatch, matchGame, rulesAgree } from '../src/matching.js';
+import { autoMatch, cancellation, matchGame, rulesAgree } from '../src/matching.js';
 import { publicLookup } from '../src/polymarket.js';
 
 const now = Date.parse('2026-11-01T00:00:00Z');
@@ -201,9 +201,9 @@ test('horizon and annualization use expected expiration with close fallback and 
 
 const game = () => ({ ...verifiedEvent(), series_ticker: 'KXNBAGAME', product_metadata: { competition_scope: 'Game' },
   markets: verifiedEvent().markets.map((m, i) => ({ ...m, ticker: `E-${i ? 'DAL' : 'BOS'}`, yes_sub_title: i ? 'Dallas' : 'Boston', expected_expiration_time: close,
-    rules_primary: 'The winner including overtime wins.' })) });
+    rules_primary: 'The winner including overtime wins. If the game is cancelled, the market resolves to No.' })) });
 const polyGame = () => ({ title: 'Celtics vs Mavericks', startTime: close, markets: [{ id: '9', gameStartTime: close,
-  sportsMarketType: 'moneyline', outcomes: '["Celtics","Mavericks"]', description: 'Final score including any overtime periods.' }] });
+  sportsMarketType: 'moneyline', outcomes: '["Celtics","Mavericks"]', description: 'Final score including any overtime periods. If the game is canceled, this market will resolve to \"No\".' }] });
 const teams = [{ abbreviation: 'bos', name: 'Celtics' }, { abbreviation: 'dal', name: 'Mavericks' }];
 
 test('sports matching requires both teams, UTC date, and compatible overtime', () => {
@@ -218,7 +218,7 @@ test('sports matching requires both teams, UTC date, and compatible overtime', (
   assert.equal(matchGame(event, pe, teams).length, 0);
   pe.markets[0].gameStartTime = '2026-12-02';
   assert.equal(matchGame(event, pe, teams).length, 2);
-  pe.markets[0].description = 'Regulation time only, excluding overtime.';
+  pe.markets[0].description = 'Regulation time only, excluding overtime. If the game is canceled, this market will resolve to \"No\".';
   assert.equal(matchGame(event, pe, teams).length, 0);
   assert.equal(rulesAgree({ series_ticker: 'UNKNOWN' }, { rules_primary: 'Wins' }, { description: 'Wins' }), false);
 });
@@ -226,19 +226,32 @@ test('sports matching requires both teams, UTC date, and compatible overtime', (
 test('soccer matches each binary win/draw outcome without pairing the opposing team', () => {
   const event = { ...game(), series_ticker: 'KXEPLGAME' };
   event.markets = ['Arsenal', 'Newcastle', 'Tie'].map((name, i) => ({ ...event.markets[0], ticker: `E-${i}`, yes_sub_title: name,
-    rules_primary: 'After 90 minutes plus stoppage time, does not include extra time.' }));
+    rules_primary: 'After 90 minutes plus stoppage time, does not include extra time. If the game is cancelled, the market resolves to No.' }));
   const pe = { title: 'Arsenal vs Newcastle', startTime: close, markets: ['Arsenal', 'Newcastle', 'Draw'].map((name, i) => ({
-    id: String(i), sportsMarketType: 'moneyline', outcomes: '["Yes","No"]', groupItemTitle: name, description: '90 minutes plus stoppage time.' })) };
+    id: String(i), sportsMarketType: 'moneyline', outcomes: '["Yes","No"]', groupItemTitle: name, description: '90 minutes plus stoppage time. If the game is canceled, this market will resolve to \"No\".' })) };
   assert.equal(matchGame(event, pe).length, 3);
-  pe.markets[0].description = 'Including extra time.';
+  pe.markets[0].description = 'Including extra time. If the game is canceled, this market will resolve to \"No\".';
   assert.equal(matchGame(event, pe).length, 2);
 });
 
 test('fight draw/no-contest mismatch and unknown handling skip matching', () => {
   const event = { series_ticker: 'KXUFCFIGHT' };
-  const market = { rules_secondary: 'If a draw/no contest, both markets resolve to $0.50.' };
-  assert.equal(rulesAgree(event, market, { description: 'In a draw or no-contest, resolve 50-50.' }), true);
+  const market = { rules_secondary: 'If a draw/no contest, both markets resolve to $0.50. If the fight is cancelled, both markets resolve to $0.50.' };
+  assert.equal(rulesAgree(event, market, { description: 'In a draw or no-contest, resolve 50-50. If the fight is canceled, resolve 50-50.' }), true);
   assert.equal(rulesAgree(event, market, { description: 'In a draw or no-contest, resolve No.' }), false);
+});
+
+test('cancellation terms must settle a called-off game the same fixed way on both venues', () => {
+  const kalshi = 'If the game is cancelled or rescheduled to over 48 hours away, the market will resolve to a fair price in accordance with the rules.';
+  const poly = 'If the game is canceled, does not start by Monday, or is abandoned with no official result by that time, this market will resolve to "Yes".';
+  assert.equal(cancellation(kalshi), null);
+  assert.equal(cancellation(poly), 'yes');
+  assert.equal(cancellation('If the game is postponed, the market resolves to No.'), 'no');
+  assert.equal(cancellation('Wins'), null);
+  const event = { series_ticker: 'KXEFLL1GAME' }, rules = 'After 90 minutes plus stoppage time, does not include extra time. ';
+  assert.equal(rulesAgree(event, { rules_primary: rules + kalshi }, { description: '90 minutes plus stoppage time. ' + poly }), false);
+  assert.equal(rulesAgree(event, { rules_primary: rules + 'If the game is cancelled, the market resolves to Yes.' },
+    { description: '90 minutes plus stoppage time. ' + poly }), true);
 });
 
 test('auto matching caches lookups, skips ambiguous games and continues after errors', async () => {
