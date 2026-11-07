@@ -32,9 +32,10 @@ export function quote(market) {
   return { yes: side(market.yes_ask_dollars, market.yes_ask_size_fp), no: side(market.no_ask_dollars, market.yes_bid_size_fp) };
 }
 
-export async function fetchOpenEvents({ maxPages = 200, load = getJson } = {}) {
+export async function fetchOpenEvents({ maxPages = 200, load = getJson, seriesTicker } = {}) {
   const url = new URL(`${BASE}/events`);
-  url.search = new URLSearchParams({ status: 'open', with_nested_markets: 'true', limit: '200' });
+  url.search = new URLSearchParams({ status: 'open', with_nested_markets: 'true', limit: '200',
+    ...(seriesTicker ? { series_ticker: seriesTicker } : {}) });
   const events = [];
   const cursors = new Set();
   for (let page = 0; page < maxPages; page++) {

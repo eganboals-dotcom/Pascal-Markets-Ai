@@ -27,6 +27,9 @@ test('pagination follows cursors and rejects a repeated one', async () => {
   const pages = [{ events: [1], cursor: 'a' }, { events: [2], cursor: '' }];
   assert.deepEqual(await fetchOpenEvents({ load: async () => pages.shift() }), [1, 2]);
   await assert.rejects(fetchOpenEvents({ load: async () => ({ events: [], cursor: 'same' }) }), /Repeated/);
+  let asked;
+  await fetchOpenEvents({ seriesTicker: 'KXNBAGAME', load: async url => { asked = url.searchParams.get('series_ticker'); return { events: [] }; } });
+  assert.equal(asked, 'KXNBAGAME');
 });
 
 test('No basket on an exclusive event pays n - 1 and is skipped on non-exclusive events', () => {

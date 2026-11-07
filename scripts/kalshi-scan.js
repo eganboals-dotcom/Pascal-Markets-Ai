@@ -1,17 +1,19 @@
 // One scan of every open Kalshi event, plus reviewed Kalshi–Polymarket pairs. Updates the tracked hits in
 // research/kalshi/state.json, appends hits that disappeared to research/kalshi/log.jsonl, and writes latest.md.
-// Usage: node scripts/kalshi-scan.js [output-dir]
+// Usage: node scripts/kalshi-scan.js [output-dir] [--series=KXNBAGAME,KXNCAAFGAME,...]
 import { readFileSync } from 'node:fs';
 import { runScan, track } from '../src/scan.js';
 import { projectPath, writeProjectFile } from '../src/files.js';
 import { readResearch } from '../src/report.js';
 
-const out = process.argv[2] ?? 'research/kalshi';
+const seriesArg = process.argv.find(a => a.startsWith('--series='));
+const out = process.argv.slice(2).find(a => !a.startsWith('--')) ?? 'research/kalshi';
 const readJson = (path, fallback) => {
   try { return JSON.parse(readFileSync(projectPath(path), 'utf8')); }
   catch (error) { if (error.code === 'ENOENT') return fallback; throw error; }
 };
-const config = readJson('config/scan.json');
+const config = { ...readJson('config/scan.json'),
+  ...(seriesArg ? { seriesTickers: seriesArg.slice(9).split(',').filter(t => /^[A-Z0-9_-]{1,60}$/.test(t)) } : {}) };
 const scan = await runScan(config, readJson('config/pairs.json', []));
 const { state, closed } = track(readJson(`${out}/state.json`, null), scan.hits, scan.scannedAt);
 Object.assign(state, { scannedAt: scan.scannedAt, nearMissSummary: scan.nearMissSummary });

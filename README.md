@@ -53,6 +53,10 @@ Double-click `scripts/open-dashboard.cmd`, or run `powershell -ExecutionPolicy B
 
 Quoting candidates require a certified series with settlement sources, focus membership, at least 500 daily contracts, positive depth, a 2–6 cent spread and more than two hours until close or expected expiration. At most `mm.maxMarkets` (50) are recorded per scan, ordered by volume. Quotes sit one cent inside the spread, skew by minus inventory times `mm.skewTicks`, stop at `mm.maxInventory` and pull `mm.pullMinutes` before close. Later opposing-price crossings simulate fills; maker fees follow series settings. Net P&L marks remaining inventory to the last observed mid. The 15-minute markout is a separate adverse-selection diagnostic. Missing future observations are counted explicitly. Candidate filtering and sparse snapshots limit this research model; no queue, settlement, liquidation or incentives are simulated.
 
+## Game-day loop
+
+`node scripts/kalshi-gameday.js [--until=23:59] [--minutes=2] [--series=KXNBAGAME,...]` repeats the scan and the dry run until the given local time, writing to `data/gameday/` (gitignored): `state.json` tracks open hits and `rounds.jsonl` records one line per round. By default each round scans every focus market (about three minutes, so rounds run back to back) and the dry run funds all new hits together under the shared budget. `--series` limits a round to named series, which takes seconds. It reads public data only and places no orders.
+
 ## Demo exchange (fake money)
 
 The [Kalshi demo site](https://demo.kalshi.co/) provides separate accounts and mock funds. In the demo account settings, API Keys → Create New API Key creates a demo key; select **RSA**, since this client implements RSA-PSS. Store the private-key file outside the repository with restricted local permissions. Set `KALSHI_DEMO_KEY_ID` and `KALSHI_DEMO_KEY_PATH` locally; neither value belongs in source, logs or workflow secrets for this scanner. The key path is the demo client's sole external file input.

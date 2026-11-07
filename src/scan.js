@@ -188,7 +188,10 @@ export async function scanCrossVenue(pairs, options) {
 }
 
 export async function runScan(config, pairs = [], now = Date.now()) {
-  const [allEvents, seriesList] = await Promise.all([fetchOpenEvents(), fetchSeries()]);
+  // seriesTickers narrows a scan to named series (a game-day loop), avoiding the ~3-minute full listing.
+  const fetchEvents = config.seriesTickers?.length ?
+    Promise.all(config.seriesTickers.map(seriesTicker => fetchOpenEvents({ seriesTicker }))).then(lists => lists.flat()) : fetchOpenEvents();
+  const [allEvents, seriesList] = await Promise.all([fetchEvents, fetchSeries()]);
   const series = Object.fromEntries(seriesList.map(s => [s.ticker, s]));
   const events = allEvents.filter(e => inFocus(e, series, config.focus));
   const lookup = publicLookup();
