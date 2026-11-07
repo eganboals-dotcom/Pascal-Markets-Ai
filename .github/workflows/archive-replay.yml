@@ -13,6 +13,7 @@ on:
       - scripts/archive-replay.js
       - scripts/archive-books.js
       - scripts/archive-latency.js
+      - scripts/archive-market-making.js
       - .github/workflows/archive-replay.yml
 
 permissions:
@@ -41,10 +42,12 @@ jobs:
         run: node scripts/archive-replay.js work/extract
       - name: Time market reaction to scoring plays
         run: node scripts/archive-latency.js work/extract
+      - name: Simulate market making
+        run: node scripts/archive-market-making.js work/extract
       - name: Save coverage and summary
         run: |
           cp work/extract/coverage.json research/archive-replay/results/coverage.json
-          cat research/archive-replay/results/summary.md research/archive-replay/results/latency.md >> "$GITHUB_STEP_SUMMARY"
+          cat research/archive-replay/results/summary.md research/archive-replay/results/latency.md research/archive-replay/results/market-making.md >> "$GITHUB_STEP_SUMMARY"
       - name: Commit results
         run: |
           git config user.name "Pascal Markets"
