@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildReplayDataset, buildTrainingDataset } from '../src/dataset.js';
+import { buildModelReplayDataset, buildReplayDataset, buildTrainingDataset } from '../src/dataset.js';
 
 const settlements = [{ gameId: 'game', resolvedAt: 100000, homeWon: 1, source: 'verified-fixture', verified: true }];
 const quote = at => ({ gameId: 'game', outcome: 'home', receivedAt: at, ask: 0.5 });
@@ -19,6 +19,18 @@ test('dataset requires verified outcomes and excludes post-resolution observatio
   const result = buildReplayDataset([quote(100000)], [odds(100000)], settlements);
   assert.equal(result.observations.length, 0);
   assert.equal(result.skipped.afterResolution, 2);
+});
+
+test('model replay waits for delayed scores and preserves stale-state book invalidations', () => {
+  const state = { ...settlements[0], observedAt: 1000, homeScore: 81, awayScore: 80,
+    secondsRemaining: 600, pregameHomeProbability: 0.5 };
+  const invalidated = { ...quote(10000), invalidated: true };
+  const rows = buildModelReplayDataset([{ ...state, observedAt: 3000, homeScore: 83 }, state],
+    [quote(3500), quote(1700), quote(4700), quote(9000), invalidated, { ...quote(4700), invalidated: true }, quote(4700)], { scoreLagMs: 1000, maxScoreAgeMs: 3000 });
+  assert.deepEqual(rows.map(row => [row.observedAt, row.scoreObservedAt, row.homeScore]),
+    [[3500, 1000, 81], [4700, 3000, 83], [10000, 3000, 83]]);
+  assert.equal(rows[1].quote.invalidated, true);
+  assert.equal(rows[2].quote.invalidated, true);
 });
 
 test('training builder enforces pregame timing and regulation clock semantics', () => {

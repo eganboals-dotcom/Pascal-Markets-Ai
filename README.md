@@ -85,7 +85,18 @@ The demo generates artificial NBA observations, trains the baseline, evaluates f
 
 All CLI file paths resolve relative to this project folder. Paths outside the folder, including links to external directories, are rejected. Generated datasets, models and reports stay here. The test suite also creates its fixtures inside `data/demo/`.
 
-For model-driven replay, set `signal` to `model` in a copy of the configuration and supply the model as the last replay argument.
+### Replay a frozen NBA model
+
+```sh
+node src/cli.js build-model-replay data/score-states.jsonl data/quotes.jsonl data/model-replay.jsonl 0
+node src/cli.js replay data/model-replay.jsonl data/model-replay-config.json models/nba-history.json
+```
+
+Set `signal` to `model` in the replay configuration. Supply out-of-training observations in the training-row format with the verified contract payout and resolution timestamp. Map provider game IDs to the same ID on both inputs after verifying the teams, contract terms, and home outcome token. Each quote is paired with the latest score from the same game available at quote receipt. The join skips scores older than 90 seconds and retains order-book invalidations.
+
+Use zero additional lag for score states with a recorded local receipt timestamp. For archived play timestamps, use the optional lag in milliseconds to test assumptions about when scores became available. Keep results from those assumptions separate from runs with measured receipt times.
+
+Replay reports net P&L after fees and `maxRealizedDrawdown`, the largest peak-to-trough decline in settled equity. That drawdown excludes price movements in open positions.
 
 ## Current implementation
 
@@ -110,7 +121,7 @@ Match game, teams, outcome asset, full-game scope and overtime rules explicitly 
 
 ## Research limitations
 
-This is a research and paper-trading foundation. Real historical training data, a licensed faster sportsbook feed and live execution remain future work. The included model demonstration uses synthetic data.
+This is a research and paper-trading foundation. The NBA history command can train on archived ESPN play-by-play. The demo uses synthetic data. A licensed faster sportsbook feed and live execution remain future work.
 
 The default fee setting is a user-supplied per-share assumption. Set `feeMode` to `market` to use a quote's `feesEnabled` and supported `feeSchedule` fields. Paper replay assumes top-of-book liquidity at a subsequent observation, and cannot prove a live fill. It models a bounded immediate attempt, holds fills to settlement and assumes no competing queue consumption. The current model's features are a baseline and need possession, lineups, fouls, timeouts and overtime treatment before broader evaluation.
 

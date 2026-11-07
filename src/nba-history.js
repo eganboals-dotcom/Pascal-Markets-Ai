@@ -88,13 +88,13 @@ export function historicalRows(games) {
   return rows;
 }
 
-export async function trainNbaHistory(start, end, cutoff) {
-  if (![start, end, cutoff].every(value => /^\d{4}-\d{2}-\d{2}$/.test(value ?? ''))) throw new Error('Use YYYY-MM-DD dates for start, end and cutoff');
+export async function loadNbaGames(start, end) {
+  if (![start, end].every(value => /^\d{4}-\d{2}-\d{2}$/.test(value ?? ''))) throw new Error('Use YYYY-MM-DD dates');
   const first = Date.parse(start);
   const last = Date.parse(end);
-  const split = Date.parse(cutoff);
-  if (!Number.isFinite(first) || !Number.isFinite(last) || !Number.isFinite(split) || !(first < split && split <= last) ||
-      last - first > 180 * dayMs || last >= Date.now()) throw new Error('Select a completed historical period of at most 181 days with a cutoff inside it');
+  if (!Number.isFinite(first) || !Number.isFinite(last) || last < first || last - first > 180 * dayMs || last >= Date.now()) {
+    throw new Error('Select a completed historical period of at most 181 days');
+  }
   const dates = Array.from({ length: (last - first) / dayMs + 1 }, (_, index) =>
     new Date(first + index * dayMs).toISOString().slice(0, 10).replaceAll('-', ''));
   const lists = await collect(dates, date => cached(`${directory}/dates/${date}.json`, `scoreboard?dates=${date}`, data => {
@@ -104,11 +104,19 @@ export async function trainNbaHistory(start, end, cutoff) {
   const ids = [...new Set(lists.flat())];
   const games = (await collect(ids, id => cached(`${directory}/games/${id}.json`, `summary?event=${id}`,
     summary => extractGame(summary, id)))).filter(Boolean);
+  return { games, sourceGames: ids.length };
+}
+
+export async function trainNbaHistory(start, end, cutoff) {
+  const split = Date.parse(cutoff);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(cutoff ?? '') || !Number.isFinite(split) ||
+      !(Date.parse(start) < split && split <= Date.parse(end))) throw new Error('Select a YYYY-MM-DD cutoff inside the historical period');
+  const { games, sourceGames } = await loadNbaGames(start, end);
   const rows = historicalRows(games);
   const { model, evaluation } = train(rows, split);
   const report = { source: 'ESPN archived NBA play-by-play', sourceUrl: source, start, end, cutoff, trainedAt: Date.now(),
     trainingGames: model.trainingGames.length, trainingObservations: rows.filter(row => row.resolvedAt < split).length,
-    sourceGames: ids.length, excludedGames: ids.length - games.length, evaluation,
+    sourceGames, excludedGames: sourceGames - games.length, evaluation,
     prior: 'Sequential Elo from completed earlier games, with a 55-point home advantage and K=20',
     timestampBasis: 'Historical play wall clock. Live receipt times are unavailable.' };
   writeProjectFile(`${directory}/observations.jsonl`, rows.map(row => JSON.stringify(row)).join('\n') + '\n');

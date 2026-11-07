@@ -96,3 +96,28 @@ export function buildTrainingDataset(states, pregameEstimates, settlements) {
   if (observations.length) validateRows(observations);
   return { observations, skipped };
 }
+
+export function buildModelReplayDataset(states, quotes, { scoreLagMs = 0, maxScoreAgeMs = 90000 } = {}) {
+  validateRows(states);
+  if (![scoreLagMs, maxScoreAgeMs].every(value => Number.isFinite(value) && value >= 0)) throw new Error('Invalid score timing assumptions');
+  const games = new Map();
+  for (const state of [...states].sort((a, b) => a.observedAt - b.observedAt)) {
+    if (!games.has(state.gameId)) games.set(state.gameId, { states: [], cursor: 0 });
+    games.get(state.gameId).states.push(state);
+  }
+  const observations = new Map();
+  for (const quote of [...quotes].sort((a, b) => a.receivedAt - b.receivedAt)) {
+    const game = games.get(quote.gameId);
+    if (!game || quote.outcome !== 'home' || !Number.isFinite(quote.receivedAt)) continue;
+    while (game.cursor < game.states.length && game.states[game.cursor].observedAt + scoreLagMs <= quote.receivedAt) game.cursor++;
+    const state = game.states[game.cursor - 1];
+    if (!state || quote.receivedAt >= state.resolvedAt) continue;
+    const observedAt = quote.receivedAt;
+    const expired = observedAt - state.observedAt > maxScoreAgeMs;
+    if (expired && !quote.invalidated) continue;
+    const key = JSON.stringify([quote.gameId, observedAt]);
+    if (observations.get(key)?.quote.invalidated) continue;
+    observations.set(key, { ...state, scoreObservedAt: state.observedAt, observedAt, quote });
+  }
+  return [...observations.values()];
+}
