@@ -3,80 +3,31 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Pascal Markets · Sports Pulse</title>
+  <title>Pascal Markets · Kalshi Scanner</title>
   <link rel="stylesheet" href="/style.css">
   <script src="/app.js" defer></script>
 </head>
 <body>
   <header class="topbar">
-    <a class="brand" href="#pulse"><span class="brandmark" aria-hidden="true">∿</span><span>pascal<span class="brand-muted"> markets</span></span></a>
-    <nav aria-label="Workspace"><a href="#pulse">Pulse</a><a href="#terminal">Terminal</a><a href="#ledger">Ledger</a></nav>
-    <span class="paper-badge"><i></i> PAPER MODE</span>
+    <span class="brand">pascal<span class="muted"> markets</span></span>
+    <span class="chip">RESEARCH ONLY · NO ORDERS</span>
   </header>
   <main>
-    <section id="pulse" aria-labelledby="pulse-title">
-      <div class="heading"><div><div class="eyebrow">SPORTS TERMINAL <span> / </span> POLYMARKET</div><h1 id="pulse-title">Sports Pulse</h1></div>
-        <button id="refresh" class="quiet" type="button">↻ <span>Refresh data</span></button>
-      </div>
-      <div class="stats" aria-label="Account and market summary">
-        <div><span>AVAILABLE CASH</span><strong id="cash">—</strong><small>Simulated USD</small></div>
-        <div><span>OPEN EXPOSURE</span><strong id="exposure">—</strong><small id="reserved">Includes pending reservations</small></div>
-        <div><span>REALIZED P&amp;L</span><strong id="pnl">—</strong><small>Settled paper positions</small></div>
-        <div><span>EVENTS IN VIEW</span><strong id="event-count">—</strong><small id="league-count">Across sports and leagues</small></div>
-      </div>
-      <div class="filters">
-        <form id="search-form" role="search"><label class="sr-only" for="search">Search events</label><span aria-hidden="true">⌕</span><input id="search" placeholder="Search team or event" maxlength="100"><button type="submit">Search</button></form>
-        <label class="sport-filter"><span>League</span><select id="league"><option value="">All leagues</option></select></label>
-        <span id="updated" role="status">Loading sports feed…</span>
-      </div>
-      <div class="lanes">
-        <section class="lane"><div class="lane-head"><span class="dot green"></span><h2>Live</h2><span id="live-count" class="count">0</span></div><div class="lane-list" id="live-events"></div></section>
-        <section class="lane"><div class="lane-head"><span class="dot blue"></span><h2>Scheduled</h2><span id="scheduled-count" class="count">0</span></div><div class="lane-list" id="scheduled-events"></div></section>
-        <section class="lane"><div class="lane-head"><span class="dot purple"></span><h2>Recordings</h2><span id="capture-count" class="count">0</span></div><div class="lane-list" id="captures"></div></section>
-      </div>
-    </section>
-    <section id="terminal" class="terminal" aria-label="Selected market terminal">
-      <article class="panel chart-panel">
-        <div class="panel-head"><div><div class="eyebrow" id="market-league">MARKET DETAIL</div><h2 id="market-title">Select an event</h2></div><span id="market-state" class="chip">Public feed</span></div>
-        <label class="market-select"><span class="sr-only">Contract</span><select id="contract" disabled><option>Select a contract</option></select></label>
-        <div class="outcomes" id="outcomes" aria-label="Market outcomes"></div>
-        <div class="chart-head"><span>OUTCOME PRICE</span><span class="chip">24H</span></div>
-        <div id="chart" class="chart" aria-label="Outcome price history"><p>Price history appears here when available.</p></div>
-        <div class="book-head"><h3>Order book</h3><span id="book-time">Select an outcome</span></div>
-        <div id="book" class="book"></div>
-      </article>
-      <aside class="panel ticket">
-        <div class="panel-head"><h2>Paper ticket</h2><span class="chip violet">SIMULATION</span></div>
-        <p id="ticket-outcome" class="muted">Select a contract and outcome.</p>
-        <form id="ticket">
-          <label>Budget <span>USD</span><input id="budget" type="number" min="0.01" max="25" step="0.01" value="5" required></label>
-          <label>Limit price <span>USD / share</span><input id="limit" type="number" min="0.0001" max="0.9999" step="any" placeholder="0.50" required></label>
-          <div class="ticket-meta"><span id="delay">Matching delay —</span><span id="size">Minimum —</span></div>
-          <details><summary>Settlement rules</summary><p id="rules">Select a contract to view the rules.</p></details>
-          <label class="check"><input type="checkbox" id="reviewed"> I reviewed the settlement rules</label>
-          <button type="submit" class="primary" id="place" disabled>Place paper buy</button>
-          <p id="order-status" role="status" class="muted"></p>
-        </form>
-      </aside>
-    </section>
-    <section id="ledger" class="panel ledger" aria-labelledby="ledger-title">
-      <div class="panel-head"><div><div class="eyebrow">ACCOUNT ACTIVITY</div><h2 id="ledger-title">Paper ledger</h2></div><button type="button" id="settle" class="quiet">Check settlements</button></div>
-      <p id="settle-status" role="status" class="muted"></p><div class="table-wrap" id="orders"><p class="muted">Paper orders will appear here.</p></div>
-    </section>
-    <section class="panel ledger" id="model" aria-labelledby="model-title">
-      <div class="panel-head"><div><div class="eyebrow">FORECAST RESEARCH</div><h2 id="model-title">NBA win probability</h2></div><span class="chip violet" id="model-state">AWAITING MODEL</span></div>
-      <p class="muted" id="model-report">Train on archived NBA games to enable forecasts.</p>
-      <form class="forecast-form" id="forecast">
-        <label>Home score<input name="homeScore" type="number" min="0" step="1" required></label>
-        <label>Away score<input name="awayScore" type="number" min="0" step="1" required></label>
-        <label>Seconds left in regulation<input name="secondsRemaining" type="number" min="1" max="2880" required></label>
-        <label>Pregame home win chance (%)<input name="pregameHomeProbability" type="number" min="0.01" max="99.99" step="0.01" required></label>
-        <button class="quiet" type="submit" id="forecast-submit" disabled>Calculate forecast</button>
-      </form>
-      <p class="muted" id="forecast-result" role="status"></p>
-    </section>
-    <details class="panel demo"><summary>Pipeline demonstration <span class="chip violet">SYNTHETIC DATA</span></summary><div id="demo-details" class="muted">Run the demo to see the baseline model and sportsbook comparison.</div></details>
+    <div class="heading">
+      <div><div class="eyebrow">KALSHI · MISPRICING AND ARBITRAGE</div><h1>Scanner</h1></div>
+      <button id="refresh" type="button">Refresh</button>
+    </div>
+    <p id="status" class="muted" role="status">Scanning every open Kalshi event…</p>
+    <div class="stats">
+      <div><span>EVENTS</span><strong id="events">—</strong></div>
+      <div><span>MARKETS</span><strong id="markets">—</strong></div>
+      <div><span>HITS NOW</span><strong id="hit-count">—</strong></div>
+      <div><span>TRACKED BY SCHEDULED SCAN</span><strong id="tracked-count">—</strong></div>
+    </div>
+    <section class="panel"><h2>Hits after fees</h2><div id="hits" class="table-wrap"></div></section>
+    <section class="panel"><h2>Tracked hits (GitHub Actions scan)</h2><div id="tracked" class="table-wrap"></div></section>
+    <section class="panel"><h2>Closest misses</h2><div id="near" class="table-wrap"></div></section>
+    <p class="muted">Profit uses top-of-book depth and the Kalshi taker fee. Every hit needs its settlement rules read before any trade.</p>
   </main>
-  <footer><span class="dot green"></span> Pascal Markets <span>Local paper trading</span><span>Market data from Polymarket</span></footer>
 </body>
 </html>

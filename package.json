@@ -1,6 +1,6 @@
 {
   "name": "pascal-markets",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "engines": {
@@ -8,12 +8,8 @@
   },
   "scripts": {
     "test": "node --test",
-    "pascal": "node src/cli.js",
-    "demo": "node src/cli.js demo",
-    "start": "node src/cli.js serve",
-    "test:browser": "node scripts/browser-smoke.js"
-  },
-  "devDependencies": {
-    "playwright": "^1.65.0"
+    "scan": "node src/cli.js scan",
+    "scan:record": "node scripts/kalshi-scan.js",
+    "start": "node src/cli.js serve"
   }
 }

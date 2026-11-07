@@ -1,171 +1,49 @@
 # Pascal Markets
 
-NBA prediction-market research, probability training, sportsbook comparison, and delayed paper execution.
+A research scanner for mispricing and arbitrage on Kalshi. It reads Kalshi's public REST API, prices every basket that pays out in all outcomes, and records how long each profitable one lasts. It places no orders and needs no account or API key.
+
+## What it looks for
+
+- **No baskets on exclusive events.** At most one outcome of a mutually exclusive event wins, so buying No on all n outcomes pays at least n − 1. Buying Yes on every outcome is not treated as an arbitrage: Kalshi's outcomes need not be exhaustive.
+- **Strike-ladder contradictions.** For "above X" markets on the same underlying, Yes at a lower strike plus No at a higher strike always pays 1. "Below X" ladders mirror this. Rungs count as the same underlying only when their settlement rules read the same once the numbers are removed, and rungs must close at the same time, and only one-sided strikes qualify (Kalshi tags some "exactly N" buckets as "less").
+- **Cross-venue gaps with Polymarket.** For each reviewed pair in `config/pairs.json`, Kalshi Yes plus the opposite Polymarket outcome (and the reverse) pays 1 when both settle the same way. Pairs are added by hand only after reading both sets of settlement rules.
+
+Each basket is sized to the smallest top-of-book size among its legs, capped at `maxContracts`. Its cost includes the Kalshi taker fee, ceil(0.07 × C × P × (1 − P)) per order, and the Polymarket taker fee where enabled. A basket counts as a hit when its profit is at least `minProfit` dollars (`config/scan.json`). Annualized return divides the return by the time until the last leg closes.
 
 ## Run
 
-Requires Node.js 22.4 or newer. This initial implementation uses built-in Node modules.
+Requires Node.js 22.4 or newer, with no dependencies.
 
 ```sh
 node --test
-node src/cli.js demo
+node src/cli.js scan
+node scripts/kalshi-scan.js
 node src/cli.js serve
-node src/cli.js discover
-node src/cli.js record data/nba-sports.jsonl 60
-node src/cli.js train data/training.jsonl 2026-10-01T00:00:00Z models/nba.json
-node src/cli.js replay data/holdout.jsonl config/paper.json
 ```
 
-The dashboard runs at http://127.0.0.1:8787. Run `node src/cli.js help` for the complete command list.
+`scan` prints the current hits. `kalshi-scan.js` also updates the tracked hits in `research/kalshi/`.
 
-## Sports Pulse dashboard
+## Scheduled scan on GitHub Actions
 
-Use the Live, Scheduled, and Recordings columns to browse current Polymarket sports markets and local captures. Search by team or event to look beyond the default discovery window. Select a contract to inspect either outcome, recent price history, the order book, and the settlement rules.
+`.github/workflows/kalshi-scan.yml` runs the tests and a scan every 15 minutes, with no data stored on the local machine. Results live in `research/kalshi/`:
 
-The dashboard accepts manual paper buys for eligible two-outcome sports contracts, including moneylines, totals, and props across leagues. The local paper account starts with $1,000 of simulated cash, with a $25 order cap and $100 combined exposure cap. Orders match against displayed top-of-book liquidity on a fresh quote after the matching delay. The ledger persists in `data/paper-ledger.json`. Use **Check settlements** to apply confirmed Polymarket payouts and update realized P&L.
+- `latest.md`: open hits and the closest misses from the latest committed scan.
+- `state.json`: hits currently open, with first and last sighting.
+- `log.jsonl`: hits that disappeared, one per line. `minDurationMs` is a lower bound on each hit's lifetime, measured between scans.
 
-Contract outcomes and rules must be available, and the venue must be accepting orders. The dashboard is a paper simulator. The automated forecasting and sportsbook replay pipeline below currently uses NBA data.
-
-## Train the NBA win probability model
-
-```sh
-node src/cli.js train-nba-history 2025-11-01 2026-01-31 2026-01-15
-node src/cli.js predict models/nba-history.json 82 76 600 0.55
-```
-
-The historical trainer reads ESPN regular-season scoreboards and play-by-play. It checks the end-of-game score against the final result and samples one regulation score state per game minute when available. The pregame Elo prior uses results that had already finished before tipoff. Ratings move halfway back to the league mean after a gap of more than 60 days between games, which marks a new season. The cutoff is midnight UTC and separates model fitting from later test games. During evaluation the fixed model can receive an updated pregame prior from earlier completed games.
-
-The forecast calculator in Sports Pulse reads `models/nba-history.json`, which includes the model weights and test results. Enter the regulation score, seconds left, and a pregame home win estimate. Historical play timestamps establish the sequence of game states. Measuring live latency or trading returns requires separately recorded sportsbook and Polymarket quotes.
-
-## Capture and inspect public markets
-
-```sh
-node src/cli.js discover data/catalog.json
-node src/cli.js capture data/capture-session 60
-node src/cli.js analyze data/capture-session
-```
-
-Choose a new capture directory for each session. Capture records sports updates and both outcome books for up to six nearby NBA games. Analysis reconstructs quotes from snapshots and deltas, checks book consistency and writes `quotes.jsonl` and `analysis.json`. Gap markers invalidate previous quotes. Capture records connection boundaries and retries up to five disconnects.
-
-The recorder refreshes market metadata every 20 seconds after each polling round. Analysis attaches the latest snapshot available when each quote arrived. A failed refresh or change in trading terms invalidates the previous quote. Changes to contract rules or outcome identifiers require a new reviewed mapping. Replay rejects metadata older than its configured limit, which defaults to 60 seconds. A successful connection can receive zero sports updates during a quiet period.
-
-## Sportsbook comparison
-
-The optional snapshot adapter reads `ODDS_API_KEY` from the environment. Copy `.env.example` to `.env` and set your own provider key locally, then run the following command. This request consumes provider quota.
-
-```sh
-node --env-file=.env src/cli.js odds data/sportsbook.json
-node src/cli.js compare data/catalog.json data/capture-session/quotes.jsonl data/sportsbook.json config/mappings.json
-```
-
-Prepare `config/mappings.json` from `config/mappings.example.json` after checking both teams, start time, bookmaker, full-game rules and the catalog rules hash. The comparator requires a reviewed mapping and checks data freshness, fees and suspension status. The Odds API does not guarantee an explicit suspension flag, so these snapshots remain research inputs when that status is unavailable. Its published in-play moneyline interval is 40 seconds. A faster feed must demonstrate its advantage through measured timestamps. [Provider update intervals](https://the-odds-api.com/sports-odds-data/update-intervals.html)
-
-For a synchronized recording, use a mapping file with exactly one reviewed game and bookmaker. The final argument caps the number of provider requests. The recorder requests the first snapshot immediately, waits 40 seconds between requests, and stops polling on provider errors or quota exhaustion.
-
-```sh
-node --env-file=.env src/cli.js capture-odds data/capture-game 90 config/mappings.json 3
-node src/cli.js analyze data/capture-game
-node src/cli.js build-replay data/capture-game/quotes.jsonl data/capture-game/sportsbook.jsonl data/settlements.jsonl data/replay.jsonl
-```
-
-Run the dataset step after adding the verified settlement. The recorder saves normalized sportsbook quotes, source and receipt timestamps, and unavailable observations in `sportsbook.jsonl`. The replay join checks market identity and rules. Quotes with unknown suspension status are available for feed timing research and are ineligible for paper fills driven by the sportsbook signal.
-
-## Build real datasets
-
-```sh
-node src/cli.js build-training data/states.jsonl data/pregame.jsonl data/settlements.jsonl data/training.jsonl
-node src/cli.js build-replay data/quotes.jsonl data/normalized-sportsbook.jsonl data/settlements.jsonl data/replay.jsonl
-```
-
-Training states require `gameId`, `sourceAt`, `receivedAt`, `period` (1–4), `clockSeconds` remaining in the quarter, `homeScore`, `awayScore` and `status` equal to `InProgress`. Pregame estimates require `gameId`, `probability`, `recordedAt` and `startsAt`, with recording before tipoff. Settlement records require `gameId`, `resolvedAt`, `homeWon`, `source` and `verified` equal to `true`. Use `homeWon` equal to `null` with a `settlementPayout` between zero and one for canceled contracts. Such records are excluded from binary model training.
-
-Replay joins data using local receipt timestamps. Normalized sportsbook records use the schema below. Real historical state data and final outcomes must be supplied from an appropriate provider.
-
-The demo generates artificial NBA observations, trains the baseline, evaluates four later games and runs both signal policies. Its files and report are in `data/demo/`. Synthetic results demonstrate software behavior only. Run the demo before using real data to verify the local pipeline.
-
-All CLI file paths resolve relative to this project folder. Paths outside the folder, including links to external directories, are rejected. Generated datasets, models and reports stay here. The test suite also creates its fixtures inside `data/demo/`.
-
-### Replay a frozen NBA model
-
-```sh
-node src/cli.js build-model-replay data/score-states.jsonl data/quotes.jsonl data/model-replay.jsonl 0
-node src/cli.js replay data/model-replay.jsonl data/model-replay-config.json models/nba-history.json
-```
-
-Set `signal` to `model` in the replay configuration. Supply out-of-training observations in the training-row format with the verified contract payout and resolution timestamp. Map provider game IDs to the same ID on both inputs after verifying the teams, contract terms, and home outcome token. Each quote is paired with the latest score from the same game available at quote receipt. The join skips scores older than 90 seconds and retains order-book invalidations.
-
-Use zero additional lag for score states with a recorded local receipt timestamp. For archived play timestamps, use the optional lag in milliseconds to test assumptions about when scores became available. Keep results from those assumptions separate from runs with measured receipt times.
-
-Replay reports net P&L after fees and `maxRealizedDrawdown`, the largest peak-to-trough decline in settled equity. That drawdown excludes price movements in open positions.
-
-## Current implementation
-
-- Public NBA event discovery with cursor pagination.
-- Bounded live NBA sports and book recording, heartbeat replies, reconnection boundaries, raw payloads and local receipt timestamps.
-- Regularized logistic home-win model trained from score difference, regulation time remaining, pregame probability, and a pregame term that fades with the square root of time remaining. Newton's method fits the weights to convergence. Each game receives equal training weight. Version 1 models from earlier runs still load.
-- Chronological holdout evaluation with game-weighted Brier score, log loss, and pregame baseline. Games must resolve before the training cutoff to enter training.
-- Two-way sportsbook margin removal with timestamp, suspension, and settlement checks.
-- Home-outcome paper replay using a later quote after the configured or venue matching delay, whichever is greater. Reserves exposure and cash for pending proposals, limits fills to available top-of-book quantity, and enforces limit prices and per-share fee assumptions. Proposals expire when the execution window passes.
-
-The first version supports regulation-time observations for full-game NBA moneyline contracts including overtime. One proposal per game keeps the baseline experiment bounded. Outcomes are used for evaluation and settlement only. Simulation amounts are illustrative research settings.
-
-## Data contract
-
-Training and replay consume JSON Lines, one normalized observation per line. All timestamps are UTC epoch milliseconds. `resolvedAt` is when the final outcome became known. `observedAt` must represent when the complete feature set was available locally. Pregame probability must have been fixed before tipoff.
-
-```json
-{"gameId":"nba-example","observedAt":1790000000000,"resolvedAt":1790001000000,"homeScore":80,"awayScore":75,"secondsRemaining":600,"pregameHomeProbability":0.55,"homeWon":1,"quote":{"gameId":"nba-example","assetId":"verified-home-outcome-id","sourceAt":1790000000000,"receivedAt":1790000000000,"ask":0.6,"askSize":50,"outcome":"home","marketType":"moneyline","includesOvertime":true,"acceptingOrders":true,"secondsDelay":3},"sportsbook":{"gameId":"nba-example","sourceAt":1790000000000,"receivedAt":1790000000000,"homeOdds":1.5,"awayOdds":2.8,"format":"decimal","marketType":"moneyline","includesOvertime":true,"suspended":false}}
-```
-
-Match game, teams, outcome asset, full-game scope and overtime rules explicitly when preparing data. Reject ambiguous mappings. The raw Polymarket sports recorder is an input archive, and requires normalization plus historical outcomes and synchronized quotes before training or replay. Feed `elapsed` values are deliberately preserved raw because clock semantics require provider validation.
-
-## Research limitations
-
-This is a research and paper-trading foundation. The NBA history command can train on archived ESPN play-by-play. The demo uses synthetic data. A licensed faster sportsbook feed and live execution remain future work.
-
-The default fee setting is a user-supplied per-share assumption. Set `feeMode` to `market` to use a quote's `feesEnabled` and supported `feeSchedule` fields. Paper replay assumes top-of-book liquidity at a subsequent observation, and cannot prove a live fill. It models a bounded immediate attempt, holds fills to settlement and assumes no competing queue consumption. The current model's features are a baseline and need possession, lineups, fouls, timeouts and overtime treatment before broader evaluation.
-
-Polymarket warns that its sports stream may be delayed or contain errors. A faster sportsbook is a hypothesis to measure using source and receipt timestamps, comparable contracts, and executable prices after delays. Vendor timestamp accuracy and odds-feed licensing must be verified.
-
-## Next milestones
-
-1. Select a licensed NBA odds and play-by-play provider with measured source timestamps.
-2. Record synchronized sportsbook quotes and Polymarket order books, with verified game/outcome mappings.
-3. Build point-in-time historical datasets with final outcomes and market-specific fee schedules.
-4. Evaluate sportsbook and learned signals on separate games, including unfavorable latency and liquidity scenarios.
-5. Add persistent order reconciliation, risk enforcement and operational monitoring before an approved live pilot.
-
-## Browser verification
-
-The application has no runtime package dependencies. Playwright is a development dependency for desktop and mobile dashboard checks. Project npm settings and the browser installation script keep caches inside this folder.
-
-```sh
-npm ci
-node scripts/install-browser.js
-node scripts/browser-smoke.js
-```
-
-Screenshots are saved under `outputs/`. Recordings, models, credentials, caches and installed packages are excluded from Git.
-
-## References
-
-- https://docs.polymarket.com/market-data/discover-markets
-- https://docs.polymarket.com/market-data/realtime-data
-- https://docs.polymarket.com/trading/place-orders
-- https://docs.polymarket.com/trading/fees
-
-## Evaluate across later games
-
-Run `node scripts/evaluate-nba-history.js config/nba-evaluation.json` to fetch cached NBA history and compare candidates with the saved baseline across the configured date windows. Each candidate trains only on games completed before its evaluation window. Whole games are assigned by tipoff so midnight boundaries cannot split a game between windows. The baseline must have finished training before every evaluation window.
-
-The command saves candidate models, per-observation predictions, game-weighted Brier scores, fourth-quarter scores, and a game-level bootstrap interval inside `models/` and `data/nba-history/`. The aggregate measures the retraining procedure across folds. It measures forecast accuracy, and trading returns require a separate order-book replay.
+A 15-minute scan commits only when the tracked hits change. A run every 6 hours, and any manual run, also refreshes `latest.md`. GitHub may delay scheduled runs and pauses them after 60 days without repository activity.
 
 ## Open the dashboard
 
-Double-click `scripts/open-dashboard.cmd`. It starts the local server without a console, opens Sports Pulse in its own Edge app window, and stops the server when the window closes. The window keeps its own browser profile in `.cache/dashboard-window`.
+Double-click `scripts/open-dashboard.cmd`, or run `powershell -ExecutionPolicy Bypass -File scripts\open-dashboard.ps1`. It starts the local server when needed and opens http://127.0.0.1:8787 in its own window. The dashboard runs a live scan (cached for five minutes) and lists the hits, the hits tracked by the scheduled scan, and the closest misses.
 
-## Archive replay in GitHub Actions
+## Limits
 
-`scripts/prepare-archive-replay.js` writes the small inputs in `research/archive-replay/inputs`: score states for NBA games covered by the Pendulum Flow v3.1 archive, each game's reviewed Polymarket moneyline (settlement checked against ESPN), and the candidate and baseline models. A push that changes those inputs or the replay scripts starts the `Archive replay` workflow. The workflow downloads each archive hour once, keeps only the home-outcome book rows for those games, replays both models at 5, 15 and 30 second score delays, and commits `research/archive-replay/results/summary.md` and `report.json`. The order-book data stays on the runner.
+- Depth is top of book only. Larger sizes walk the book and cost more.
+- A hit seen between two scans may already be gone. Duration is measured at 15-minute resolution.
+- The fee rate is one figure for every series. Some series use a different multiplier, so every hit needs its fee schedule and settlement rules checked by hand.
+- Money is locked until settlement, which the annualized figure accounts for only roughly.
 
-The archive is published under CC BY-NC 4.0 by Pendulum Flow and is not affiliated with Polymarket. Results are research only. Assumptions are listed in each summary.
+## Earlier NBA research
+
+The earlier NBA win-probability model, Polymarket archive replay, latency study and market-making simulation are kept at the git tag `nba-archive`. In short: the market midpoint beat the model (Brier 0.145 against 0.165), the market reacted to scoring plays a median 2.2 seconds after ESPN's timestamp, and passive market making lost money under the pessimistic fill rule (−$637 over 74 games).

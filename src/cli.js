@@ -1,132 +1,29 @@
 import { readFileSync } from 'node:fs';
-import { predict, train } from './model.js';
-import { trainNbaHistory } from './nba-history.js';
-import { replay } from './replay.js';
-import { discoverNba, recordSports, recordBooks, fetchBook } from './polymarket.js';
-import { nbaMoneylines } from './catalog.js';
-import { projectPath, writeProjectFile } from './files.js';
-import { runDemo } from './demo.js';
-import { capture } from './capture.js';
-import { analyzeCapture } from './analyze.js';
-import { fetchNbaOdds } from './sportsbook.js';
-import { compareQuotes } from './compare.js';
-import { buildModelReplayDataset, buildReplayDataset, buildTrainingDataset } from './dataset.js';
+import { projectPath } from './files.js';
+import { runScan } from './scan.js';
 import { serveDashboard } from './dashboard.js';
 
-function readRows(path) {
-  return readFileSync(projectPath(path), 'utf8').trim().split(/\r?\n/).filter(Boolean).map(line => JSON.parse(line));
-}
-
 const [command, ...args] = process.argv.slice(2);
-const help = `Pascal Markets
+const help = `Pascal Markets: Kalshi mispricing scanner (research only, no orders)
 
-  demo                                      Run the synthetic training and replay example
-  serve [port]                              Open the local dashboard server (default 8787)
-  discover [output.json]                     Find and map NBA moneylines
-  capture [new-directory] [seconds]          Record sports and outcome books together
-  capture-odds directory seconds mapping.json max-requests
-  analyze capture-directory                 Reconstruct quotes and write capture metrics
-  record [file.jsonl] [seconds]              Record the NBA sports stream
-  record-books file assetId,assetId seconds  Record selected outcome books
-  book assetId                              Read an outcome order book
-  odds [output.json]                         Fetch a sportsbook snapshot using ODDS_API_KEY
-  compare catalog quotes.jsonl odds mappings Compare verified contract and bookmaker mappings
-  build-training states pregame settlements output.jsonl
-  build-replay quotes sportsbook settlements output.jsonl
-  build-model-replay states quotes output.jsonl [score-lag-ms]
-  train rows.jsonl cutoff-ISO model.json     Train and evaluate the baseline chronologically
-  train-nba-history start-date end-date cutoff-date
-  predict model.json home-score away-score seconds-remaining pregame-home-probability
-  replay rows.jsonl config.json [model.json] Run delayed paper execution
+  scan          Scan every open Kalshi event once and print the hits
+  serve [port]  Open the local dashboard server (default 8787)
 
-All file paths resolve inside this project folder.`;
+The scheduled scan that records hit lifetimes is scripts/kalshi-scan.js.`;
+const readJson = path => JSON.parse(readFileSync(projectPath(path), 'utf8'));
 try {
-  let result;
   switch (command) {
     case undefined:
     case 'help':
     case '--help': console.log(help); break;
-    case 'demo': result = runDemo(); break;
     case 'serve': serveDashboard(Number(args[0] ?? 8787)); break;
-    case 'capture': result = await capture(args[0] ?? `data/capture-${Date.now()}`, Number(args[1] ?? 60)); break;
-    case 'capture-odds': {
-      const mappings = JSON.parse(readFileSync(projectPath(args[2]), 'utf8'));
-      if (!Array.isArray(mappings) || mappings.length !== 1 || !mappings[0]?.providerGameId || !mappings[0]?.bookmaker) {
-        throw new Error('Sportsbook capture requires exactly one reviewed game and bookmaker mapping');
-      }
-      result = await capture(args[0], Number(args[1]), { mapping: mappings[0], maxRequests: Number(args[3]) });
+    case 'scan': {
+      const { candidates, hits, ...summary } = await runScan(readJson('config/scan.json'), readJson('config/pairs.json'));
+      console.log(JSON.stringify({ ...summary, candidates: candidates.length, hits }, null, 2));
       break;
     }
-    case 'analyze': result = await analyzeCapture(args[0]); break;
-    case 'odds': {
-      const output = projectPath(args[0] ?? 'data/sportsbook.json');
-      const snapshot = await fetchNbaOdds();
-      writeProjectFile(output, JSON.stringify(snapshot, null, 2));
-      result = { events: snapshot.events.length, remainingCredits: snapshot.remainingCredits, path: output };
-      break;
-    }
-    case 'compare': {
-      const catalog = JSON.parse(readFileSync(projectPath(args[0]), 'utf8'));
-      const snapshot = JSON.parse(readFileSync(projectPath(args[2]), 'utf8'));
-      const mappings = JSON.parse(readFileSync(projectPath(args[3]), 'utf8'));
-      const policy = JSON.parse(readFileSync(projectPath('config/comparison.json'), 'utf8'));
-      result = compareQuotes(catalog, readRows(args[1]), snapshot, mappings, policy);
-      break;
-    }
-    case 'build-model-replay': {
-      const output = projectPath(args[2]);
-      const rows = buildModelReplayDataset(readRows(args[0]), readRows(args[1]), { scoreLagMs: Number(args[3] ?? 0) });
-      if (!rows.some(row => !row.quote.invalidated)) throw new Error('No score states paired with quotes');
-      writeProjectFile(output, rows.map(row => JSON.stringify(row)).join('\n') + '\n');
-      result = { rows: rows.length, path: output };
-      break;
-    }
-    case 'build-replay':
-    case 'build-training': {
-      const output = projectPath(args[3]);
-      const builder = command === 'build-replay' ? buildReplayDataset : buildTrainingDataset;
-      const dataset = builder(readRows(args[0]), readRows(args[1]), readRows(args[2]));
-      if (!dataset.observations.length) throw new Error(`No usable observations: ${JSON.stringify(dataset.skipped)}`);
-      writeProjectFile(output, dataset.observations.map(row => JSON.stringify(row)).join('\n') + '\n');
-      result = { rows: dataset.observations.length, skipped: dataset.skipped, path: output };
-      break;
-    }
-    case 'discover': {
-      result = { recordedAt: Date.now(), markets: nbaMoneylines(await discoverNba()) };
-      if (args[0]) {
-        const output = projectPath(args[0]);
-        writeProjectFile(output, JSON.stringify(result, null, 2));
-        result = { markets: result.markets.length, path: output };
-      }
-      break;
-    }
-    case 'book': result = await fetchBook(args[0]); break;
-    case 'record-books': result = await recordBooks(args[0], args[1]?.split(','), Number(args[2] ?? 60)); break;
-    case 'record': result = await recordSports(args[0] ?? 'data/sports.jsonl', Number(args[1] ?? 60)); break;
-    case 'train': {
-      const output = projectPath(args[2]);
-      const trained = train(readRows(args[0]), Date.parse(args[1]));
-      writeProjectFile(output, JSON.stringify(trained.model, null, 2));
-      result = trained.evaluation;
-      break;
-    }
-    case 'train-nba-history': result = await trainNbaHistory(...args); break;
-    case 'predict': {
-      const model = JSON.parse(readFileSync(projectPath(args[0]), 'utf8'));
-      const [homeScore, awayScore, secondsRemaining, pregameHomeProbability] = args.slice(1).map(Number);
-      result = { homeWinProbability: predict(model, { homeScore, awayScore, secondsRemaining, pregameHomeProbability }) };
-      break;
-    }
-    case 'replay': {
-      const config = JSON.parse(readFileSync(projectPath(args[1]), 'utf8'));
-      const model = args[2] ? JSON.parse(readFileSync(projectPath(args[2]), 'utf8')) : null;
-      result = replay(readRows(args[0]), model, config);
-      break;
-    }
-    default:
-      throw new Error(`Unknown command. Run node src/cli.js help for usage.`);
+    default: throw new Error('Unknown command. Run node src/cli.js help for usage.');
   }
-  if (result !== undefined) console.log(JSON.stringify(result, null, 2));
 } catch (error) {
   console.error(error.message);
   process.exitCode = 1;
