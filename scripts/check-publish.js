@@ -4,7 +4,7 @@ import { resolve } from 'node:path';
 import { PROJECT_ROOT } from '../src/files.js';
 
 const checks = [
-  ['private key', /-----BEGIN (?:RSA |EC |OPENSSH |DSA )?PRIVATE KEY-----/],
+  ['private key', /-----BEGIN (?:RSA |EC |OPENSSH |DSA |ENCRYPTED )?PRIVATE KEY-----/],
   ['GitHub token', /\b(?:gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{30,})\b/],
   ['API token', /\bsk-(?:proj-|ant-)?[A-Za-z0-9_-]{24,}\b/],
   ['AWS access key', /\b(?:AKIA|ASIA)[A-Z0-9]{16}\b/],
@@ -19,12 +19,25 @@ const checks = [
 
 export function checkText(path, text) {
   const findings = [];
-  if (/(^|\/)(?:\.env(?:\..+)?|credentials(?:\.json)?|id_rsa|id_ed25519)$/i.test(path) && path !== '.env.example') {
-    findings.push({ path, line: 0, rule: 'credential file' });
-  }
+  // Ignore rules do not protect force-added files or files already tracked in Git.
+  const credentialPath = [
+    /(?:^|\/)(?:\.env(?:[.-].*)?|[^/]+\.env(?:\..*)?|\.envrc)$/i,
+    /\.(?:pem|key|p8|pkcs8|p12|pfx|der|jks|keystore|secrets?)$/i,
+    /(?:^|\/)id_(?:rsa|dsa|ecdsa|ed25519)[^/]*$/i,
+    /(?:^|\/)(?:\.kalshi|\.ssh|\.aws|\.direnv|keys|secrets|credentials)(?:\/|$)/i,
+    /(?:^|\/)(?:tokens|\.netrc|\.git-credentials|\.pypirc|\.dockercfg)$/i,
+    /(?:^|\/)[^/]*(?:credential|secret|token)[^/]*\.(?:json|ya?ml|toml|ini|txt)$/i,
+    /(?:^|\/)[^/]*service[-_]account[^/]*\.json$/i,
+    /(?:^|\/)[^/]*[-_]key\.txt$/i,
+    /^config\/[^/]+\.local\.json$/i
+  ].some(pattern => pattern.test(path));
+  if (credentialPath && path !== '.env.example') findings.push({ path, line: 0, rule: 'credential file' });
   if (/^(?:data|models|outputs|work|\.cache|node_modules)\//.test(path)) findings.push({ path, line: 0, rule: 'local artifact directory' });
   const lines = text.split(/\r?\n/);
   lines.forEach((line, index) => {
+    if (/(?:^|\/)\.npmrc$/i.test(path) && /^\s*(?:\/\/[^\r\n]*:)?(?:_authToken|_auth|_password)\s*=\s*(?!\$\{[A-Z0-9_]+\}\s*$)\S+/i.test(line)) {
+      findings.push({ path, line: index + 1, rule: 'package registry credential' });
+    }
     for (const [rule, pattern] of checks) {
       if (pattern.test(line)) findings.push({ path, line: index + 1, rule });
     }
