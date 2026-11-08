@@ -1,6 +1,7 @@
 // Dry-run trading simulator: plans orders from a hit, checks whether they would fill at current prices.
 // No real orders are placed.
 import { kalshiFee, quote } from './kalshi.js';
+import { polymarketFee } from './fees.js';
 
 export function planOrders(hit) {
   if (hit.legs.some(leg => leg.venue !== 'kalshi')) return null;
@@ -59,7 +60,7 @@ export function checkBook(order, book, { reserve = false } = {}) {
 
 function costFor(hit, count) {
   return hit.legs.reduce((sum, l) => sum + count * l.costPrice + (l.venue === 'kalshi' ?
-    kalshiFee(count, l.costPrice, l.feeRate) : count * l.feePerShare), 0);
+    kalshiFee(count, l.costPrice, l.feeRate) : polymarketFee(count, l.feePerShare)), 0);
 }
 
 export function allocate(hits, { bankroll = 1000, maxPerEvent = 100, maxOpenEvents = 20 } = {},

@@ -4,8 +4,8 @@ const minute = 60000;
 const cents = x => Math.round(x * 100) / 100;
 const metrics = () => ({ fills: 0, spreadCaptured: 0, fees: 0, adverseSelectionLoss: 0, markedFills: 0, unmarkedFills: 0, grossPnl: 0, netPnl: 0, staleIntervals: 0 });
 
-export function simulate(snapshots, { maxInventory = 10, skewTicks = 1, pullMinutes = 60, makerFeeRate = 0.0175, maxQuoteAgeMs = 30000, maxMarkoutDelayMs = 30000, minQuoteEdge = 0.005 } = {}) {
-  if (!Number.isInteger(maxInventory) || maxInventory < 1 || !Number.isFinite(skewTicks) || skewTicks < 0 || !Number.isFinite(pullMinutes) || pullMinutes < 0 || !Number.isFinite(makerFeeRate) || makerFeeRate < 0) throw new Error('Invalid MM options');
+export function simulate(snapshots, { maxInventory = 10, skewTicks = 1, pullMinutes = 60, makerFeeRate = 0.0175, maxQuoteAgeMs = 30000, maxMarkoutDelayMs = 30000, minQuoteEdge = 0.005, takerFeeRate = 0.07 } = {}) {
+  if (!Number.isInteger(maxInventory) || maxInventory < 1 || !Number.isFinite(skewTicks) || skewTicks < 0 || !Number.isFinite(pullMinutes) || pullMinutes < 0 || !Number.isFinite(makerFeeRate) || makerFeeRate < 0 || !Number.isFinite(takerFeeRate) || takerFeeRate < 0) throw new Error('Invalid MM options');
   if (![maxQuoteAgeMs, maxMarkoutDelayMs, minQuoteEdge].every(n => Number.isFinite(n) && n >= 0)) throw new Error('Invalid MM freshness or edge');
   const groups = new Map();
   for (const s of snapshots) {
@@ -15,7 +15,9 @@ export function simulate(snapshots, { maxInventory = 10, skewTicks = 1, pullMinu
   }
   const markets = [], changes = [];
   for (const [ticker, rows] of groups) {
-    // shortcut: final inventory is marked at the last sampled mid without settlement/liquidation, add terminal outcomes for realized-return studies.
+    // Open inventory is marked at its exit side (bid for long, ask for short) less the taker fee to flatten it.
+    // shortcut: no settlement outcomes or depth-limited liquidation, add terminal outcomes for realized-return studies.
+    const exitValue = (s, n) => n ? n * (n > 0 ? s.yesBid : s.yesAsk) - kalshiFee(Math.abs(n), n > 0 ? s.yesBid : s.yesAsk, takerFeeRate * (s.fee_multiplier ?? 1)) : 0;
     rows.sort((a, b) => a.time - b.time);
     let inventory = 0, cash = 0, quotes = null, maxAbsInventory = 0, averageEntry = 0, closedGross = 0, priorRealized = 0, priorUnrealized = 0;
     const fills = [], result = { ticker, ...metrics() };
@@ -42,7 +44,7 @@ export function simulate(snapshots, { maxInventory = 10, skewTicks = 1, pullMinu
         }
       }
       const realizedPnl = closedGross - result.fees;
-      const unrealizedPnl = inventory * (mid - averageEntry);
+      const unrealizedPnl = exitValue(s, inventory) - inventory * averageEntry;
       changes.push({ time: s.time, realized: realizedPnl - priorRealized, unrealized: unrealizedPnl - priorUnrealized });
       priorRealized = realizedPnl; priorUnrealized = unrealizedPnl;
       quotes = null;
@@ -68,7 +70,7 @@ export function simulate(snapshots, { maxInventory = 10, skewTicks = 1, pullMinu
     result.fills = fills.length;
     result.inventory = inventory;
     result.maxAbsInventory = maxAbsInventory;
-    result.netPnl = cash + inventory * (last.yesBid + last.yesAsk) / 2;
+    result.netPnl = cash + exitValue(last, inventory);
     result.grossPnl = result.netPnl + result.fees;
     result.realizedPnl = priorRealized;
     result.unrealizedPnl = priorUnrealized;

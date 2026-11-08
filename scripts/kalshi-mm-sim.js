@@ -4,7 +4,7 @@ import { writeProjectFile } from '../src/files.js';
 
 const out = process.argv[2] ?? 'research/kalshi';
 const config = readResearch('config/scan.json', {});
-const result = { generatedAt: Date.now(), ...simulate(readResearch(`${out}/books.jsonl`, [], true), { ...config.mm, makerFeeRate: config.makerFeeRate ?? 0.0175 }) };
+const result = { generatedAt: Date.now(), ...simulate(readResearch(`${out}/books.jsonl`, [], true), { ...config.mm, makerFeeRate: config.makerFeeRate ?? 0.0175, takerFeeRate: config.feeRate ?? 0.07 }) };
 const rows = [...result.markets, { ticker: 'TOTAL', ...result.total }];
 writeProjectFile(`${out}/mm-sim.md`, ['# Market-making simulation', '', 'Research only. One-contract quotes, replaced at each snapshot. Quotes are pulled before close.', '',
   `Quote lifetime: ${config.mm?.maxQuoteAgeMs ?? 30000} ms. Expired quote intervals: ${result.total.staleIntervals}. Sparse intervals cannot establish fills.`, '',

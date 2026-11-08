@@ -4,7 +4,7 @@ import { fetchMarket as fetchKalshiMarket, fetchOpenEvents, fetchSeries, kalshiF
 import { publicLookup } from './polymarket.js';
 import { autoMatch } from './matching.js';
 import { allocate, mapConcurrent } from './dryrun.js';
-import { takerFeePerShare } from './fees.js';
+import { polymarketFee, takerFeePerShare } from './fees.js';
 
 const DAY_MS = 86400000;
 const round = x => Math.round(x * 10000) / 10000;
@@ -225,7 +225,7 @@ export function crossVenue(pair, kalshiMarket, polymarketMarket, books, { feeRat
     const ask = bestAsk(books[index]);
     if (!ask || polymarketMarket.acceptingOrders !== true) return null;
     return { venue: 'polymarket', ticker: `${pair.polymarketMarketId}#${tokens?.[index]}`, side: `outcome ${index}`,
-      price: ask.price, size: ask.size, closesAt, gameStartAt: Date.parse(polymarketMarket.gameStartTime), fee: (contracts, p = ask.price) => contracts * (polymarketMarket.feesEnabled ? takerFeePerShare(p, polymarketMarket.feeSchedule) : 0) };
+      price: ask.price, size: ask.size, closesAt, gameStartAt: Date.parse(polymarketMarket.gameStartTime), fee: (contracts, p = ask.price) => polymarketFee(contracts, polymarketMarket.feesEnabled ? takerFeePerShare(p, polymarketMarket.feeSchedule) : 0) };
   };
   const same = pair.polymarketOutcome;
   const found = [];

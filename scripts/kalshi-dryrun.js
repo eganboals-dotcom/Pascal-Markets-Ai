@@ -48,20 +48,25 @@ await mapConcurrent(tasks, 8, async task => {
   }
 });
 // Reserve one shared snapshot in funded order, independent of HTTP completion order.
+// A plan's reservations commit only when every leg fills: a legged basket would not keep holding that depth.
 const liquidity = new Map();
-for (const { plan, order, index, market } of tasks) {
-  if (plan.errors[index]) continue;
-  try {
-    const poly = order.venue === 'polymarket';
-    const key = poly ? `polymarket:${order.ticker.split('#')[1]}` : `kalshi:${order.ticker}`;
-    if (!liquidity.has(key)) liquidity.set(key, structuredClone(poly ? market[1] : market));
-    const depth = liquidity.get(key);
-    plan.fills[index] = poly ? market[0].acceptingOrders === true && checkBook(order, depth, { reserve: true }) :
-      checkFill(order, depth, { reserve: true });
-  } catch (error) {
-    plan.fills[index] = false;
-    plan.errors[index] = error.message;
+for (const plan of planned) {
+  const trial = new Map();
+  for (const { order, index, market } of tasks.filter(task => task.plan === plan)) {
+    if (plan.errors[index]) continue;
+    try {
+      const poly = order.venue === 'polymarket';
+      const key = poly ? `polymarket:${order.ticker.split('#')[1]}` : `kalshi:${order.ticker}`;
+      if (!trial.has(key)) trial.set(key, structuredClone(liquidity.get(key) ?? (poly ? market[1] : market)));
+      const depth = trial.get(key);
+      plan.fills[index] = poly ? market[0].acceptingOrders === true && checkBook(order, depth, { reserve: true }) :
+        checkFill(order, depth, { reserve: true });
+    } catch (error) {
+      plan.fills[index] = false;
+      plan.errors[index] = error.message;
+    }
   }
+  if (plan.orders.every((_, index) => plan.fills[index] === true)) for (const [key, depth] of trial) liquidity.set(key, depth);
 }
 const lines = skipped.map(hit => ({ checkedAt: Date.now(), startedAt, hitId: hit.id, kind: hit.kind, title: hit.title,
   outcome: 'skipped', reason: hit.reason }));

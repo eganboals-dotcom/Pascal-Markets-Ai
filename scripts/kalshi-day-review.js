@@ -38,7 +38,7 @@ if (existsSync(path)) for await (const line of createInterface({ input: createRe
   try { const r = JSON.parse(line); if (day(r.time) === selected) books.push(r); } catch {}
 }
 const config = JSON.parse(readFileSync(projectPath('config/scan.json'),'utf8'));
-const mm = simulate(books, { ...config.mm, makerFeeRate: config.makerFeeRate });
+const mm = simulate(books, { ...config.mm, makerFeeRate: config.makerFeeRate, takerFeeRate: config.feeRate ?? 0.07 });
 const result = { date: selected, timezone: 'America/Los_Angeles', sources, model: { books: books.length, ...mm.total },
   limitations: ['No order ledger is connected; price-availability checks are not executions or realized returns.',
     'Legacy cross-venue checks do not establish settlement compatibility and are excluded from profit claims.',

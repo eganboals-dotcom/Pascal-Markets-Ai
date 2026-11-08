@@ -5,6 +5,8 @@ import { mapConcurrent } from './dryrun.js';
 import { isHit, ladders, noBaskets, runScan, scanCrossVenue, track } from './scan.js';
 import { createFeed } from './feed.js';
 import { backgroundScan } from './scan-worker.js';
+// Near misses logged per round: enough for the dashboard and daily review without bloating rounds.jsonl.
+const NEAR_LOG = 10;
 
 export function selectWatchList(candidates, { events = [], pairs = [] } = {}, size = 20) {
   if (!Number.isInteger(size) || size < 0) throw new Error('Invalid watch size');
@@ -74,7 +76,7 @@ export async function runGameday({ config, pairs = [], until, state = null, onRo
       const edges = scan.candidates.map(c => c.profit / c.contracts).filter(Number.isFinite);
       Object.assign(round, { events: scan.events, candidates: scan.candidates.length, hits: scan.hits.length,
         bestProfitPerContract: edges.length ? edges.reduce((best, edge) => Math.max(best, edge), -Infinity) : null, errors: scan.errors ?? [],
-        near: scan.candidates.filter(c => !isHit(c, config)).sort((a, b) => b.returnPct - a.returnPct).slice(0, 25) });
+        near: scan.candidates.filter(c => !isHit(c, config)).sort((a, b) => b.returnPct - a.returnPct).slice(0, NEAR_LOG) });
       const newHits = Object.values(state.open).filter(h => h.scans === 1 && h.lastSeen === scan.scannedAt);
       if (newHits.length) {
         if (dryrun) round.dryrunSkipped = true;
@@ -174,7 +176,7 @@ export async function runFeedGameday({ config, pairs = [], until, state = null, 
       events: scan.events, candidates: scan.candidates.length, hits: scan.hits.length,
       bestProfitPerContract: edges.length ? edges.reduce((a, b) => Math.max(a, b), -Infinity) : null, errors: scan.errors ?? [] };
     if (tier !== 'feed') round.near = scan.candidates.filter(c => !isHit(c, config))
-      .sort((a, b) => b.returnPct - a.returnPct).slice(0, 25);
+      .sort((a, b) => b.returnPct - a.returnPct).slice(0, NEAR_LOG);
     replay(round, scan.scannedAt);
     if (tier === 'full') round.watchList = watch.map(e => e.ticker);
     log(round, tracked.closed);

@@ -128,3 +128,24 @@ test('dry-run batches reserve shared token depth in funded order', t => {
   assert.deepEqual(checks.map(c => c.outcome), ['filled', 'legged']);
   assert.deepEqual(checks[1].fills, [true, false]);
 });
+
+test('a legged plan releases its reserved depth for later plans', t => {
+  const out = `work/test-release-depth-${randomUUID()}`;
+  t.after(() => rmSync(projectPath(out), { recursive: true, force: true }));
+  const candidate = (id, annualized, other) => ({ ...hit(id, annualized), kind: 'no-basket', verified: true, scans: 1, legs: [
+    { venue: 'kalshi', ticker: 'SHARED', side: 'yes', price: .4, costPrice: .4, feeRate: 0 },
+    { venue: 'kalshi', ticker: other, side: 'yes', price: .4, costPrice: .4, feeRate: 0 }
+  ] });
+  writeProjectFile(`${out}/state.json`, JSON.stringify({ open: { a: candidate('A', 2, 'EMPTY'), b: candidate('B', 1, 'FULL') } }));
+  writeProjectFile(`${out}/preload.mjs`, `
+    const timeout = globalThis.setTimeout;
+    globalThis.setTimeout = (fn, ms, ...args) => timeout(fn, Math.min(ms, 1), ...args);
+    globalThis.fetch = async url => Response.json({ market: { status: 'active', yes_ask_dollars: '.4',
+      yes_ask_size_fp: String(url).endsWith('/EMPTY') ? '0' : '100' } });
+  `);
+  const child = spawnSync(process.execPath, ['--import', pathToFileURL(projectPath(`${out}/preload.mjs`)).href,
+    'scripts/kalshi-dryrun.js', out], { cwd: PROJECT_ROOT, encoding: 'utf8' });
+  assert.equal(child.status, 0, child.stderr);
+  const checks = readFileSync(projectPath(`${out}/dryrun.jsonl`), 'utf8').trim().split('\n').map(JSON.parse);
+  assert.deepEqual(checks.map(c => [c.hitId, c.outcome]), [['A', 'legged'], ['B', 'filled']]);
+});

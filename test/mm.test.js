@@ -99,3 +99,11 @@ test('fractional displayed depth cannot support whole-contract simulated fills',
   assert.equal(result.total.fills, 0);
   assert.equal(result.total.netPnl, 0);
 });
+
+test('open inventory is marked at the exit side less the taker fee to flatten it', () => {
+  const { total, markets } = simulate([book(0, .48, .54), book(15, .46, .49)], { skewTicks: 0 });
+  assert.equal(markets[0].inventory, 1);
+  // Bought at .49; selling into the .46 bid pays a .0174 taker fee, not a mid mark of .475.
+  assert.ok(Math.abs(total.netPnl - (-.49 + .46 - .0174)) < 1e-9);
+  assert.ok(Math.abs(total.realizedPnl + total.unrealizedPnl - total.netPnl) < 1e-9);
+});
