@@ -5,6 +5,7 @@ import { publicLookup } from './polymarket.js';
 import { autoMatch } from './matching.js';
 import { allocate, mapConcurrent } from './dryrun.js';
 import { polymarketFee, takerFeePerShare } from './fees.js';
+import { bookRow } from './mm-recorder.js';
 
 const DAY_MS = 86400000;
 const round = x => Math.round(x * 10000) / 10000;
@@ -304,8 +305,7 @@ export function quotingCandidates(events, series, config, now = Date.now()) {
       if (m.status !== 'active' || !(bid > 0 && ask < 1) || spread < 0.02 - 1e-9 || spread > 0.06 + 1e-9 ||
           Number(m.volume_24h_fp) < 500 || !Number.isFinite(Number(m.volume_24h_fp)) || !(Number(m.yes_bid_size_fp) > 0 && Number(m.yes_ask_size_fp) > 0) ||
           !(Math.min(close, expiry) - now > 2 * 3600000)) continue;
-      books.push({ ticker: m.ticker, time: now, yesBid: bid, yesAsk: ask, yesBidSize: Number(m.yes_bid_size_fp), yesAskSize: Number(m.yes_ask_size_fp),
-        volume_24h: Number(m.volume_24h_fp), close_time: m.close_time, fee_type: s.fee_type, fee_multiplier: s.fee_multiplier ?? 1 });
+      books.push(bookRow(m, s, now));
     }
   }
   return books.sort((a, b) => b.volume_24h - a.volume_24h || a.ticker.localeCompare(b.ticker)).slice(0, cap);

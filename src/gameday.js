@@ -50,9 +50,9 @@ export async function fastRound(config, watch, series, now = Date.now(), { loadE
 }
 
 export async function runGameday({ config, pairs = [], until, state = null, onRound = async () => {}, feedMode, feedFactory,
-  runDryRun = async () => {}, onDryRunError = async () => {}, fullScan = runScan, fastScan = fastRound, now = Date.now,
+  runDryRun = async () => {}, onDryRunError = async () => {}, onFullScan = () => {}, fullScan = runScan, fastScan = fastRound, now = Date.now,
   sleep = ms => new Promise(resolve => setTimeout(resolve, ms)) }) {
-  if (feedMode) return runFeedGameday({ config, pairs, until, state, onRound, runDryRun, onDryRunError,
+  if (feedMode) return runFeedGameday({ config, pairs, until, state, onRound, runDryRun, onDryRunError, onFullScan,
     fullScan, now, sleep, feedMode, feedFactory });
   const { fullMinutes = 5, fastSeconds = 15, watchSize = 20 } = config.gameday ?? {};
   if (![fullMinutes, fastSeconds].every(n => Number.isFinite(n) && n > 0) || !Number.isInteger(watchSize) || watchSize < 0 || !Number.isFinite(until)) throw new Error('Invalid game-day schedule');
@@ -68,6 +68,7 @@ export async function runGameday({ config, pairs = [], until, state = null, onRo
       if (tier === 'full') {
         // shortcut: series settings and pair membership refresh only on full scans, refresh sooner when intraday metadata changes matter.
         series = scan.context.series;
+        onFullScan(scan);
         watch = selectWatchList(scan.candidates, scan.context, watchSize);
       }
       const tracked = track(state, scan.hits, scan.scannedAt, tier === 'fast' ? scan.scope : undefined);
@@ -144,7 +145,7 @@ export function coalesceEvents(priceEvent, { schedule = setImmediate, cancel = c
 }
 
 export async function runFeedGameday({ config, pairs = [], until, state = null, onRound = async () => {},
-  runDryRun = async () => {}, onDryRunError = async () => {}, fullScan = runScan,
+  runDryRun = async () => {}, onDryRunError = async () => {}, onFullScan = () => {}, fullScan = runScan,
   now = Date.now, sleep = ms => new Promise(resolve => setTimeout(resolve, ms)),
   feedMode = 'production', feedFactory = createFeed, lookup = publicLookup(), coalesceOptions } = {}) {
   const { fullMinutes = 5, fastSeconds = 15, feedWatchSize: maximum = 300, maxLatencyMs = 100 } = config.gameday ?? {};
@@ -239,6 +240,7 @@ export async function runFeedGameday({ config, pairs = [], until, state = null, 
           .then(scan => {
             if (!running) return;
             context = scan.context;
+            onFullScan(scan);
             capacity = feedWatchSize(capacity, maximum, latestP95, maxLatencyMs, true);
             const next = selectWatchList(scan.candidates, context, capacity);
             const tracked = trackFullScan(state, scan, [...watch, ...next].map(e => e.ticker));

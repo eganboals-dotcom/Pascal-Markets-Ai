@@ -55,6 +55,8 @@ The watch list ranks each event's best eligible candidate by profit per basket c
 
 The output directory holds open hits in `state.json`, closed episodes in `log.jsonl`, dry-run results in `dryrun.jsonl`, and one `rounds.jsonl` line per round with tier, timestamp, duration, event/candidate/hit counts, best profit per contract, errors and full-round watch-list tickers. New hits trigger the shared-budget dry run in a background child using a fixed hit snapshot. If a replay is already running, the round records `dryrunSkipped: true`. The loop reads public data only and places no orders. Use `--out=work/codex-gameday` for isolated test runs.
 
+Each full scan also selects the market-making cohort (up to `mm.maxMarkets` quoting candidates). The loop appends its top of book to `books.jsonl` and re-reads the cohort every `gameday.fastSeconds` with one batched `GET /markets?tickers=` request per 50 markets, so model quotes stay inside `mm.maxQuoteAgeMs`. After each full scan, `scripts/kalshi-mm-sim.js` replays the last seven days of that file into `mm-sim.json`; the dashboard shows `data/dashboard/mm-sim.json` when present. Missing or inactive markets are left out of a snapshot rather than repeated.
+
 ## Live feed
 
 `node scripts/kalshi-gameday.js --feed --out=work/codex-ws` uses production market data with `KALSHI_KEY_ID` and `KALSHI_KEY_PATH`. Kalshi requires authentication even for market-data WebSockets; a production API key must come from the user's own Kalshi account. Like the demo key, the production private key is stored outside the repository (for example `%USERPROFILE%\.kalshi\prod-key.pem`), so it cannot be committed; `KALSHI_KEY_PATH` is the feed's sole external file input. The feed only reads market data and never imports order functions.

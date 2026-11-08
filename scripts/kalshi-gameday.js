@@ -4,6 +4,7 @@ import { readFileSync, appendFileSync, mkdirSync } from 'node:fs';
 import { PROJECT_ROOT, projectPath, writeProjectFile } from '../src/files.js';
 import { runGameday } from '../src/gameday.js';
 import { feedCredentials } from '../src/feed.js';
+import { recordBooks } from '../src/mm-recorder.js';
 
 const arg = (name, fallback) => process.argv.find(a => a.startsWith(`--${name}=`))?.slice(name.length + 3) ?? fallback;
 if (process.argv.some(a => a.startsWith('--minutes'))) throw new Error('Use gameday.fullMinutes and gameday.fastSeconds in config/scan.json');
@@ -32,6 +33,29 @@ const readJson = (path, fallback) => {
   catch (error) { if (error.code === 'ENOENT') return fallback; throw error; }
 };
 const config = { ...readJson('config/scan.json'), ...(seriesTickers.length ? { seriesTickers } : {}) };
+// Market-making simulator input: the full scan's quoting cohort, re-read every fastSeconds so model quotes stay fresh.
+let cohort = [], recording = false, simulator = null;
+const appendBooks = rows => { if (rows.length) appendFileSync(projectPath(`${out}/books.jsonl`), rows.map(r => JSON.stringify(r)).join('\n') + '\n'); };
+const recorder = setInterval(() => {
+  if (recording || !cohort.length) return;
+  recording = true;
+  recordBooks(cohort, Date.now()).then(appendBooks, error => console.error(JSON.stringify({ bookError: error.message })))
+    .finally(() => { recording = false; });
+}, (config.gameday?.fastSeconds ?? 15) * 1000);
+function onFullScan(scan) {
+  cohort = scan.books ?? [];
+  appendBooks(cohort);
+  if (simulator) return; // The previous replay is still running.
+  const child = simulator = spawn(process.execPath, ['scripts/kalshi-mm-sim.js', out], { cwd: PROJECT_ROOT, windowsHide: true, stdio: ['ignore', 'ignore', 'pipe'] });
+  children.add(child);
+  let errorText = '';
+  child.stderr.on('data', chunk => { errorText += chunk; });
+  child.on('error', error => { errorText += error.message; });
+  child.once('close', code => {
+    children.delete(child); simulator = null;
+    if (code) console.error(JSON.stringify({ mmSimError: errorText.trim().slice(0, 500) }));
+  });
+}
 const feedArg = process.argv.includes('--feed') ? 'production' : arg('feed', '');
 if (!['', 'production', 'demo'].includes(feedArg)) throw new Error('Use --feed or --feed=demo');
 const credentials = feedCredentials(feedArg);
@@ -42,7 +66,7 @@ console.log(feedMode ? `Live feed: ${feedMode}${feedMode === 'demo' ? ' (demo pr
 let lastPublish = 0;
 const until = new Date(); until.setHours(...time.split(':').map(Number), 0, 0);
 console.log(`Game-day loop: ${seriesArg || 'all focus markets'} until ${until.toLocaleTimeString()}. No orders.`);
-await runGameday({ config, feedMode, pairs: readJson('config/pairs.json', []), until: dashboard ? Number.MAX_SAFE_INTEGER : until.getTime(), state: readJson(`${out}/state.json`, null),
+await runGameday({ config, feedMode, onFullScan, pairs: readJson('config/pairs.json', []), until: dashboard ? Number.MAX_SAFE_INTEGER : until.getTime(), state: readJson(`${out}/state.json`, null),
   onDryRunError: error => {
     appendFileSync(projectPath(`${out}/dryrun.jsonl`), JSON.stringify({ ...error, outcome: 'error' }) + '\n');
     console.error(JSON.stringify({ dryrunError: error }));
@@ -69,5 +93,6 @@ await runGameday({ config, feedMode, pairs: readJson('config/pairs.json', []), u
     console.log(JSON.stringify(round));
   }
 });
+clearInterval(recorder);
 console.log('Game-day loop finished.');
 if (dashboard) shutdown();

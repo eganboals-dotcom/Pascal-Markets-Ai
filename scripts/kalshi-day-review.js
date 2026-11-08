@@ -32,14 +32,20 @@ for (const directory of ['data/dashboard', 'data/gameday', 'research/kalshi']) {
   entry.near = [...candidates.values()].sort((a,b) => b.profit / b.contracts - a.profit / a.contracts).slice(0,5);
   sources.push(entry);
 }
+// One recording per day: parallel loops record the same books, so merging directories would double-count fills.
 const books = [];
-const path = projectPath('research/kalshi/books.jsonl');
-if (existsSync(path)) for await (const line of createInterface({ input: createReadStream(path), crlfDelay: Infinity })) {
-  try { const r = JSON.parse(line); if (day(r.time) === selected) books.push(r); } catch {}
+let booksSource = null;
+for (const directory of ['data/dashboard', 'data/gameday', 'research/kalshi']) {
+  const path = projectPath(`${directory}/books.jsonl`);
+  if (!existsSync(path)) continue;
+  for await (const line of createInterface({ input: createReadStream(path), crlfDelay: Infinity })) {
+    try { const r = JSON.parse(line); if (day(r.time) === selected) books.push(r); } catch {}
+  }
+  if (books.length) { booksSource = directory; break; }
 }
 const config = JSON.parse(readFileSync(projectPath('config/scan.json'),'utf8'));
 const mm = simulate(books, { ...config.mm, makerFeeRate: config.makerFeeRate, takerFeeRate: config.feeRate ?? 0.07 });
-const result = { date: selected, timezone: 'America/Los_Angeles', sources, model: { books: books.length, ...mm.total },
+const result = { date: selected, timezone: 'America/Los_Angeles', sources, model: { books: books.length, booksSource, ...mm.total },
   limitations: ['No order ledger is connected; price-availability checks are not executions or realized returns.',
     'Legacy cross-venue checks do not establish settlement compatibility and are excluded from profit claims.',
     'Expired quote intervals are unobserved; zero inferred fills does not demonstrate a profitable or loss-free strategy.',
@@ -56,7 +62,7 @@ const text = ['# Daily strategy review', '', `${selected} · America/Los_Angeles
   '- Evaluate up to eight depth breakpoints for liquid subsets of mutually exclusive No baskets. Subsets retain the at-most-one-winner payout bound.',
   '- Rank the fast watch list by taker basket edges; a conditional maker saving cannot displace a directly checkable event.', '',
   '## Updated model replay', '',
-  `Public book observations: ${books.length}. Inferred fills: ${mm.total.fills}. Expired quote intervals: ${mm.total.staleIntervals}. Net marked model P&L: $${mm.total.netPnl.toFixed(4)}.`, '',
+  `Public book observations: ${books.length}${booksSource ? ` from ${booksSource}` : ""}. Inferred fills: ${mm.total.fills}. Expired quote intervals: ${mm.total.staleIntervals}. Net marked model P&L: $${mm.total.netPnl.toFixed(4)}.`, '',
   '## Strongest logged verified near misses', '',
   ...sources.flatMap(s => s.near.slice(0,3).map(c => `- ${s.directory}: ${c.title} (${c.kind}), ${(c.profit/c.contracts*100).toFixed(3)} cents per basket contract, $${c.profit.toFixed(4)} modeled total, ${(c.returnPct*100).toFixed(3)}% return.`)), '',
   '## Limits', '', ...result.limitations.map(s=>`- ${s}`), '',

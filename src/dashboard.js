@@ -13,7 +13,9 @@ function readJson(path, fallback) {
 
 export function createDashboardServer({ runner = createDashboardRunner(),
   research = () => {
-    const report = readJson('research/kalshi/report.json', null), mm = readJson('research/kalshi/mm-sim.json', null);
+    // The dashboard loop's own replay is live; the archival report is the fallback before its first full scan.
+    const report = readJson('research/kalshi/report.json', null),
+      mm = readJson('data/dashboard/mm-sim.json', null) ?? readJson('research/kalshi/mm-sim.json', null);
     const localChecks = recentRecords('data/dashboard/dryrun.jsonl');
     return { report, mm, ...dashboardData({ rounds: recentRecords('data/dashboard/rounds.jsonl'),
       checks: localChecks.length ? localChecks : recentRecords('research/kalshi/dryrun.jsonl'), mm,

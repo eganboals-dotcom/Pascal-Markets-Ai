@@ -55,6 +55,19 @@ export async function fetchMarket(ticker, load = getJson) {
   return (await load(`${BASE}/markets/${encodeURIComponent(ticker)}`)).market;
 }
 
+// One request per 50 tickers through the `tickers` filter on GET /markets.
+export async function fetchMarkets(tickers, load = getJson) {
+  if (!Array.isArray(tickers) || tickers.some(t => !/^[A-Z0-9._-]{1,120}$/i.test(t ?? ''))) throw new Error('Invalid Kalshi ticker');
+  const markets = [];
+  for (let i = 0; i < tickers.length; i += 50) {
+    const chunk = tickers.slice(i, i + 50);
+    const body = await load(`${BASE}/markets?tickers=${chunk.map(encodeURIComponent).join(',')}&limit=100`);
+    if (!Array.isArray(body.markets)) throw new Error('Invalid Kalshi markets response');
+    markets.push(...body.markets);
+  }
+  return markets;
+}
+
 export async function fetchEvent(ticker, load = getJson) {
   if (!/^[A-Z0-9._-]{1,120}$/i.test(ticker ?? '')) throw new Error('Invalid Kalshi ticker');
   const body = await load(`${BASE}/events/${encodeURIComponent(ticker)}?with_nested_markets=true`);
