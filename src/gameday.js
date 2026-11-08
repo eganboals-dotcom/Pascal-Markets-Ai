@@ -10,7 +10,7 @@ export function selectWatchList(candidates, { events = [], pairs = [] } = {}, si
   if (!Number.isInteger(size) || size < 0) throw new Error('Invalid watch size');
   const best = new Map();
   for (const c of candidates) {
-    if (!c.event || !Array.isArray(c.checks) || c.checks.some(check => ['liquidity', 'notClosing', 'kalshiCertified'].includes(check))) continue;
+    if (!c.event || !Array.isArray(c.checks) || c.checks.length > 0) continue;
     const edge = c.profit / c.contracts;
     if (c.contracts > 0 && Number.isFinite(edge) && (!best.has(c.event) || edge > best.get(c.event))) best.set(c.event, edge);
   }
@@ -43,7 +43,7 @@ export async function fastRound(config, watch, series, now = Date.now(), { loadE
   const cross = await scanCrossVenue(pairs, options);
   const candidates = [...noBaskets(events, options), ...ladders(events, options), ...cross.found].filter(c => !c.checks.includes('horizon'));
   return { scannedAt: now, events: events.length, candidates, hits: candidates.filter(c => isHit(c, config)),
-    scope: events.map(e => e.event_ticker), errors: [...errors, ...cross.errors] };
+    scope: watch.map(e => e.ticker), errors: [...errors, ...cross.errors] };
 }
 
 export async function runGameday({ config, pairs = [], until, state = null, onRound = async () => {}, feedMode, feedFactory,
@@ -84,7 +84,12 @@ export async function runGameday({ config, pairs = [], until, state = null, onRo
             .finally(() => { dryrun = null; });
         }
       }
-    } catch (error) { round.errors.push({ error: error.message }); }
+    } catch (error) {
+      round.errors.push({ error: error.message });
+      const tracked = track(state, [], now(), tier === 'fast' ? watch.map(e => e.ticker) : undefined);
+      state = { ...tracked.state, scannedAt: now() };
+      closed = tracked.closed.map(h => ({ ...h, closedReason: 'market data unavailable' }));
+    }
     if (tier === 'full') {
       nextFull = started + fullMinutes * 60000;
       round.watchList = watch.map(e => e.ticker);
@@ -174,6 +179,7 @@ export async function runFeedGameday({ config, pairs = [], until, state = null, 
     log(round, tracked.closed);
   }
   function swapWatch(next) {
+    const removed = watch.filter(entry => !next.some(n => n.ticker === entry.ticker));
     watch = next; marketEvents.clear(); eventsByTicker.clear();
     for (const entry of watch) {
       const event = context.events.find(e => e.event_ticker === entry.ticker);
@@ -182,18 +188,31 @@ export async function runFeedGameday({ config, pairs = [], until, state = null, 
       for (const m of event.markets ?? []) marketEvents.set(m.ticker, entry.ticker);
     }
     feed.setMarkets([...marketEvents.keys()]);
-    for (const entry of watch) coalescer.add(entry.ticker, now());
+    for (const entry of [...watch, ...removed]) coalescer.add(entry.ticker, now());
   }
   function liveEvent(ticker) {
     // shortcut: metadata refreshes on full scans, add lifecycle messages before relying on intraday status changes.
     const event = eventsByTicker.get(ticker);
-    if (!event || !event.markets.every(m => feed.top(m.ticker))) return null;
-    return { ...event, markets: event.markets.map(m => ({ ...m, ...feed.top(m.ticker) })) };
+    const markets = event?.markets.filter(m => m.status === 'active');
+    if (!markets?.length) return null;
+    const current = markets.map(m => {
+      const top = feed.top(m.ticker);
+      return top ? { ...m, ...top } : null;
+    });
+    if (current.some(m => m === null)) return null;
+    return { ...event, markets: current };
   }
   const coalescer = coalesceEvents((ticker, receivedAt) => {
     if (!running) return;
     const event = liveEvent(ticker);
-    if (!event) return;
+    if (!event) {
+      const tracked = track(state, [], now(), [ticker]);
+      if (tracked.closed.length) {
+        tracked.closed = tracked.closed.map(h => ({ ...h, closedReason: 'market data unavailable' }));
+        accept({ scannedAt: now(), events: 0, candidates: [], hits: [] }, 'feed-stale', now(), tracked);
+      }
+      return;
+    }
     const started = now(), options = { ...config, now: started, series: context.series };
     const candidates = [...noBaskets([event], options), ...ladders([event], options)].filter(c => !c.checks.includes('horizon'));
     const hits = candidates.filter(c => isHit(c, config));
@@ -216,13 +235,20 @@ export async function runFeedGameday({ config, pairs = [], until, state = null, 
         full = Promise.resolve().then(() => scanFull(config, pairs, at, { retainContext: true, demo: feedMode === 'demo' }))
           .then(scan => {
             if (!running) return;
-            const tracked = trackFullScan(state, scan, watch.map(e => e.ticker));
             context = scan.context;
             capacity = feedWatchSize(capacity, maximum, latestP95, maxLatencyMs, true);
-            swapWatch(selectWatchList(scan.candidates, context, capacity));
+            const next = selectWatchList(scan.candidates, context, capacity);
+            const tracked = trackFullScan(state, scan, [...watch, ...next].map(e => e.ticker));
+            swapWatch(next);
             nextFast = Math.min(nextFast, now());
             accept(scan, 'full', at, tracked);
-          }).catch(error => { if (running) log({ tier: 'full', at: new Date(at).toISOString(), errors: [{ error: error.message }] }); })
+          }).catch(error => {
+            if (!running) return;
+            const tracked = trackFullScan(state, { hits: [], scannedAt: now() }, watch.map(e => e.ticker));
+            state = { ...tracked.state, scannedAt: now() };
+            log({ tier: 'full', at: new Date(at).toISOString(), errors: [{ error: error.message }] },
+              tracked.closed.map(h => ({ ...h, closedReason: 'market data unavailable' })));
+          })
           .finally(() => { full = null; });
       }
       if (at >= nextFast && !fast) {
@@ -233,13 +259,12 @@ export async function runFeedGameday({ config, pairs = [], until, state = null, 
           const market = event.markets.find(m => m.ticker === pair.kalshiTicker);
           return market ? [{ ...pair, event, kalshiMarket: market, polymarketMarket: undefined }] : [];
         }));
-        if (pairList.length) fast = scanCrossVenue(pairList, { ...config, now: at, series: context.series, lookup })
+        if (pairList.length) fast = scanCrossVenue(pairList, { ...config, now: at, series: context.series, lookup,
+          currentTime: now, currentKalshiMarket: pair => liveEvent(pair.event.event_ticker)?.markets.find(m => m.ticker === pair.kalshiTicker) })
           .then(cross => {
             if (!running || context !== generation) return;
-            const failed = new Set(cross.errors.map(e => e.pair));
-            const scope = selected.filter(x => watch.some(w => w.ticker === x.entry.ticker) && liveEvent(x.entry.ticker) &&
-              !x.entry.pairs.some(p => failed.has(p.kalshiTicker))).map(x => x.entry.ticker);
-            const candidates = cross.found.filter(c => scope.includes(c.event) && !c.checks.includes('horizon'));
+            const scope = selected.filter(x => watch.some(w => w.ticker === x.entry.ticker)).map(x => x.entry.ticker);
+            const candidates = cross.found.filter(c => scope.includes(c.event) && liveEvent(c.event) && !c.checks.includes('horizon'));
             const hits = candidates.filter(c => isHit(c, config));
             const preserved = Object.values(state?.open ?? {}).filter(h => scope.includes(h.event) && h.kind !== 'cross-venue');
             const tracked = track(state, [...hits, ...preserved], at, scope);

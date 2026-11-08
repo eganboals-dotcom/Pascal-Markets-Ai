@@ -25,7 +25,7 @@ test('watch list ranks best eligible edge per event before volume and retains cr
   events[2].markets[0].volume_24h_fp = '2000';
   const pair = { kalshiTicker: 'A-A', polymarketMarketId: '9', polymarketOutcome: 0, polymarketMarket: { clobTokenIds: ['1', '2'] } };
   const candidates = [candidate('A', -1), { ...candidate('A', -0.1), kind: 'cross-venue' }, candidate('B', -2), candidate('C', -0.1),
-    ...['liquidity', 'notClosing', 'kalshiCertified'].map(check => candidate('D', 99, 10, [check])),
+    ...['liquidity', 'notClosing', 'kalshiCertified', 'settlement', 'sameClose', 'gameStarted', 'horizon'].map(check => candidate('D', 99, 10, [check])),
     candidate('F', 100, 0), candidate('A', NaN)];
   const watch = selectWatchList(candidates, { events, pairs: [pair] }, 3);
   assert.deepEqual(watch.map(e => e.ticker), ['C', 'A', 'B']);
@@ -94,7 +94,7 @@ test('fast round reprices watched Kalshi and retained cross pairs with fresh boo
   assert.ok(scan.hits.every(c => c.verified));
 });
 
-test('fast event reads cap concurrency at eight and failed reads stay outside tracking scope', async () => {
+test('fast event reads cap concurrency at eight and failed reads invalidate their tracked hits', async () => {
   let active = 0, peak = 0;
   const watch = Array.from({ length: 20 }, (_, i) => ({ ticker: `E${i}`, pairs: [] }));
   const scan = await fastRound({}, watch, series, now, { loadEvent: async ticker => {
@@ -106,7 +106,7 @@ test('fast event reads cap concurrency at eight and failed reads stay outside tr
   assert.equal(peak, 8);
   assert.equal(scan.events, 19);
   assert.equal(scan.errors.length, 1);
-  assert.ok(!scan.scope.includes('E0'));
+  assert.ok(scan.scope.includes('E0'));
 });
 
 test('full scan optionally retains series, events and auto pairs for game-day use', async t => {
@@ -163,14 +163,14 @@ test('background dry run receives a fixed snapshot and busy replay skips new hit
   assert.deepEqual(rounds.map(r => r.at), [0, 15000, 30000].map(t => new Date(t).toISOString()));
 });
 
-test('failed full rounds are logged and preserve existing open hits', async () => {
+test('failed full rounds are logged and clear unverified old hits', async () => {
   let time = 0;
   const state = track(null, [candidate('E', 1)], -1).state;
   let logged;
   const end = await runGameday({ config: {}, until: 1, state, now: () => time,
     fullScan: async () => { time++; throw Error('offline'); }, onRound: async r => { logged = r; }
   });
-  assert.strictEqual(end, state);
+  assert.deepEqual(end.open, {});
   assert.equal(logged.errors[0].error, 'offline');
 });
 

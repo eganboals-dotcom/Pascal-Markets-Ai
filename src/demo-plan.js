@@ -15,7 +15,7 @@ export function demoPlan(state, dryruns, config) {
           Number(replay.orders[i].priceDollars) === l.price && replay.orders[i].count === replay.contracts) ? 'orders changed since dry run' : null;
     if (reason) { skipped.push({ id: hit.id, reason }); continue; }
     const contracts = Math.min(hit.contracts, replay.contracts);
-    const legs = hit.legs.map(l => ({ ...l, costPrice: l.costPrice ?? Math.min(.99, l.price + (config.slippageTicks ?? 1) * .01), feeRate: l.feeRate ?? config.feeRate ?? .07 }));
+    const legs = hit.legs.map(l => ({ ...l, costPrice: l.costPrice ?? Math.min(1, l.price + (config.slippageTicks ?? 1) * .01), feeRate: l.feeRate ?? config.feeRate ?? .07 }));
     const cost = legs.reduce((n, l) => n + l.costPrice * contracts + kalshiFee(contracts, l.costPrice, l.feeRate), 0);
     const payout = hit.payout / hit.contracts * contracts;
     const profit = payout - cost;
@@ -23,7 +23,7 @@ export function demoPlan(state, dryruns, config) {
       annualized: hit.annualized * (profit / cost) / hit.returnPct });
   }
   // shortcut: only currently open hits with unchanged filled order prices are replayed; upgrade with fresh demo-market validation before broader experiments.
-  const allocation = allocate(eligible, config.budget);
+  const allocation = allocate(eligible, config.budget, config);
   skipped.push(...allocation.skipped.map(h => ({ id: h.id, reason: h.reason })));
   const plans = allocation.funded.map(hit => ({ hitId: hit.id, cost: hit.cost, orders: planHit(hit).map((o, index) => ({
     ticker: o.ticker, side: o.side, price: Number(o.priceDollars), count: o.count,

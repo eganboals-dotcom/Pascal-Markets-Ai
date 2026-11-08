@@ -12,12 +12,17 @@ const round = x => Math.round(x * 10000) / 10000;
 // legs: [{ venue, ticker, side, price, size, fee(contracts) }]; payout is the guaranteed dollars per basket.
 export function price(kind, title, legs, payout, { maxContracts = 100, now = Date.now(), slippageTicks = 1,
   event = {}, series = {}, verified = {}, maxDaysToClose = 60, longHold = {} } = {}) {
+  if (!Array.isArray(legs) || !legs.length || !Number.isFinite(payout) || payout <= 0 ||
+      !Number.isSafeInteger(maxContracts) || maxContracts < 1 || !Number.isFinite(slippageTicks) || slippageTicks < 0 ||
+      !legs.every(l => Number.isFinite(l.price) && l.price > 0 && l.price < 1 && Number.isFinite(l.size) && l.size > 0 && typeof l.fee === 'function')) return null;
   const contracts = Math.floor(Math.min(maxContracts, ...legs.map(leg => leg.size)));
   if (contracts < 1) return null;
   const cost = legs.reduce((sum, leg) => {
-    const p = Math.min(0.99, leg.price + (leg.maker ? 0 : slippageTicks * 0.01));
-    return sum + p * contracts + leg.fee(contracts, p);
+    const p = Math.min(1, leg.price + (leg.maker ? 0 : slippageTicks * 0.01));
+    const fee = leg.fee(contracts, p);
+    return sum + p * contracts + (Number.isFinite(fee) && fee >= 0 ? fee : NaN);
   }, 0);
+  if (!Number.isFinite(cost) || cost <= 0) return null;
   const profit = payout * contracts - cost;
   const closesAt = Math.max(...legs.map(leg => leg.closesAt));
   const expiresAt = Math.max(...legs.map(leg => leg.expiresAt ?? leg.closesAt));
@@ -42,7 +47,7 @@ export function price(kind, title, legs, payout, { maxContracts = 100, now = Dat
     contracts, cost: round(cost), payout: payout * contracts, profit: round(profit),
     returnPct: profit / cost, annualized: round(annualized), closesAt, expiresAt, longHold: extended,
     legs: legs.map(({ fee, ...leg }) => {
-      const costPrice = Math.min(0.99, leg.price + (leg.maker ? 0 : slippageTicks * 0.01));
+      const costPrice = Math.min(1, leg.price + (leg.maker ? 0 : slippageTicks * 0.01));
       return { ...leg, costPrice, ...(leg.venue === 'polymarket' ? { feePerShare: fee(1, costPrice) } : {}) };
     })
   };
@@ -52,6 +57,7 @@ function kalshiLeg(market, side, feeRate, series) {
   const ask = quote(market)[side];
   if (!ask || market.status !== 'active') return null;
   const rate = feeRate * (series?.fee_multiplier ?? 1);
+  if (!Number.isFinite(rate) || rate < 0) return null;
   return { venue: 'kalshi', ticker: market.ticker, side, price: ask.price, size: ask.size,
     volume24h: Number(market.volume_24h_fp), feeRate: rate, bid: Number(market[`${side}_bid_dollars`] ?? NaN),
     closesAt: Date.parse(market.close_time), expiresAt: Date.parse(market.expected_expiration_time || market.close_time),
@@ -62,13 +68,15 @@ function kalshiLeg(market, side, feeRate, series) {
 // the outcome has turned against it. So the maker leg must sit on a spread of at most makerMaxSpread.
 function makerVariant(kind, event, legs, payout, options) {
   const maxSpread = options.makerMaxSpread ?? 0.04;
-  const eligible = legs.filter(l => Number.isFinite(l.bid) && l.bid > 0 && l.bid + 0.01 < l.price - 1e-9 &&
+  // Whole-cent prices are valid on every documented grid, including bands with subcent bids.
+  const postPrice = l => Math.ceil((l.bid + 0.01) * 100 - 1e-9) / 100;
+  const eligible = legs.filter(l => Number.isFinite(l.bid) && l.bid > 0 && postPrice(l) < l.price - 1e-9 &&
     l.price - l.bid <= maxSpread + 1e-9);
   const leg = eligible.sort((a, b) => (b.price - b.bid) - (a.price - a.bid))[0];
   if (!leg) return null;
   const series = options.series?.[event.series_ticker];
   const feeRate = series?.fee_type === 'quadratic' ? 0 : (options.makerFeeRate ?? 0.0175) * (series?.fee_multiplier ?? 1);
-  const p = round(leg.bid + 0.01);
+  const p = postPrice(leg);
   const maker = { ...leg, maker: true, price: p, feeRate, fee: n => kalshiFee(n, p, feeRate) };
   const basket = price(`maker-${kind}`, event.title, legs.map(l => l === leg ? maker : l), payout, { ...options, event });
   return basket && { ...basket, makerLeg: leg.ticker };
@@ -96,18 +104,42 @@ export function noBaskets(events, { feeRate = 0.07, ...options } = {}) {
 export function ladders(events, { feeRate = 0.07, ...options } = {}) {
   const found = [];
   const shapes = { greater: 'floor_strike', greater_or_equal: 'floor_strike', less: 'cap_strike', less_or_equal: 'cap_strike' };
-  // One event can hold ladders on different underlyings (one per player, say). Rungs share an underlying
-  // when their settlement rule reads the same once the numbers are removed and they close together
-  // (the close time keeps "by 2025" and "by 2030" deadlines apart).
-  const underlying = market => `${market.strike_type}|${market.close_time}|${String(market.rules_primary ?? '').replace(/[\d.,]+/g, '#')}`;
+  // Match a comparison in the rules, preserving all dates, player identifiers and other numbers.
+  const underlying = (market, field) => {
+    const strike = market[field], above = market.strike_type.startsWith('greater');
+    const mask = text => {
+      let matches = 0;
+      const rules = String(text ?? '').trim();
+      const value = rules.replace(/(?<![\w.])[+-]?(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?(?![\w]|\.\d)/g, (token, offset) => {
+        const number = Number(token.replaceAll(',', ''));
+        const before = rules.slice(0, offset), after = rules.slice(offset + token.length);
+        const prefix = /(?:above|below|over|under|exceeds?|greater than|less than|more than|fewer than|at least|at most|no (?:less|more) than)\s*[$€£]?\s*$/i.test(before);
+        const suffix = /^(?:%?\+|%?\s+or (?:more|higher|above|less|lower|below|fewer))\b/i.test(after) || /^\+(?:\s|$)/.test(after);
+        // Integer sports totals often express >29.5 as "at least 30 goals".
+        const discrete = /^\s+(?:points?|goals?|yards?|games?|wins?|rebounds?|assists?|touchdowns?|runs?|hits?|strikeouts?|saves?|shots?)\b/i.test(after);
+        const inclusive = above ? /at least\s*$/i.test(before) : /at most\s*$/i.test(before);
+        const halfPoint = discrete && inclusive && Math.abs(strike % 1) === 0.5 && number === (above ? Math.ceil(strike) : Math.floor(strike));
+        if (!(prefix || suffix) || (number !== strike && !halfPoint)) return token;
+        matches++;
+        return '<strike>';
+      });
+      return { value, matches };
+    };
+    const primary = mask(market.rules_primary), secondary = mask(market.rules_secondary);
+    if (primary.matches !== 1) return null;
+    return JSON.stringify([market.strike_type, market.close_time, market.expected_expiration_time || market.close_time,
+      primary.value, secondary.value]);
+  };
   for (const event of events) {
     const groups = new Map();
+    let nearest = null, hasTaker = false;
     for (const market of event.markets ?? []) {
       const field = shapes[market.strike_type];
       const other = field === 'floor_strike' ? 'cap_strike' : 'floor_strike';
       // Kalshi labels some "exactly N" buckets "less" with both bounds set; a one-sided strike has only one bound.
       if (!field || !Number.isFinite(market[field]) || market[other] != null) continue;
-      const key = underlying(market);
+      const key = underlying(market, field);
+      if (key === null) continue;
       groups.set(key, [...(groups.get(key) ?? []), market]);
     }
     for (const group of groups.values()) {
@@ -122,7 +154,9 @@ export function ladders(events, { feeRate = 0.07, ...options } = {}) {
           const no = kalshiLeg(above ? rungs[j] : rungs[i], 'no', feeRate, options.series?.[event.series_ticker]);
           if (!yes || !no) continue;
           const pair = price('ladder', event.title, [yes, no], 1, { ...options, event });
-          if (pair && yes.price + no.price < 1) found.push({ ...pair, event: event.event_ticker });
+          if (pair && yes.price + no.price < 1) { found.push(pair); hasTaker = true; }
+          else if (pair && (!nearest || Number(pair.verified) > Number(nearest.verified) ||
+              (pair.verified === nearest.verified && pair.returnPct > nearest.returnPct))) nearest = pair;
           // Posting one leg saves at most its spread, so pairs priced further above $1 cannot become a basket.
           if (yes.price + no.price >= 1 + (options.makerMaxSpread ?? 0.04)) continue;
           const maker = makerVariant('ladder', event, [yes, no], 1, options);
@@ -130,13 +164,15 @@ export function ladders(events, { feeRate = 0.07, ...options } = {}) {
         }
       }
     }
+    // Keep one near miss so an otherwise healthy ladder can enter the watch list before its edge turns positive.
+    if (!hasTaker && nearest) found.push(nearest);
   }
   return found;
 }
 
 function bestAsk(book) {
   const asks = (book?.asks ?? []).map(level => ({ price: Number(level.price), size: Number(level.size) }))
-    .filter(level => level.price > 0 && level.price < 1 && level.size > 0);
+    .filter(level => level.price > 0 && level.price < 1 && Number.isFinite(level.size) && level.size > 0);
   return asks.length ? asks.reduce((best, level) => level.price < best.price ? level : best) : null;
 }
 
@@ -179,7 +215,11 @@ export async function scanCrossVenue(pairs, options) {
       const books = bookResults.map(result => result.value);
       const event = pair.event ?? options.events?.find(e => e.event_ticker === kalshiMarket.event_ticker);
       if (!event) return;
-      found.push(...crossVenue(pair, kalshiMarket, polymarketMarket, books, { ...options, event }));
+      // A feed price may change while the other venue's HTTP reads are in flight.
+      const current = options.currentKalshiMarket ? options.currentKalshiMarket(pair) : kalshiMarket;
+      if (!current) return;
+      found.push(...crossVenue(pair, current, polymarketMarket, books,
+        { ...options, event, now: options.currentTime ? options.currentTime() : options.now }));
     } catch (error) {
       errors.push({ pair: pair.kalshiTicker, error: error.message });
     }

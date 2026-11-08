@@ -28,7 +28,7 @@ for (const hit of hits) {
     !planHit(hit)?.length ? 'unsupported legs' : null;
   if (reason) skipped.push({ ...hit, reason }); else eligible.push(hit);
 }
-const allocation = allocate(eligible, config.budget);
+const allocation = allocate(eligible, config.budget, config);
 skipped.push(...allocation.skipped);
 const planned = allocation.funded.map(hit => ({ hit, orders: planHit(hit), fills: [], errors: [] }));
 if (planned.length) await new Promise(resolve => setTimeout(resolve, Math.max(0, startedAt + delayMs - Date.now())));

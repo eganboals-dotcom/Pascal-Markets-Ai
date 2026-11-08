@@ -20,7 +20,11 @@ export function createFeed({ mode = 'production', env = process.env,
   const counts = { messages: 0, snapshots: 0, deltas: 0, gaps: 0, reconnects: 0 };
   let socket, timer, stopped = true, sid, seq, id = 0, backoff = 1000;
   const send = (cmd, params) => socket.send(JSON.stringify({ id: ++id, cmd, params }));
-  const invalidate = () => { for (const book of books.values()) book.stale = true; };
+  const invalidate = () => {
+    const changed = [...books].filter(([, book]) => !book.stale).map(([ticker]) => ticker);
+    for (const book of books.values()) book.stale = true;
+    for (const ticker of changed) onTop(ticker, now());
+  };
   function reconcile() {
     if (sid == null) return;
     const add = [...desired].filter(t => !subscribed.has(t));

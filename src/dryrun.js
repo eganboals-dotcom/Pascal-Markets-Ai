@@ -23,6 +23,7 @@ export function checkFill(order, market) {
 }
 
 export function judge(fills) {
+  if (!fills.length) return 'missed';
   if (fills.every(Boolean)) return 'filled';
   if (fills.every(v => !v)) return 'missed';
   return 'legged';
@@ -38,9 +39,9 @@ export function planHit(hit) {
 
 export function checkBook(order, book) {
   const valid = (book?.asks ?? []).map(l => ({ price: Number(l.price), size: Number(l.size) }))
-    .filter(l => l.price > 0 && l.price < 1 && l.size > 0);
-  const best = valid.sort((a, b) => a.price - b.price)[0];
-  return Boolean(best && best.price <= Number(order.priceDollars) + 1e-9 && best.size >= order.count);
+    .filter(l => l.price > 0 && l.price < 1 && Number.isFinite(l.size) && l.size > 0);
+  const size = valid.filter(l => l.price <= Number(order.priceDollars) + 1e-9).reduce((n, l) => n + l.size, 0);
+  return Number.isSafeInteger(order.count) && order.count > 0 && size >= order.count;
 }
 
 function costFor(hit, count) {
@@ -50,8 +51,10 @@ function costFor(hit, count) {
     kalshiFee(count, l.costPrice, l.feeRate) : count * l.feePerShare), 0);
 }
 
-export function allocate(hits, { bankroll = 1000, maxPerEvent = 100, maxOpenEvents = 20 } = {}) {
+export function allocate(hits, { bankroll = 1000, maxPerEvent = 100, maxOpenEvents = 20 } = {},
+  { minProfit = 1, minReturn = 0.03 } = {}) {
   if (![bankroll, maxPerEvent].every(n => Number.isFinite(n) && n >= 0) || !Number.isInteger(maxOpenEvents) || maxOpenEvents < 0) throw new Error('Invalid dry-run budget');
+  if (![minProfit, minReturn].every(n => Number.isFinite(n) && n >= 0)) throw new Error('Invalid dry-run margin');
   const funded = [], skipped = [], events = new Set();
   let remaining = bankroll;
   for (const hit of [...hits].sort((a, b) => b.annualized - a.annualized)) {
@@ -59,16 +62,25 @@ export function allocate(hits, { bankroll = 1000, maxPerEvent = 100, maxOpenEven
     if (!hit.event) reason = 'missing event';
     else if (events.has(hit.event)) reason = 'event already funded';
     else if (events.size >= maxOpenEvents) reason = 'maxOpenEvents';
-    else if (!(hit.cost > 0) || !Number.isFinite(hit.cost) || !Number.isInteger(hit.contracts) || hit.contracts < 1 || !Number.isFinite(hit.annualized)) reason = 'invalid cost or size';
+    else if (!(hit.cost > 0) || !Number.isFinite(hit.cost) || !Number.isSafeInteger(hit.contracts) || hit.contracts < 1 || !Number.isFinite(hit.annualized) ||
+      !Number.isFinite(hit.payout) || hit.payout <= 0 || !Number.isFinite(hit.returnPct) || hit.returnPct <= 0) reason = 'invalid cost or size';
     const cap = Math.min(remaining, maxPerEvent);
-    let contracts = reason ? 0 : Math.min(hit.contracts, Math.floor(cap / (hit.cost / hit.contracts)));
-    while (contracts > 0 && costFor(hit, contracts) > cap + 1e-9) contracts--;
+    let contracts = 0, upper = reason ? 0 : hit.contracts;
+    // Find the largest affordable integer size using recomputed fees, including rounding.
+    while (contracts < upper) {
+      const count = Math.ceil((contracts + upper) / 2);
+      const cost = costFor(hit, count);
+      if (Number.isFinite(cost) && cost > 0 && cost <= cap + 1e-9) contracts = count;
+      else upper = count - 1;
+    }
     if (!reason && contracts < 1) reason = remaining < maxPerEvent ? 'bankroll' : 'maxPerEvent';
     if (reason) { skipped.push({ ...hit, reason }); continue; }
     const cost = Number(costFor(hit, contracts).toFixed(8));
     const payout = hit.payout / hit.contracts * contracts;
     const profit = payout - cost;
     if (!(profit > 0)) { skipped.push({ ...hit, reason: 'unprofitable at funded size' }); continue; }
+    if (profit < minProfit - 1e-9) { skipped.push({ ...hit, reason: 'below minimum profit at funded size' }); continue; }
+    if (profit / cost < minReturn - 1e-9) { skipped.push({ ...hit, reason: 'below minimum return at funded size' }); continue; }
     funded.push({ ...hit, contracts, cost, payout, profit, returnPct: profit / cost,
       annualized: hit.annualized * ((profit / cost) / hit.returnPct) });
     remaining = Math.max(0, remaining - cost);

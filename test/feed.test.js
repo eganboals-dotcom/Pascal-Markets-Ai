@@ -204,7 +204,7 @@ test('full-scan worker returns results with mocked fetch and performs no network
   assert.equal(child.status, 0, child.stderr);
 });
 
-test('feed prices while the next full scan is pending and stale books preserve hits', async () => {
+test('feed prices during a full scan and removes hits when a required book becomes unavailable', async () => {
   const base = Date.parse('2026-11-01'), close = '2026-11-03T00:00:00Z';
   const event = { event_ticker: 'E', series_ticker: 'S', mutually_exclusive: true, settlement_sources: [{}],
     markets: ['A', 'B'].map(ticker => ({ ticker, status: 'active', volume_24h_fp: '1000', close_time: close })) };
@@ -232,7 +232,38 @@ test('feed prices while the next full scan is pending and stale books preserve h
   });
   assert.equal(calls, 2);
   assert.ok(rounds.some(r => r.tier === 'feed' && Date.parse(r.at) >= base + 200));
-  assert.ok(Object.keys(final.open).length > 0);
+  assert.equal(Object.keys(final.open).length, 0);
+  assert.ok(rounds.some(r => r.tier === 'feed-stale'));
   assert.deepEqual(sets[0], ['A', 'B']);
   assert.ok(rounds.at(-1).samples > 0);
+});
+
+
+test('feed gaps and disconnects notify every previously priced market after invalidating books', () => {
+  const { feed, s, tops } = fixture();
+  s.message(snapshot('A', 1)); s.message(snapshot('B', 2)); tops.length = 0;
+  s.message(delta('A', 4, 'yes', '.6', '1'));
+  assert.deepEqual(tops.map(([ticker]) => ticker), ['A', 'B']);
+  assert.equal(feed.top('A'), null); assert.equal(feed.top('B'), null);
+  s.message(snapshot('A', 5)); s.message(snapshot('B', 6)); tops.length = 0;
+  s.close();
+  assert.deepEqual(tops.map(([ticker]) => ticker), ['A', 'B']);
+  feed.stop();
+});
+
+
+test('failed feed discovery invalidates non-feed signals without inventing a fresh observation', async () => {
+  let time = 0;
+  const rounds = [];
+  const initial = track(null, [{ id: 'old', event: 'E', profit: 1 }], -100).state;
+  const result = await runFeedGameday({ config: {}, until: 1, state: initial, now: () => time,
+    feedFactory: () => ({ start() {}, stop() {}, setMarkets() {}, top() { return null; }, counts: {} }),
+    fullScan: async () => { throw Error('offline'); },
+    sleep: async () => { await new Promise(resolve => setImmediate(resolve)); time = 1; },
+    onRound: (round, state, closed) => rounds.push({ round, state, closed })
+  });
+  assert.deepEqual(result.open, {});
+  const failure = rounds.find(r => r.round.errors?.length);
+  assert.equal(failure.closed[0].lastSeen, -100);
+  assert.equal(failure.closed[0].closedReason, 'market data unavailable');
 });

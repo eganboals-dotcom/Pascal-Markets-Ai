@@ -27,7 +27,7 @@ export function quote(market) {
   const side = (price, size) => {
     const p = Number(price);
     const s = Number(size);
-    return p > 0 && p < 1 && s > 0 ? { price: p, size: s } : null;
+    return p > 0 && p < 1 && Number.isFinite(s) && s > 0 ? { price: p, size: s } : null;
   };
   return { yes: side(market.yes_ask_dollars, market.yes_ask_size_fp), no: side(market.no_ask_dollars, market.yes_bid_size_fp) };
 }

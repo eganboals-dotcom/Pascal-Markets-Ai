@@ -78,6 +78,7 @@ test('demo plans only current filled, verified and reviewed Kalshi hits under sh
   for (const patch of [{ verified: false }, { reviewed: false }, { firstSeen: 30 }]) assert.equal(demoPlan({ open: { hit: { ...hit, ...patch } } }, rows, config).plans.length, 0);
   assert.equal(demoPlan({ open: { hit } }, rows, { ...config, verified: {} }).plans.length, 0);
   const resized = [{ ...rows[0], contracts: 1, orders: [{ ...rows[0].orders[0], count: 1 }] }];
-  assert.equal(demoPlan({ open: { hit } }, resized, config).plans[0].orders[0].count, 1);
+  assert.equal(demoPlan({ open: { hit } }, resized, config).plans.length, 0);
+  assert.match(demoPlan({ open: { hit } }, resized, config).skipped[0].reason, /minimum profit/);
   assert.equal(demoPlan({ open: { hit: { ...hit, legs: [{ ...hit.legs[0], price: .6 }] } } }, rows, config).plans.length, 0);
 });

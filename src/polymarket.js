@@ -15,12 +15,12 @@ export async function fetchBook(assetId, load = getJson) {
   return load(`https://clob.polymarket.com/book?token_id=${assetId}`);
 }
 
-// One cache and rate gate per scan, shared by Gamma lookups and CLOB books.
+// Cache discovery metadata; prices and trading status share only in-flight requests, never completed responses.
 export function publicLookup(load = getJson) {
   const cache = new Map();
   let gate = Promise.resolve();
   let lastStart = 0;
-  const cached = url => {
+  const cached = (url, retain = true) => {
     const key = String(url);
     if (!cache.has(key)) {
       const start = gate.then(async () => {
@@ -28,13 +28,17 @@ export function publicLookup(load = getJson) {
         lastStart = Date.now();
       });
       gate = start;
-      cache.set(key, start.then(() => load(url)));
+      const request = start.then(() => load(url)).then(value => {
+        if (!retain) cache.delete(key);
+        return value;
+      }, error => { cache.delete(key); throw error; });
+      cache.set(key, request);
     }
     return cache.get(key);
   };
   return {
-    market: id => fetchMarket(id, undefined, cached),
-    book: id => fetchBook(id, cached),
+    market: id => fetchMarket(id, undefined, url => cached(url, false)),
+    book: id => fetchBook(id, url => cached(url, false)),
     teams: async league => {
       const teams = [];
       for (let offset = 0; ; offset += 100) {

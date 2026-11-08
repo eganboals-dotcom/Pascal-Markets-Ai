@@ -33,7 +33,7 @@ test('allocate funds one basket per event and at most maxOpenEvents', () => {
 test('allocate recomputes rounded order fees when reducing contracts', () => {
   const result = allocate([hit('a', 1, { cost: 41.68, payout: 100, legs: [
     { venue: 'kalshi', costPrice: 0.4, feeRate: 0.07 }
-  ] })], { bankroll: 0.42 });
+  ] })], { bankroll: 0.42 }, { minProfit: 0 });
   assert.equal(result.funded[0].contracts, 1);
   assert.equal(result.funded[0].cost, 0.4168);
   assert.ok(Math.abs(result.funded[0].profit - 0.5832) < 1e-9);

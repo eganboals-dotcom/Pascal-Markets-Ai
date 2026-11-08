@@ -7,7 +7,8 @@ import { publicLookup } from '../src/polymarket.js';
 
 const now = Date.parse('2026-11-01T00:00:00Z');
 const close = '2026-12-01T00:00:00Z';
-const market = (ticker, fields) => ({ ticker, status: 'active', close_time: close, yes_ask_dollars: '0', yes_ask_size_fp: '0',
+const market = (ticker, fields = {}) => ({ ticker, status: 'active', close_time: close,
+  ...(fields.strike_type ? { rules_primary: `Settlement value above ${fields.floor_strike ?? fields.cap_strike}` } : {}), yes_ask_dollars: '0', yes_ask_size_fp: '0',
   no_ask_dollars: '0', yes_bid_size_fp: '0', ...fields });
 
 test('Kalshi fee rounds the whole order up to a hundredth of a cent', () => {
@@ -48,9 +49,9 @@ test('ladder pairs Yes on the lower "greater" strike with No on the higher one',
   const [pair] = ladders([{ event_ticker: 'E', title: 'E', markets: [high, low] }], { now });
   assert.deepEqual(pair.legs.map(l => [l.ticker, l.side]), [['LOW', 'yes'], ['HIGH', 'no']]);
   assert.equal(pair.contracts, 20);
-  // A consistent ladder (higher strike cheaper Yes, so No(high) expensive) yields nothing.
+  // A consistent ladder is retained as a negative near miss for watch-list discovery.
   const fair = market('HIGH', { strike_type: 'greater', floor_strike: 200, no_ask_dollars: '0.70', yes_bid_size_fp: '30' });
-  assert.equal(ladders([{ markets: [low, fair] }], { now }).length, 0);
+  assert.ok(ladders([{ markets: [low, fair] }], { now })[0].profit < 0);
   // Rungs on different underlyings in one event never pair.
   const a = { ...low, rules_primary: 'If Player A scores 100+ points' };
   const b = { ...high, rules_primary: 'If Player B scores 200+ points' };
@@ -166,14 +167,14 @@ test('maker variant rejects wide spreads and empty books', () => {
 test('maker ladders are priced even when taking both asks is unprofitable', () => {
   const low = market('LOW', { strike_type: 'greater', floor_strike: 1, yes_ask_dollars: '0.52', yes_bid_dollars: '0.48', yes_ask_size_fp: '20' });
   const high = market('HIGH', { strike_type: 'greater', floor_strike: 2, no_ask_dollars: '0.48', no_bid_dollars: '0.46', yes_bid_size_fp: '30' });
-  const found = ladders([{ ...verifiedEvent(), markets: [low, high] }], { now, series: certified });
+  const found = ladders([{ ...verifiedEvent(), markets: [low, high] }], { now, series: certified }).filter(c => c.makerLeg);
   assert.equal(found.length, 1);
   assert.equal(found[0].kind, 'maker-ladder');
   assert.equal(found[0].makerLeg, 'LOW');
   assert.ok(found[0].profit > 0);
   low.yes_bid_dollars = '0.20';
   high.no_bid_dollars = '0.40';
-  assert.equal(ladders([{ ...verifiedEvent(), markets: [low, high] }], { now, series: certified }).length, 0);
+  assert.equal(ladders([{ ...verifiedEvent(), markets: [low, high] }], { now, series: certified }).some(c => c.makerLeg), false);
 });
 
 test('focus accepts prefix, sport tag or category and excludes other events', () => {
