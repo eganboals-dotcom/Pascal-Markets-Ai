@@ -1,33 +1,57 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Pascal Markets · Kalshi Scanner</title>
-  <link rel="stylesheet" href="/style.css">
-  <script src="/app.js" defer></script>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pascal Markets | Trading desk</title>
+  <link rel="stylesheet" href="/style.css"><script src="/app.js" defer></script>
 </head>
 <body>
-  <header class="topbar">
-    <span class="brand">pascal<span class="muted"> markets</span></span>
-    <span class="chip">RESEARCH ONLY · NO ORDERS</span>
-  </header>
-  <main>
-    <div class="heading">
-      <div><div class="eyebrow">KALSHI · MISPRICING AND ARBITRAGE</div><h1>Scanner</h1></div>
-      <div><button id="start" type="button">Start</button> <button id="stop" type="button" disabled>Stop</button></div>
-    </div>
-    <p id="status" class="muted" role="status">Stopped. Press Start to scan markets.</p>
-    <div class="stats">
-      <div><span>EVENTS</span><strong id="events">—</strong></div>
-      <div><span>WATCHED EVENTS</span><strong id="markets">—</strong></div>
-      <div><span>HITS NOW</span><strong id="hit-count">—</strong></div>
-      <div><span>CANDIDATES IN LAST UPDATE</span><strong id="tracked-count">—</strong></div>
-    </div>
-    <section class="panel"><h2>Research summary</h2><p id="research-status" class="muted" role="status">Loading saved reports…</p><div id="research" class="table-wrap"></div></section>
-    <section class="panel"><h2>Hits after fees</h2><div id="hits" class="table-wrap"></div></section>
-    <section class="panel"><h2>Closest misses</h2><div id="near" class="table-wrap"></div></section>
-    <p class="muted">Profit uses top-of-book depth and the Kalshi taker fee. Every hit needs its settlement rules read before any trade.</p>
-  </main>
+  <aside class="rail" aria-label="Workspace">
+    <a class="monogram" href="#overview" aria-label="Pascal overview">p<span>·</span></a>
+    <a class="rail-link active" href="#overview" aria-label="Overview"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z"/></svg></a>
+    <a class="rail-link" href="#workspace" aria-label="Opportunities and trades"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 17 6-6 4 3 8-10M16 4h5v5"/></svg></a>
+    <a class="rail-link" href="#engine" aria-label="Engine status"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h3l3-7 4 14 3-7h3"/></svg></a>
+    <span class="rail-bottom" title="Local workspace">↳</span>
+  </aside>
+  <div class="shell">
+    <header class="topbar"><a class="brand" href="#overview">Pascal<span>Markets</span></a>
+      <span class="workspace-name">Trading desk <span class="slash">/</span> Kalshi</span>
+      <div class="header-right"><span class="simulation-tag">Simulation</span><time id="clock">—</time></div>
+    </header>
+    <main id="overview">
+      <section class="desk-heading">
+        <div><div class="breadcrumb">Workspace / Overview</div><h1>The trading desk<span class="title-dot">.</span></h1><p id="status" role="status">Ready when it matters. Press Start engine to begin.</p></div>
+        <button id="engine-toggle" class="engine-toggle" type="button" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v9M6 6a9 9 0 1 0 12 0"/></svg><span id="toggle-label">Start engine</span></button>
+      </section>
+      <section class="metrics" aria-label="Desk summary">
+        <div class="metric"><span>Simulated P&amp;L</span><strong id="pnl">—</strong><small id="pnl-note">Awaiting a simulator report</small><svg class="metric-glyph" viewBox="0 0 60 30" aria-hidden="true"><path d="M2 24h12l7-8 9 3 10-13h16"/></svg></div>
+        <div class="metric"><span>Opportunities now</span><strong id="hit-count">0</strong><small>After fees and margin checks</small><span class="metric-symbol">↗</span></div>
+        <div class="metric"><span>Model positions</span><strong id="position-count">0</strong><small>Simulated inventory only</small><span class="metric-symbol">▤</span></div>
+        <div class="metric"><span>Dry-run checks</span><strong id="trade-count">0</strong><small id="trade-note">No recorded price checks</small><span class="metric-symbol">⇄</span></div>
+      </section>
+      <div class="upper-grid">
+        <section class="panel chart-panel" aria-labelledby="chart-title">
+          <div class="panel-heading"><div><span class="section-kicker">Market intelligence</span><h2 id="chart-title">Basket edge</h2></div>
+            <div class="segmented" aria-label="Chart metric"><button type="button" class="selected" id="chart-edge" aria-pressed="true">Edge</button><button type="button" id="chart-latency" aria-pressed="false">Latency</button></div>
+          </div>
+          <div class="chart-summary"><strong id="chart-value">—</strong><span id="chart-caption">Net edge per basket contract</span><span class="chart-window">Recent observations</span></div>
+          <div class="plot"><svg id="history-chart" viewBox="0 0 900 250" role="img" aria-label="Basket edge chart; no samples yet"></svg><div class="plot-empty" id="chart-empty"><span class="empty-mark">⌁</span><strong>A clear view starts here</strong><span>Recorded market observations appear while the engine runs.</span></div></div>
+          <div class="chart-footer"><span><i class="legend-dot"></i><span id="chart-legend">Best observed basket edge</span></span><span id="sample-count">0 samples</span></div>
+        </section>
+        <aside class="panel engine-panel" id="engine" aria-labelledby="engine-title"><div class="panel-heading"><h2 id="engine-title">Engine room</h2><span id="engine-badge" class="status-badge">Idle</span></div>
+          <div class="radar" aria-hidden="true"><span class="radar-ring"></span><span class="radar-ring inner"></span><span class="radar-cross"></span><span class="radar-center"></span><span class="radar-caption">PAS<span>CAL</span></span></div>
+          <dl class="engine-stats"><div><dt>Market data</dt><dd id="feed-mode">Standby</dd></div><div><dt>Events discovered</dt><dd id="events">0</dd></div><div><dt>Events on watch</dt><dd id="markets">0</dd></div><div><dt>Pricing latency p95</dt><dd id="latency-value">—</dd></div><div><dt>Practice bankroll</dt><dd id="bankroll">—</dd></div></dl>
+          <div class="engine-foot"><span class="connection-dot" id="connection-dot"></span><span id="engine-note">Waiting for Start</span></div>
+        </aside>
+      </div>
+      <section class="panel workspace-panel" id="workspace" aria-labelledby="workspace-title">
+        <div class="workspace-heading"><h2 id="workspace-title" class="sr-only">Trading workspace</h2><div class="tabs" role="tablist" aria-label="Desk views"><button type="button" id="tab-opportunities" role="tab" aria-selected="true" aria-controls="desk-content" data-view="opportunities">Opportunities <span id="opportunity-badge">0</span></button><button type="button" id="tab-positions" role="tab" aria-selected="false" aria-controls="desk-content" data-view="positions" tabindex="-1">Positions <span id="position-badge">0</span></button><button type="button" id="tab-trades" role="tab" aria-selected="false" aria-controls="desk-content" data-view="trades" tabindex="-1">Trade history <span id="trade-badge">0</span></button></div><span id="table-context">Fee-adjusted baskets</span></div>
+        <div id="account-note" class="account-note" hidden>Account positions are not connected. Positions below are the market-making model's recorded inventory.</div>
+        <div id="desk-content" role="tabpanel" aria-labelledby="tab-opportunities" tabindex="0"><div id="desk-table" class="table-wrap"></div></div>
+      </section>
+      <section class="panel near-panel" aria-labelledby="near-title"><div class="panel-heading"><div><h2 id="near-title">On the radar</h2><p>Closest baskets to the required margin</p></div><span class="quiet-tag">Watch only</span></div><div id="near-table" class="table-wrap"></div></section>
+      <footer><span><span class="connection-dot"></span> Local workspace</span><span>Research &amp; simulation. Price checks are not executed trades.</span><span id="updated">No market scan started</span></footer>
+    </main>
+  </div>
 </body>
 </html>

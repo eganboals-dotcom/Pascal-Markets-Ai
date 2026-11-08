@@ -25,7 +25,7 @@ node src/cli.js serve
 
 ## Dashboard-controlled scanning
 
-Double-click `scripts/open-dashboard.cmd`. The dashboard opens idle. **Start** launches one market-data loop; repeated clicks cannot launch a second loop. **Stop** ends its feed, scans and dry-run subprocesses. Closing the dashboard window stops the loop after at most 20 seconds without status heartbeats. Opening the dashboard again requires Start again. Stopping preserves the last displayed results.
+Double-click `scripts/open-dashboard.cmd`. The dashboard opens idle. One **Start engine / Stop engine** button controls the session. **Start** launches one market-data loop; repeated clicks cannot launch a second loop. **Stop** ends its feed, scans and dry-run subprocesses. Closing the dashboard window stops the loop after at most 20 seconds without status heartbeats. Opening the dashboard again requires Start again. Stopping preserves the last displayed results. The desk includes recorded basket-edge and latency charts, opportunities, dry-run trade history, and model positions from the saved market-making report. Model P&L is marked simulation inventory; dry-run availability checks do not create account positions. The account positions panel states when account sync is unavailable. Telemetry reads are bounded to the tail of local logs so large recordings do not block the dashboard.
 
 Start selects the production WebSocket feed when `KALSHI_KEY_ID` and `KALSHI_KEY_PATH` are configured; otherwise the 15-second REST watch list is used. Full discovery runs every five minutes. The first discovery can take several minutes. Results and rounds from dashboard sessions are saved under `data/dashboard/`.
 

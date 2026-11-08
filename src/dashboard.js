@@ -2,6 +2,7 @@ import { createServer } from 'node:http';
 import { readFileSync } from 'node:fs';
 import { projectPath } from './files.js';
 import { createDashboardRunner } from './dashboard-runner.js';
+import { recentRecords, dashboardData } from './dashboard-data.js';
 
 const LEASE_MS = 20000;
 
@@ -11,7 +12,13 @@ function readJson(path, fallback) {
 }
 
 export function createDashboardServer({ runner = createDashboardRunner(),
-  research = () => ({ report: readJson('research/kalshi/report.json', null), mm: readJson('research/kalshi/mm-sim.json', null) }),
+  research = () => {
+    const report = readJson('research/kalshi/report.json', null), mm = readJson('research/kalshi/mm-sim.json', null);
+    const localChecks = recentRecords('data/dashboard/dryrun.jsonl');
+    return { report, mm, ...dashboardData({ rounds: recentRecords('data/dashboard/rounds.jsonl'),
+      checks: localChecks.length ? localChecks : recentRecords('research/kalshi/dryrun.jsonl'), mm,
+      budget: readJson('config/scan.json', {}).budget ?? {} }) };
+  },
   now = Date.now, leaseMs = LEASE_MS } = {}) {
   let lastContact = now();
   const lease = setInterval(() => {

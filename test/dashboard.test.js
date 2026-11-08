@@ -24,7 +24,8 @@ test('dashboard opens idle; status reads never start scanning; Start and Stop ar
   const runner = fakeRunner();
   await withServer({ runner }, async base => {
     const page = await (await fetch(base)).text();
-    assert.match(page, /id="start"/); assert.match(page, /id="stop"/);
+    assert.match(page, /id="engine-toggle"/); assert.match(page, /Start engine/);
+    assert.doesNotMatch(page, /id="start"|id="stop"/);
     assert.equal((await (await fetch(`${base}/api/scan`)).json()).running, false);
     assert.equal((await (await fetch(`${base}/api/scan`)).json()).running, false);
     assert.deepEqual(runner.counts(), { starts: 0, stops: 0 });
