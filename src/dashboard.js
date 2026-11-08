@@ -17,7 +17,7 @@ export function createDashboardServer({ runner = createDashboardRunner(),
     const report = readJson('research/kalshi/report.json', null),
       mm = readJson('data/dashboard/mm-sim.json', null) ?? readJson('research/kalshi/mm-sim.json', null);
     const localChecks = recentRecords('data/dashboard/dryrun.jsonl');
-    return { report, mm, ...dashboardData({ rounds: recentRecords('data/dashboard/rounds.jsonl'),
+    return { report, mm, ...dashboardData({ rounds: recentRecords('data/dashboard/rounds.jsonl', 240, 3 * 1048576),
       checks: localChecks.length ? localChecks : recentRecords('research/kalshi/dryrun.jsonl'), mm,
       budget: readJson('config/scan.json', {}).budget ?? {} }) };
   },

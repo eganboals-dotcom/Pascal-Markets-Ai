@@ -14,9 +14,9 @@
     <span class="rail-bottom" title="Local workspace">↳</span>
   </aside>
   <div class="shell">
-    <header class="topbar"><a class="brand" href="#overview">Pascal<span>Markets</span></a>
+    <header class="topbar"><a class="brand" href="#overview"><span class="logo" aria-hidden="true"></span>PASCAL<span>MARKETS</span></a>
       <span class="workspace-name">Trading desk <span class="slash">/</span> Kalshi</span>
-      <div class="header-right"><span class="simulation-tag">Simulation</span><time id="clock">—</time></div>
+      <div class="header-right"><span id="live-chip" class="chip"><span class="dot" aria-hidden="true"></span><span id="live-text">IDLE</span></span><span class="chip">SIMULATION · NO ORDERS</span><time id="clock">—</time></div>
     </header>
     <main id="overview">
       <section class="desk-heading">
@@ -34,7 +34,7 @@
         <div class="pnl-layout"><div class="pnl-breakdown">
           <div class="pnl-total"><span id="pnl-period-label">Daily net P&amp;L</span><strong id="performance-net">—</strong></div>
           <dl><div><dt>Realized <span title="Profit on closed model inventory, with all trading fees expensed when incurred.">ⓘ</span></dt><dd id="performance-realized">—</dd></div><div><dt id="unrealized-label">Unrealized change <span title="Today's change in marked profit on open inventory. Closing a position transfers P&L into realized profit.">ⓘ</span></dt><dd id="performance-unrealized">—</dd></div><div><dt>Open unrealized · latest mark</dt><dd id="open-unrealized">—</dd></div></dl>
-          <p id="pnl-asof">Awaiting recorded accounting</p><p class="pnl-explainer">Realized includes fees. Unrealized uses sampled market midpoints. All recorded covers the available model history.</p>
+          <p id="pnl-asof">Awaiting recorded accounting</p><p class="pnl-explainer">Realized includes fees. Unrealized marks open inventory at its exit price, less the fee to close it. All recorded covers the available model history.</p>
         </div><div class="pnl-visual"><svg id="pnl-chart" viewBox="0 0 800 300" role="img" aria-label="Simulated equity chart"></svg><p id="pnl-chart-note">No P&amp;L observations recorded.</p></div></div>
         <div class="account-note">Simulation only. Real account P&amp;L is not connected. Daily figures use America/Los_Angeles.</div>
       </section>
@@ -53,6 +53,15 @@
           <div class="engine-foot"><span class="connection-dot" id="connection-dot"></span><span id="engine-note">Waiting for Start</span></div>
         </aside>
       </div>
+      <section class="panel terrain-panel" aria-labelledby="terrain-title">
+        <div class="panel-heading"><div><span class="section-kicker">Market intelligence · 3D</span><h2 id="terrain-title">Edge terrain</h2></div><span class="terrain-hint">Drag or use arrow keys to rotate · double-click to reset</span></div>
+        <div class="terrain-body">
+          <canvas id="terrain" tabindex="0" role="img" aria-label="Edge terrain; no rounds recorded yet"></canvas>
+          <div class="terrain-readout"><strong id="terrain-value">—</strong><span id="terrain-caption">Best net edge per contract, latest round</span></div>
+          <div class="plot-empty" id="terrain-empty"><span class="empty-mark">◬</span><strong>The terrain builds as rounds arrive</strong><span>Each round adds a row of the ten closest baskets while the engine runs.</span></div>
+        </div>
+        <div class="chart-footer"><span><i class="legend-dot"></i>Columns: ten best baskets per round, net edge per contract after fees</span><span><i class="plane-dot"></i>Break-even plane · <i class="legend-dot"></i>tradable profit <i class="maker-dot"></i>maker, needs a fill <i class="below-dot"></i>loss <span id="terrain-count"></span></span></div>
+      </section>
       <section class="panel workspace-panel" id="workspace" aria-labelledby="workspace-title">
         <div class="workspace-heading"><h2 id="workspace-title" class="sr-only">Trading workspace</h2><div class="tabs" role="tablist" aria-label="Desk views"><button type="button" id="tab-opportunities" role="tab" aria-selected="true" aria-controls="desk-content" data-view="opportunities">Opportunities <span id="opportunity-badge">0</span></button><button type="button" id="tab-positions" role="tab" aria-selected="false" aria-controls="desk-content" data-view="positions" tabindex="-1">Positions <span id="position-badge">0</span></button><button type="button" id="tab-trades" role="tab" aria-selected="false" aria-controls="desk-content" data-view="trades" tabindex="-1">Trade history <span id="trade-badge">0</span></button></div><span id="table-context">Fee-adjusted baskets</span></div>
         <div id="account-note" class="account-note" hidden>Account positions are not connected. Positions below are the market-making model's recorded inventory.</div>

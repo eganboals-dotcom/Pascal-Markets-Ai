@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { rmSync } from 'node:fs';
-import { recentRecords, dashboardData, pnlSummary } from '../src/dashboard-data.js';
+import { recentRecords, dashboardData, pnlSummary, topEdges } from '../src/dashboard-data.js';
 import { projectPath, writeProjectFile } from '../src/files.js';
 
 test('recent telemetry reads only a bounded tail and tolerates an incomplete final write', t => {
@@ -48,4 +48,12 @@ test('daily P&L uses Los Angeles dates and separates closing profit from changin
   assert.equal(pnlSummary({ equity }, Date.parse('2026-11-09T02:00Z')).daily, null);
   assert.equal(pnlSummary({ total: { netPnl: 900 } }).all, null);
   assert.equal(dashboardData({ checks: [{ outcome: 'filled', expectedProfit: 900 }] }).pnl.all, null);
+});
+
+test('edge terrain keeps the ten best edges, flags maker baskets and never hides a hit', () => {
+  const near = Array.from({ length: 12 }, (_, i) => ({ profit: -(i + 1), contracts: 100, kind: 'no-basket' }));
+  assert.deepEqual(topEdges({ near, bestProfitPerContract: .02 }),
+    [{ edge: .02, maker: false, hit: true }, ...near.slice(0, 9).map(c => ({ edge: c.profit / 100, maker: false }))]);
+  assert.deepEqual(topEdges({ near: [{ profit: 2, contracts: 100, kind: 'maker-ladder' }], bestProfitPerContract: .02 }), [{ edge: .02, maker: true }]);
+  assert.equal(topEdges({ tier: 'latency' }), null);
 });

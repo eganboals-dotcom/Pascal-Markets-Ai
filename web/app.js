@@ -90,7 +90,7 @@ function drawChart() {
   const left = 53, right = 867, top = 17, bottom = 213;
   const y = value => bottom - (value - min) / (max - min) * (bottom - top);
   const defs = svgElement('defs'), gradient = svgElement('linearGradient', { id: 'chart-fill', x1: '0', y1: '0', x2: '0', y2: '1' });
-  gradient.append(svgElement('stop', { offset: '0%', 'stop-color': '#79a7ff', 'stop-opacity': '.21' }), svgElement('stop', { offset: '100%', 'stop-color': '#79a7ff', 'stop-opacity': '.01' }));
+  gradient.append(svgElement('stop', { offset: '0%', 'stop-color': '#1ee68f', 'stop-opacity': '.22' }), svgElement('stop', { offset: '100%', 'stop-color': '#1ee68f', 'stop-opacity': '0' }));
   defs.append(gradient); chart.append(defs);
   for (let i = 0; i <= 4; i++) {
     const v = min + (max - min) * i / 4, yy = y(v);
@@ -104,7 +104,7 @@ function drawChart() {
     const pts = rows.map((r, i) => [x(r.time), y(values[i])]);
     const line = pts.map(([xx, yy], i) => `${i ? 'L' : 'M'}${xx.toFixed(2)},${yy.toFixed(2)}`).join(' ');
     if (rows.length > 1) chart.append(svgElement('path', { class: 'area', d: `${line} L${pts.at(-1)[0]},${bottom} L${pts[0][0]},${bottom} Z` }), svgElement('path', { class: 'series', d: line }));
-    for (const i of rows.length > 1 ? [rows.length - 1] : [0]) chart.append(svgElement('circle', { cx: pts[i][0], cy: pts[i][1], r: 4, fill: '#a9c8ff', stroke: '#101a2b', 'stroke-width': 2 }));
+    for (const i of rows.length > 1 ? [rows.length - 1] : [0]) chart.append(svgElement('circle', { cx: pts[i][0], cy: pts[i][1], r: 4, fill: '#1ee68f', stroke: '#0c1016', 'stroke-width': 2 }));
     const indexes = [...new Set([0, Math.floor((rows.length - 1) / 2), rows.length - 1])];
     for (const i of indexes) chart.append(svgElement('text', { x: x(rows[i].time), y: 240, 'text-anchor': i === 0 ? 'start' : i === rows.length - 1 ? 'end' : 'middle' }, time(rows[i].time)));
   }
@@ -127,37 +127,125 @@ function renderPnl() {
   el('unrealized-label').title = 'Marked P&L on open positions. Today shows its change since the prior day’s last mark; closing inventory transfers P&L into realized profit.';
   el('pnl-asof').textContent = pnl.asOf ? `Model marks through ${new Date(pnl.asOf).toLocaleString()}` : 'No accounting observations available';
   if (research.mm?.total?.staleIntervals > 0) el('pnl-asof').textContent += ` · ${research.mm.total.staleIntervals} expired quote intervals · ${research.mm.total.fills} inferred fills (sparse coverage)`;
-  const rows = (pnlPeriod === 'day' ? pnl.intraday : pnl.history) ?? [];
-  // Sample by time index, retaining the last observation; never fill missing periods with invented values.
-  const points = rows.filter((_, i) => i === rows.length - 1 || i % Math.max(1, Math.ceil(rows.length / 12)) === 0);
+  const rows = ((pnlPeriod === 'day' ? pnl.intraday : pnl.history) ?? []).filter(p => Number.isFinite(p.net));
+  // Thin by time index to at most 240 points, keeping the last; missing periods are never filled with invented values.
+  const step = Math.max(1, Math.ceil(rows.length / 240));
+  const points = rows.filter((_, i) => i === rows.length - 1 || i % step === 0);
   const svg = el('pnl-chart'); svg.replaceChildren();
-  const max = Math.max(.01, ...points.map(p => Math.abs(p.net))), baseline = 150;
-  for (let i = 0; i < 6; i++) {
-    const y = 60 + i * 34;
-    svg.append(svgElement('path', { d: `M35 ${y} L725 ${y} L765 ${y - 24}`, class: 'pnl-grid' }));
+  const left = 70, right = 785, top = 16, bottom = 262, values = points.map(p => p.net);
+  const low = Math.min(0, ...values), high = Math.max(0, ...values), pad = (high - low || .02) * .12, min = low - pad, max = high + pad;
+  const y = v => bottom - (v - min) / (max - min) * (bottom - top);
+  const x = i => points.length > 1 ? left + i / (points.length - 1) * (right - left) : (left + right) / 2;
+  for (let i = 0; i <= 4; i++) {
+    const v = min + (max - min) * i / 4;
+    svg.append(svgElement('line', { x1: left, x2: right, y1: y(v), y2: y(v), class: 'pnl-grid' }),
+      svgElement('text', { x: left - 8, y: y(v) + 4, 'text-anchor': 'end' }, money(v)));
   }
-  if (!points.length) {
-    svg.append(svgElement('text', { x: 400, y: 140, 'text-anchor': 'middle', class: 'pnl-empty' }, 'Waiting for model observations'));
+  svg.append(svgElement('line', { x1: left, x2: right, y1: y(0), y2: y(0), class: 'pnl-zero' }));
+  if (!points.length) svg.append(svgElement('text', { x: 420, y: 140, 'text-anchor': 'middle', class: 'pnl-empty' }, 'Waiting for model observations'));
+  else {
+    const gain = values.at(-1) >= 0, color = gain ? '#1ee68f' : '#ff4d6a';
+    const path = key => points.map((p, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(p[key]).toFixed(1)}`).join(' ');
+    const gradient = svgElement('linearGradient', { id: 'pnl-fill', x1: '0', y1: '0', x2: '0', y2: '1' });
+    gradient.append(svgElement('stop', { offset: '0%', 'stop-color': color, 'stop-opacity': '.3' }), svgElement('stop', { offset: '100%', 'stop-color': color, 'stop-opacity': '0' }));
+    const defs = svgElement('defs'); defs.append(gradient);
+    const net = path('net');
+    svg.append(defs, svgElement('path', { class: 'pnl-area', d: `${net} L${x(points.length - 1)},${y(0)} L${x(0)},${y(0)} Z` }));
+    if (points.every(p => Number.isFinite(p.realized))) svg.append(svgElement('path', { class: 'pnl-realized', d: path('realized') }));
+    svg.append(svgElement('path', { class: `pnl-line ${gain ? 'gain' : 'loss'}`, d: net }));
+    // Points stay individually focusable while sparse; dense series keep only the latest point.
+    const marked = points.length <= 60 ? points.map((_, i) => i) : [points.length - 1];
+    for (const i of marked) {
+      const p = points[i], dot = svgElement('circle', { class: `pnl-point ${p.net >= 0 ? 'gain' : 'loss'}`, cx: x(i), cy: y(p.net), r: i === points.length - 1 ? 4.5 : 3, tabindex: '0' });
+      dot.append(svgElement('title', {}, `${p.label}: net ${money(p.net)}, realized ${money(p.realized)}, unrealized ${money(p.unrealized)}`));
+      svg.append(dot);
+    }
+    for (const i of [...new Set([0, Math.floor((points.length - 1) / 2), points.length - 1])])
+      svg.append(svgElement('text', { x: x(i), y: 290, 'text-anchor': points.length === 1 ? 'middle' : i === 0 ? 'start' : i === points.length - 1 ? 'end' : 'middle' }, points[i].label));
   }
-  const width = Math.min(40, 620 / Math.max(1, points.length));
-  points.forEach((p, i) => {
-    const x = 60 + i * (650 / Math.max(1, points.length)), h = p.net / max * 94;
-    const y = baseline - h, top = Math.min(y, baseline), bottom = Math.max(y, baseline), color = p.net >= 0 ? '#57d6c5' : '#f28e9c';
-    const g = svgElement('g', { class: `pnl-bar ${p.net >= 0 ? 'gain' : 'loss'}`, tabindex: '0' });
-    g.append(svgElement('title', {}, `${p.label}: net ${money(p.net)}, realized ${money(p.realized)}, unrealized ${money(p.unrealized)}`),
-      svgElement('rect', { x, y: top, width, height: Math.max(.6, bottom - top), fill: color, opacity: '.8' }),
-      svgElement('path', { d: `M${x} ${top} l14 -9 h${width} l-14 9 Z`, fill: color, opacity: '.98' }),
-      svgElement('path', { d: `M${x + width} ${top} l14 -9 V${bottom - 9} l-14 9 Z`, fill: color, opacity: '.4' }),
-      svgElement('text', { x: x + width / 2, y: 279, 'text-anchor': 'middle' }, p.label));
-    svg.append(g);
-  });
-  svg.append(svgElement('text', { x: 20, y: baseline + 4 }, '$0'));
+  svg.setAttribute('aria-label', points.length ? `Simulated equity line chart, ${points.length} observations, latest net ${money(values.at(-1))}` : 'Simulated equity line chart; no observations');
   el('pnl-chart-note').textContent = !points.length ? 'No observations for this period. Missing P&L is shown as —.' :
-    `${pnlPeriod === 'day' ? 'Net change since the day’s opening mark' : 'Cumulative equity at each recorded day’s last mark'} · ${points.length} observations · hover or focus for details`;
+    `${pnlPeriod === 'day' ? 'Net change since the day’s opening mark' : 'Cumulative equity at each recorded day’s last mark'} · ${points.length} observations · solid net, dashed realized · hover or focus a point for details`;
+}
+// 3D edge terrain: one row of columns per round, the ten best basket edges, rising from a break-even plane.
+const TERRAIN_ROUNDS = 48, TERRAIN_RANKS = 10, TERRAIN_VIEW = { yaw: -0.62, pitch: 0.58 };
+const terrain = { ...TERRAIN_VIEW, rows: [], drag: null, spin: !matchMedia('(prefers-reduced-motion: reduce)').matches };
+const terrainRows = () => (research.activity ?? []).filter(r => Array.isArray(r.near) && r.near.length).slice(-TERRAIN_ROUNDS);
+function mix(a, b, t) {
+  const channels = hex => [16, 8, 0].map(s => (parseInt(hex.slice(1), 16) >> s) & 255), x = channels(a), y = channels(b);
+  return x.map((v, i) => Math.round(v + (y[i] - v) * t));
+}
+const rgb = (c, f = 1, alpha = 1) => `rgba(${c.map(v => Math.round(v * f)).join(',')},${alpha})`;
+function drawTerrain() {
+  const canvas = el('terrain'), rows = terrain.rows, dpr = window.devicePixelRatio || 1;
+  const w = canvas.clientWidth, h = canvas.clientHeight;
+  el('terrain-empty').hidden = rows.length > 0;
+  if (!w || !h) return;
+  if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) { canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr); }
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, w, h);
+  const cy = Math.cos(terrain.yaw), sy = Math.sin(terrain.yaw), cp = Math.cos(terrain.pitch), sp = Math.sin(terrain.pitch);
+  const scale = Math.min(w * .4, h * .72), ox = w / 2, oy = h * .58, distance = 3.6;
+  // Camera above the plane: farther points rise on screen; depth grows away from the viewer.
+  const view = (x, y, z) => { const X = x * cy - y * sy, Y = x * sy + y * cy; return { X, v: z * cp + Y * sp, d: Y * cp - z * sp }; };
+  const project = (x, y, z) => { const p = view(x, y, z), f = distance / (distance + p.d); return [ox + p.X * scale * f, oy - p.v * scale * f]; };
+  const polygon = (points, fill, stroke) => {
+    ctx.beginPath(); points.forEach(([x, y, z], i) => { const [px, py] = project(x, y, z); i ? ctx.lineTo(px, py) : ctx.moveTo(px, py); });
+    ctx.closePath(); if (fill) { ctx.fillStyle = fill; ctx.fill(); } if (stroke) { ctx.strokeStyle = stroke; ctx.stroke(); }
+  };
+  const cents = rows.flatMap(r => r.near.map(e => Math.abs(e.edge * 100))).sort((a, b) => a - b);
+  // Scale to the 90th percentile so one deep outlier cannot flatten every other column.
+  const range = Math.max(.25, cents[Math.floor(cents.length * .9)] ?? 0), zMax = .5;
+  const height = c => Math.max(-1.25, Math.min(1.25, c / range)) * zMax;
+  const n = Math.max(rows.length, 1), bx = .82 / n, by = .82 * .9 / TERRAIN_RANKS / 2;
+  const columns = rows.flatMap((r, i) => r.near.slice(0, TERRAIN_RANKS).map(({ edge, maker }, k) => {
+    const x = -1 + 2 * (i + .5) / n, y = -.45 + .9 * (k + .5) / TERRAIN_RANKS, c = edge * 100;
+    return { x, y, c, maker, z: height(c), depth: view(x, y, 0).d };
+  })).sort((a, b) => b.depth - a.depth);
+  const sideX = sy > 0 ? -1 : 1, sideY = cy > 0 ? -1 : 1;
+  // Green is a directly tradable edge; amber is a maker basket that pays only if a resting order fills.
+  const column = ({ x, y, c, z, maker }) => {
+    const top = Math.max(z, 0), bottom = Math.min(z, 0), positive = c > 0;
+    const base = positive ? maker ? [255, 181, 71] : [30, 230, 143] : mix('#a78bfa', '#1c2f6b', Math.min(1, Math.abs(c) / range));
+    const x0 = x - bx, x1 = x + bx, y0 = y - by, y1 = y + by, fx = sideX < 0 ? x0 : x1, fy = sideY < 0 ? y0 : y1;
+    if (positive) { ctx.shadowColor = maker ? 'rgba(255,181,71,.7)' : 'rgba(30,230,143,.85)'; ctx.shadowBlur = 14; }
+    polygon([[fx, y0, bottom], [fx, y1, bottom], [fx, y1, top], [fx, y0, top]], rgb(base, .62));
+    polygon([[x0, fy, bottom], [x1, fy, bottom], [x1, fy, top], [x0, fy, top]], rgb(base, .45));
+    polygon([[x0, y0, top], [x1, y0, top], [x1, y1, top], [x0, y1, top]], rgb(base, 1));
+    ctx.shadowBlur = 0;
+  };
+  ctx.lineWidth = 1;
+  columns.filter(col => col.c <= 0).forEach(column);
+  // The break-even plane sits over losing columns, so anything above it clears fees.
+  polygon([[-1.06, -.5, 0], [1.06, -.5, 0], [1.06, .5, 0], [-1.06, .5, 0]], 'rgba(30,230,143,.07)', 'rgba(30,230,143,.5)');
+  ctx.strokeStyle = 'rgba(30,230,143,.12)';
+  for (let i = 1; i < 8; i++) { ctx.beginPath(); const x = -1.06 + 2.12 * i / 8; ctx.moveTo(...project(x, -.5, 0)); ctx.lineTo(...project(x, .5, 0)); ctx.stroke(); }
+  for (let k = 1; k < 5; k++) { ctx.beginPath(); const y = -.5 + k / 5; ctx.moveTo(...project(-1.06, y, 0)); ctx.lineTo(...project(1.06, y, 0)); ctx.stroke(); }
+  columns.filter(col => col.c > 0).forEach(column);
+  ctx.font = '10.5px "Cascadia Mono", Consolas, monospace'; ctx.fillStyle = '#7a8596';
+  const label = (text, x, y, z, align = 'center') => { const [px, py] = project(x, y, z); ctx.textAlign = align; ctx.fillText(text, px, py); };
+  ctx.strokeStyle = '#232c3a'; ctx.beginPath(); ctx.moveTo(...project(-1.1, .5, -zMax)); ctx.lineTo(...project(-1.1, .5, zMax)); ctx.stroke();
+  label(`+${range.toFixed(1)}¢`, -1.13, .5, zMax, 'right'); label('0¢', -1.13, .5, 0, 'right'); label(`−${range.toFixed(1)}¢`, -1.13, .5, -zMax, 'right');
+  if (rows.length) { label('older', -.9, -.62, 0); label('now', .9, -.62, 0); label('#1', 1.14, -.41, 0, 'left'); label(`#${TERRAIN_RANKS}`, 1.14, .41, 0, 'left'); }
+  const latest = rows.at(-1)?.near?.find(e => !e.maker)?.edge, profitable = columns.filter(col => col.c > 0 && !col.maker).length;
+  const conditional = columns.filter(col => col.c > 0 && col.maker).length;
+  const value = el('terrain-value');
+  value.textContent = Number.isFinite(latest) ? `${latest > 0 ? '+' : ''}${(latest * 100).toFixed(2)}¢` : '—';
+  value.className = Number.isFinite(latest) ? latest > 0 ? 'positive' : 'negative' : '';
+  el('terrain-caption').textContent = rows.length ? `Best tradable edge per contract · round at ${time(rows.at(-1).time)}` : 'Best tradable edge per contract, latest round';
+  el('terrain-count').textContent = rows.length ? `· ${rows.length} rounds · ${profitable} tradable above break-even · ${conditional} maker` : '';
+  canvas.setAttribute('aria-label', rows.length ? `Edge terrain: ${rows.length} rounds of the ten best baskets; latest best tradable edge ${value.textContent}; ${profitable} tradable and ${conditional} maker columns above break-even` : 'Edge terrain; no rounds recorded yet');
+}
+function rotateTerrain(dYaw, dPitch) {
+  terrain.spin = false;
+  terrain.yaw += dYaw; terrain.pitch = Math.max(.12, Math.min(1.4, terrain.pitch + dPitch));
+  drawTerrain();
 }
 function render() {
   el('engine-toggle').disabled = controlling || scan.phase === 'stopping';
   el('engine-toggle').setAttribute('aria-pressed', String(Boolean(scan.running)));
+  el('live-chip').className = `chip${scan.running ? ' live' : ''}`;
+  el('live-text').textContent = scan.running ? scan.phase === 'starting' ? 'STARTING' : 'LIVE' : scan.phase === 'stopping' ? 'STOPPING' : 'IDLE';
   el('toggle-label').textContent = scan.phase === 'stopping' ? 'Stopping…' : scan.running ? 'Stop engine' : 'Start engine';
   const mode = scan.mode === 'production' ? 'Kalshi live feed' : scan.mode === 'demo' ? 'Kalshi demo feed' : scan.mode === 'rest' ? 'REST market data' : 'Standby';
   el('engine').classList.toggle('live', Boolean(scan.running));
@@ -183,6 +271,7 @@ function render() {
     `${mode}. Latest update at ${time(scan.scannedAt)}.` : 'Engine idle. Start a session to monitor the markets.');
   el('updated').textContent = scan.scannedAt ? `Market update ${time(scan.scannedAt)}` : 'No market scan started';
   renderWorkspace(); baskets('near-table', scan.near ?? [], true); drawChart(); renderPnl();
+  terrain.rows = terrainRows(); drawTerrain();
 }
 async function load() {
   if (fetching) return;
@@ -244,3 +333,23 @@ for (const period of ['day', 'all']) el(`pnl-${period}`).addEventListener('click
   for (const item of ['day', 'all']) { el(`pnl-${item}`).classList.toggle('selected', item === period); el(`pnl-${item}`).setAttribute('aria-pressed', String(item === period)); }
   renderPnl();
 });
+
+const canvas = el('terrain');
+canvas.addEventListener('pointerdown', event => { terrain.drag = { x: event.clientX, y: event.clientY }; canvas.setPointerCapture(event.pointerId); });
+canvas.addEventListener('pointermove', event => {
+  if (!terrain.drag) return;
+  rotateTerrain((event.clientX - terrain.drag.x) * .008, (event.clientY - terrain.drag.y) * .006);
+  terrain.drag = { x: event.clientX, y: event.clientY };
+});
+for (const type of ['pointerup', 'pointercancel']) canvas.addEventListener(type, () => { terrain.drag = null; });
+canvas.addEventListener('dblclick', () => { Object.assign(terrain, TERRAIN_VIEW); drawTerrain(); });
+canvas.addEventListener('keydown', event => {
+  const turn = { ArrowLeft: [-.12, 0], ArrowRight: [.12, 0], ArrowUp: [0, .08], ArrowDown: [0, -.08] }[event.key];
+  if (turn) { event.preventDefault(); rotateTerrain(...turn); }
+});
+window.addEventListener('resize', drawTerrain);
+// A slow idle orbit until the first drag or key press; reduced-motion settings start it stopped.
+(function orbit() {
+  if (terrain.spin && !terrain.drag && !document.hidden && terrain.rows.length) { terrain.yaw += .0025; drawTerrain(); }
+  requestAnimationFrame(orbit);
+})();
