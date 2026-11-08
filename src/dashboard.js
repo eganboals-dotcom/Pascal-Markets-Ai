@@ -21,8 +21,9 @@ export function createDashboardServer({ runner = createDashboardRunner(),
   },
   now = Date.now, leaseMs = LEASE_MS } = {}) {
   let lastContact = now();
+  const sessions = new Set();
   const lease = setInterval(() => {
-    if (now() - lastContact > leaseMs) void runner.stop();
+    if (!sessions.size && now() - lastContact > leaseMs) void runner.stop();
   }, Math.min(5000, leaseMs));
   lease.unref();
   const staticFiles = new Map([
@@ -50,13 +51,19 @@ export function createDashboardServer({ runner = createDashboardRunner(),
       return;
     }
     if (request.method !== 'GET') { response.writeHead(405); response.end('Method not allowed'); return; }
+    if (request.url === '/api/session') {
+      response.writeHead(200, { 'Content-Type': 'text/event-stream', 'Connection': 'keep-alive' });
+      response.write('retry: 2000\ndata: connected\n\n');
+      sessions.add(response); lastContact = now();
+      response.on('close', () => { sessions.delete(response); lastContact = now(); });
+      return;
+    }
     if (request.url === '/api/research') {
       try { json(200, research()); }
       catch { json(500, { error: 'Research reports unavailable' }); }
       return;
     }
     if (request.url === '/api/scan') {
-      lastContact = now();
       json(200, runner.snapshot());
       return;
     }

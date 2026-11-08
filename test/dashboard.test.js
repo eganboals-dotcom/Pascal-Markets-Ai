@@ -72,3 +72,25 @@ test('closing server stops its scanner; saved research never starts it', async (
   });
   assert.equal(runner.counts().stops, 1);
 });
+
+
+test('a minimized window session stays alive without status polling, then stops after closing', async () => {
+  let now = 0;
+  const runner = fakeRunner();
+  await withServer({ runner, now: () => now, leaseMs: 20 }, async base => {
+    const request = get(`${base}/api/session`);
+    const response = await new Promise((resolve, reject) => { request.on('response', resolve); request.on('error', reject); });
+    response.resume();
+    try {
+      await fetch(`${base}/api/start`, controls);
+      now = 1000;
+      await new Promise(resolve => setTimeout(resolve, 60));
+      assert.equal(runner.snapshot().running, true);
+      request.destroy();
+      await new Promise(resolve => setTimeout(resolve, 20));
+      now = 1021;
+      await new Promise(resolve => setTimeout(resolve, 60));
+      assert.equal(runner.snapshot().running, false);
+    } finally { request.destroy(); }
+  });
+});

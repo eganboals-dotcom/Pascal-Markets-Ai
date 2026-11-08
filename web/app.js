@@ -6,6 +6,7 @@ const time = n => Number.isFinite(n) ? new Date(n).toLocaleTimeString([], { hour
 const labels = { filled: 'Simulated fill', legged: 'Partial availability', missed: 'Missed', skipped: 'Skipped', error: 'Read error' };
 let scan = { running: false, phase: 'idle', hits: [], near: [], hitCount: 0, events: 0, markets: 0 };
 let research = { activity: [], positions: [], trades: [], outcomes: {}, account: { connected: false } };
+let pnlPeriod = 'day';
 let view = 'opportunities', chartMode = 'edge', fetching = false, controlling = false;
 
 function tag(text, style = '') {
@@ -115,6 +116,44 @@ function drawChart() {
   el('sample-count').textContent = `${rows.length} samples`;
   chart.setAttribute('aria-label', `${isEdge ? 'Basket edge' : 'Pricing latency'} chart with ${rows.length} recorded samples`);
 }
+function renderPnl() {
+  const pnl = research.pnl ?? {}, selected = pnlPeriod === 'day' ? pnl.daily : pnl.all;
+  for (const [id, value] of [['performance-net', selected?.net], ['performance-realized', selected?.realized],
+    ['performance-unrealized', selected?.unrealized], ['open-unrealized', pnl.openUnrealized]]) {
+    el(id).textContent = money(value); el(id).className = Number.isFinite(value) ? value < 0 ? 'negative' : 'positive' : '';
+  }
+  el('pnl-period-label').textContent = pnlPeriod === 'day' ? 'Daily net P&L' : 'All-time recorded P&L';
+  el('unrealized-label').textContent = pnlPeriod === 'day' ? 'Unrealized change today ⓘ' : 'Unrealized at last mark ⓘ';
+  el('unrealized-label').title = 'Marked P&L on open positions. Today shows its change since the prior day’s last mark; closing inventory transfers P&L into realized profit.';
+  el('pnl-asof').textContent = pnl.asOf ? `Model marks through ${new Date(pnl.asOf).toLocaleString()}` : 'No accounting observations available';
+  const rows = (pnlPeriod === 'day' ? pnl.intraday : pnl.history) ?? [];
+  // Sample by time index, retaining the last observation; never fill missing periods with invented values.
+  const points = rows.filter((_, i) => i === rows.length - 1 || i % Math.max(1, Math.ceil(rows.length / 12)) === 0);
+  const svg = el('pnl-chart'); svg.replaceChildren();
+  const max = Math.max(.01, ...points.map(p => Math.abs(p.net))), baseline = 150;
+  for (let i = 0; i < 6; i++) {
+    const y = 60 + i * 34;
+    svg.append(svgElement('path', { d: `M35 ${y} L725 ${y} L765 ${y - 24}`, class: 'pnl-grid' }));
+  }
+  if (!points.length) {
+    svg.append(svgElement('text', { x: 400, y: 140, 'text-anchor': 'middle', class: 'pnl-empty' }, 'Waiting for model observations'));
+  }
+  const width = Math.min(40, 620 / Math.max(1, points.length));
+  points.forEach((p, i) => {
+    const x = 60 + i * (650 / Math.max(1, points.length)), h = p.net / max * 94;
+    const y = baseline - h, top = Math.min(y, baseline), bottom = Math.max(y, baseline), color = p.net >= 0 ? '#57d6c5' : '#f28e9c';
+    const g = svgElement('g', { class: `pnl-bar ${p.net >= 0 ? 'gain' : 'loss'}`, tabindex: '0' });
+    g.append(svgElement('title', {}, `${p.label}: net ${money(p.net)}, realized ${money(p.realized)}, unrealized ${money(p.unrealized)}`),
+      svgElement('rect', { x, y: top, width, height: Math.max(.6, bottom - top), fill: color, opacity: '.8' }),
+      svgElement('path', { d: `M${x} ${top} l14 -9 h${width} l-14 9 Z`, fill: color, opacity: '.98' }),
+      svgElement('path', { d: `M${x + width} ${top} l14 -9 V${bottom - 9} l-14 9 Z`, fill: color, opacity: '.4' }),
+      svgElement('text', { x: x + width / 2, y: 279, 'text-anchor': 'middle' }, p.label));
+    svg.append(g);
+  });
+  svg.append(svgElement('text', { x: 20, y: baseline + 4 }, '$0'));
+  el('pnl-chart-note').textContent = !points.length ? 'No observations for this period. Missing P&L is shown as —.' :
+    `${pnlPeriod === 'day' ? 'Net change since the day’s opening mark' : 'Cumulative equity at each recorded day’s last mark'} · ${points.length} observations · hover or focus for details`;
+}
 function render() {
   el('engine-toggle').disabled = controlling || scan.phase === 'stopping';
   el('engine-toggle').setAttribute('aria-pressed', String(Boolean(scan.running)));
@@ -142,7 +181,7 @@ function render() {
     'Engine running. Discovering markets; the first scan can take a few minutes.' :
     `${mode}. Latest update at ${time(scan.scannedAt)}.` : 'Engine idle. Start a session to monitor the markets.');
   el('updated').textContent = scan.scannedAt ? `Market update ${time(scan.scannedAt)}` : 'No market scan started';
-  renderWorkspace(); baskets('near-table', scan.near ?? [], true); drawChart();
+  renderWorkspace(); baskets('near-table', scan.near ?? [], true); drawChart(); renderPnl();
 }
 async function load() {
   if (fetching) return;
@@ -191,6 +230,16 @@ for (const metric of ['edge', 'latency']) el(`chart-${metric}`).addEventListener
 });
 const updateClock = () => { el('clock').textContent = new Date().toLocaleTimeString(); };
 updateClock(); setInterval(updateClock, 1000);
-// Status heartbeats keep an explicitly started session alive. Opening the page never starts one.
+// The persistent window connection survives background timer throttling.
+const windowSession = new EventSource('/api/session');
+window.addEventListener('pagehide', () => windowSession.close());
+window.addEventListener('pageshow', event => { if (event.persisted) location.reload(); });
+// Opening the page never starts scanning.
 setInterval(load, 5000);
 render(); load();
+
+for (const period of ['day', 'all']) el(`pnl-${period}`).addEventListener('click', () => {
+  pnlPeriod = period;
+  for (const item of ['day', 'all']) { el(`pnl-${item}`).classList.toggle('selected', item === period); el(`pnl-${item}`).setAttribute('aria-pressed', String(item === period)); }
+  renderPnl();
+});

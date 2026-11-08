@@ -29,6 +29,15 @@
         <div class="metric"><span>Model positions</span><strong id="position-count">0</strong><small>Simulated inventory only</small><span class="metric-symbol">▤</span></div>
         <div class="metric"><span>Dry-run checks</span><strong id="trade-count">0</strong><small id="trade-note">No recorded price checks</small><span class="metric-symbol">⇄</span></div>
       </section>
+      <section class="panel performance-panel" aria-labelledby="performance-title">
+        <div class="panel-heading"><div><span class="section-kicker">Performance / simulation</span><h2 id="performance-title">The equity desk</h2></div><div class="segmented" aria-label="P&L period"><button type="button" id="pnl-day" class="selected" aria-pressed="true">Today</button><button type="button" id="pnl-all" aria-pressed="false">All recorded</button></div></div>
+        <div class="pnl-layout"><div class="pnl-breakdown">
+          <div class="pnl-total"><span id="pnl-period-label">Daily net P&amp;L</span><strong id="performance-net">—</strong></div>
+          <dl><div><dt>Realized <span title="Profit on closed model inventory, with all trading fees expensed when incurred.">ⓘ</span></dt><dd id="performance-realized">—</dd></div><div><dt id="unrealized-label">Unrealized change <span title="Today's change in marked profit on open inventory. Closing a position transfers P&L into realized profit.">ⓘ</span></dt><dd id="performance-unrealized">—</dd></div><div><dt>Open unrealized · latest mark</dt><dd id="open-unrealized">—</dd></div></dl>
+          <p id="pnl-asof">Awaiting recorded accounting</p><p class="pnl-explainer">Realized includes fees. Unrealized uses sampled market midpoints. All recorded covers the available model history.</p>
+        </div><div class="pnl-visual"><svg id="pnl-chart" viewBox="0 0 800 300" role="img" aria-label="Simulated equity chart"></svg><p id="pnl-chart-note">No P&amp;L observations recorded.</p></div></div>
+        <div class="account-note">Simulation only. Real account P&amp;L is not connected. Daily figures use America/Los_Angeles.</div>
+      </section>
       <div class="upper-grid">
         <section class="panel chart-panel" aria-labelledby="chart-title">
           <div class="panel-heading"><div><span class="section-kicker">Market intelligence</span><h2 id="chart-title">Basket edge</h2></div>

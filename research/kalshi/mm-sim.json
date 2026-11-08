@@ -1,5 +1,5 @@
 {
-  "generatedAt": 1794087986493,
+  "generatedAt": 1794114554035,
   "markets": [
     {
       "ticker": "KXNFLTD-26NOV08GBNE-NEERARIDON82-1",
@@ -12,7 +12,9 @@
       "grossPnl": -0.025000000000000022,
       "netPnl": -0.025000000000000022,
       "inventory": 1,
-      "maxAbsInventory": 1
+      "maxAbsInventory": 1,
+      "realizedPnl": 0,
+      "unrealizedPnl": -0.025000000000000022
     },
     {
       "ticker": "KXPGATOUR-WOWTC26-BJAM",
@@ -25,7 +27,9 @@
       "grossPnl": -0.09000000000000005,
       "netPnl": -0.09430000000000005,
       "inventory": -1,
-      "maxAbsInventory": 1
+      "maxAbsInventory": 1,
+      "realizedPnl": -0.0043,
+      "unrealizedPnl": -0.09000000000000002
     },
     {
       "ticker": "KXSB-27-CHI",
@@ -38,7 +42,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNCAAFGAME-26NOV07NIUSJSU-SJSU",
@@ -51,7 +57,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXDPWORLDTOUR-ABDAC26-RMCI",
@@ -64,7 +72,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXCPI-26OCT-T0.1",
@@ -77,7 +87,9 @@
       "grossPnl": 1.3205582460873444e-16,
       "netPnl": -0.0011999999999998678,
       "inventory": -1,
-      "maxAbsInventory": 1
+      "maxAbsInventory": 1,
+      "realizedPnl": -0.0012,
+      "unrealizedPnl": 1.1102230246251565e-16
     },
     {
       "ticker": "KXDPWORLDTOUR-ABDAC26-JRAH",
@@ -90,7 +102,9 @@
       "grossPnl": 0.020000000000000018,
       "netPnl": 0.020000000000000018,
       "inventory": -1,
-      "maxAbsInventory": 1
+      "maxAbsInventory": 1,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0.020000000000000018
     },
     {
       "ticker": "KXSONORACATTLE-31MAR27-T90",
@@ -103,7 +117,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXITFWMATCH-26NOV07KALBAR-BAR",
@@ -116,7 +132,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXDPWORLDTOUR-ABDAC26-FLAP",
@@ -129,7 +147,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNBAGAME-26NOV07SASPOR-SAS",
@@ -142,7 +162,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXDPWORLDTOUR-ABDAC26-MJOR",
@@ -155,7 +177,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXDPWORLDTOUR-ABDAC26-THAT",
@@ -168,7 +192,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNFLSPREAD-26NOV08DENCAR-DEN2",
@@ -181,7 +207,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNBA-27-MIN",
@@ -194,7 +222,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXGPTAPP-26NOV08-T80",
@@ -207,7 +237,9 @@
       "grossPnl": -0.04000000000000001,
       "netPnl": -0.04000000000000001,
       "inventory": 1,
-      "maxAbsInventory": 1
+      "maxAbsInventory": 1,
+      "realizedPnl": 0,
+      "unrealizedPnl": -0.04000000000000001
     },
     {
       "ticker": "KXBOXING-26NOV07ARTHURAGUIRR-AGUIRR",
@@ -220,7 +252,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNFLAFCCHAMP-27-JAC",
@@ -233,7 +267,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNFLNEXTTEAM-26JTAYLOR28-NYG",
@@ -246,7 +282,9 @@
       "grossPnl": -0.14999999999999997,
       "netPnl": -0.14999999999999997,
       "inventory": 1,
-      "maxAbsInventory": 1
+      "maxAbsInventory": 1,
+      "realizedPnl": 0,
+      "unrealizedPnl": -0.14999999999999997
     },
     {
       "ticker": "KXNBAGAME-26NOV07DENIND-DEN",
@@ -259,7 +297,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNFLSPREAD-26NOV08NYJKC-KC3",
@@ -272,7 +312,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXDPWORLDTOUR-ABDAC26-DPUI",
@@ -285,7 +327,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXGPTAPP-26NOV08-T85",
@@ -298,7 +342,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXATPCHALLENGERMATCH-26NOV07GILMAR-GIL",
@@ -311,7 +357,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNFLMATCHUP-27SB-JACCHI",
@@ -324,7 +372,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXVTBGAME-26NOV080730ZSPCMO-CMO",
@@ -337,7 +387,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNCAAFSPREAD-26NOV07BYUUTAH-UTAH6",
@@ -350,7 +402,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXMLSTOTAL-26NOV07DCUNYC-3",
@@ -363,7 +417,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXCPI-26OCT-T0.2",
@@ -376,7 +432,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXUSGASCPI-26NOV10-T380",
@@ -389,7 +447,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNBACUP-26-PHI",
@@ -402,7 +462,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNBAGAME-26NOV07NYKCLE-NYK",
@@ -415,7 +477,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXALEAGUETOTAL-26NOV07PERNUJ-3",
@@ -428,7 +492,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXCTINSURANCEJOBS-27APR30-T54600",
@@ -441,7 +507,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXEPLGAME-26NOV08MUNAVL-AVL",
@@ -454,7 +522,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNFLFIRSTSTART-27SSANDERS2-W7W10",
@@ -467,7 +537,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXATP-26PARIS-ALC",
@@ -480,7 +552,9 @@
       "grossPnl": -0.17000000000000004,
       "netPnl": -0.17000000000000004,
       "inventory": -1,
-      "maxAbsInventory": 1
+      "maxAbsInventory": 1,
+      "realizedPnl": 0,
+      "unrealizedPnl": -0.17000000000000004
     },
     {
       "ticker": "KXNFL1SEED-AFC26-JAC",
@@ -493,7 +567,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNFLNFCEAST-27-WAS",
@@ -506,7 +582,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXATPGSPREAD-26NOV07VANASHE-SHE4",
@@ -519,7 +597,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNBAGAME-26NOV08LALDET-LAL",
@@ -532,7 +612,9 @@
       "grossPnl": -0.010000000000000023,
       "netPnl": -0.014400000000000024,
       "inventory": 1,
-      "maxAbsInventory": 1
+      "maxAbsInventory": 1,
+      "realizedPnl": -0.0044,
+      "unrealizedPnl": -0.010000000000000009
     },
     {
       "ticker": "KXLPGATOUR-TOTJC26-MIYYAM",
@@ -545,7 +627,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXEPLCORNERS-26NOV07LEETOT-10",
@@ -558,7 +642,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXBOXING-26NOV07ARTHURAGUIRR-ARTHUR",
@@ -571,7 +657,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXPGATOP20-WOWTC26-NDUN",
@@ -584,7 +672,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXEREDIVISIETOTAL-26NOV07EXCGAE-4",
@@ -597,7 +687,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNCAAFTOTAL-26NOV07BSUCSU-69",
@@ -610,7 +702,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXALEAGUETOTAL-26NOV07PERNUJ-5",
@@ -623,7 +717,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNCAAFGAME-26NOV07PRSTMONT-MONT",
@@ -636,7 +732,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXUFCMOV-26NOV07SEOTUR-TURKOTKODQ",
@@ -649,7 +747,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXDPWORLDTOUR-ABDAC26-ASCO",
@@ -662,7 +762,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXBUNDESLIGATOTAL-26NOV07M05BMU-4",
@@ -675,7 +777,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXEPLGAME-26NOV07FULNEW-NEW",
@@ -688,7 +792,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNCAAFSPREAD-26NOV07TXAMSCAR-SCAR7",
@@ -701,7 +807,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXEPLTEAMTOTAL-26NOV07LEETOT-TOT2",
@@ -714,7 +822,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNBAMVP-27-LDONCIC77",
@@ -727,7 +837,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNFLNEXTTEAM-26JTAYLOR28-DEN",
@@ -740,7 +852,9 @@
       "grossPnl": -0.020000000000000004,
       "netPnl": -0.020000000000000004,
       "inventory": -1,
-      "maxAbsInventory": 1
+      "maxAbsInventory": 1,
+      "realizedPnl": 0,
+      "unrealizedPnl": -0.020000000000000004
     },
     {
       "ticker": "KXNCAAFSPREAD-26NOV07UCLAMINN-UCLA6",
@@ -753,7 +867,9 @@
       "grossPnl": -0.18500000000000003,
       "netPnl": -0.1894,
       "inventory": -1,
-      "maxAbsInventory": 1
+      "maxAbsInventory": 1,
+      "realizedPnl": -0.0044,
+      "unrealizedPnl": -0.185
     },
     {
       "ticker": "KXLALIGAGAME-26NOV07ESPDEP-ESP",
@@ -766,7 +882,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNCAAMBSPREAD-26NOV07NEOMUSU-USU27",
@@ -779,7 +897,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXEKSTRAKLASATOTAL-26NOV07KORRAD-2",
@@ -792,7 +912,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXATPGTOTAL-26NOV07VANASHE-24",
@@ -805,7 +927,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNFLPASSYDS-26NOV08NYGPHI-PHIJMILTON10-275",
@@ -818,7 +942,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXPREMIERLEAGUE-27-CFC",
@@ -831,7 +957,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXDIESELW-26NOV09-T6.18",
@@ -844,7 +972,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNCAAFGAME-26NOV07UTMCHSO-UTM",
@@ -857,7 +987,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXLPGATOUR-TOTJC26-AKIIWA",
@@ -870,7 +1002,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXFRAPLWGAME-26NOV07RCLOL-RCL",
@@ -883,7 +1017,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNBAROY-27-YLEN",
@@ -896,7 +1032,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNCAAFTOTAL-26NOV07MORGDSU-52",
@@ -909,7 +1047,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNCAAFTOTAL-26NOV07IOWANW-46",
@@ -922,7 +1062,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXEFLCHAMPIONSHIP1HTOTAL-26NOV07WREWOL-1",
@@ -935,7 +1077,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXEPLTEAMTOTAL-26NOV07LEETOT-TOT3",
@@ -948,7 +1092,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNCAAMBSPREAD-26NOV07NCATOHIO-OHIO13",
@@ -961,7 +1107,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXITFWMATCH-26NOV07RAPROD-ROD",
@@ -974,7 +1122,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNCAAFSPREAD-26NOV07UCLAMINN-UCLA4",
@@ -987,7 +1137,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNCAAFSPREAD-26NOV07UNCCONN-UNC8",
@@ -1000,7 +1152,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNCAAFSPREAD-26NOV07TEXMIZZ-TEX4",
@@ -1013,7 +1167,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNCAAFSPREAD-26NOV07TLSATULN-TLSA4",
@@ -1026,7 +1182,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNCAAFSPREAD-26NOV07ARKAUB-AUB10",
@@ -1039,7 +1197,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNCAAFSPREAD-26NOV07ARKAUB-AUB11",
@@ -1052,7 +1212,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNCAAFTOTAL-26NOV07DUKENCST-54",
@@ -1065,7 +1227,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNCAAFSPREAD-26NOV07BYUUTAH-UTAH4",
@@ -1078,7 +1242,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNCAAFSPREAD-26NOV07ARKAUB-AUB14",
@@ -1091,7 +1257,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNBAGAME-26NOV07ORLGSW-GSW",
@@ -1104,7 +1272,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNCAAFSPREAD-26NOV07UCLAMINN-UCLA3",
@@ -1117,7 +1287,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNCAAFSPREAD-26NOV07BYUUTAH-UTAH3",
@@ -1130,7 +1302,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNCAAFSPREAD-26NOV07DUKENCST-DUKE5",
@@ -1143,7 +1317,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNCAAFSPREAD-26NOV07FSUBC-FSU6",
@@ -1156,7 +1332,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNCAAFGAME-26NOV07NCATMONM-NCAT",
@@ -1169,7 +1347,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNFLGAME-26NOV08GBNE-GB",
@@ -1182,7 +1362,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXEPLTEAMTOTAL-26NOV07NFOMCI-MCI2",
@@ -1195,7 +1377,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNFLTD-26NOV08DALIND-DALBSPANNFORD89-1",
@@ -1208,7 +1392,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNCAAF1HSPREAD-26NOV07UCLAMINN-UCLA3",
@@ -1221,7 +1407,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXPGATOUR-WOWTC26-DFOR",
@@ -1234,7 +1422,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNCAAF1HSPREAD-26NOV07TEXMIZZ-TEX2",
@@ -1247,7 +1437,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNCAAFSPREAD-26NOV07UCLAMINN-UCLA8",
@@ -1260,7 +1452,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNCAAFSPREAD-26NOV07FSUBC-FSU7",
@@ -1273,7 +1467,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNCAAFTOTAL-26NOV07FSUBC-52",
@@ -1286,7 +1482,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNCAAWBGAME-26NOV07KENTNKU-NKU",
@@ -1299,7 +1497,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNHLGAME-26NOV07FLAWSH-WSH",
@@ -1312,7 +1512,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNCAAFTOTAL-26NOV07UNCCONN-55",
@@ -1325,7 +1527,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNCAAWBGAME-26NOV07KENTNKU-KENT",
@@ -1338,7 +1542,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNCAAFSPREAD-26NOV07UCLAMINN-UCLA11",
@@ -1351,7 +1557,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNCAAFSPREAD-26NOV07TLSATULN-TLSA3",
@@ -1364,7 +1572,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNCAAFGAME-26NOV07TLSATULN-TULN",
@@ -1377,7 +1587,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXLALIGAGAME-26NOV08ATMBAR-ATM",
@@ -1390,7 +1602,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXCPI-26OCT-T0.3",
@@ -1403,7 +1617,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNCAAFTOTAL-26NOV07TXSTORST-59",
@@ -1416,7 +1632,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXSERIEABTTS-26NOV07PARBFC-BTTS",
@@ -1429,7 +1647,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNCAAFTOTAL-26NOV07TLSATULN-51",
@@ -1442,7 +1662,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNCAAFGAME-26NOV07WAGMHU-WAG",
@@ -1455,7 +1677,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNCAAFTOTAL-26NOV07ARKAUB-55",
@@ -1468,7 +1692,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNCAAFTOTAL-26NOV07UCLAMINN-41",
@@ -1481,7 +1707,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNCAAF1H-26NOV07TEXMIZZ-MIZZ",
@@ -1494,7 +1722,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXSERIEA1H-26NOV07PARBFC-BFC",
@@ -1507,7 +1737,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNCAAF1HSPREAD-26NOV07TEXMIZZ-TEX3",
@@ -1520,7 +1752,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXEPL1HTOTAL-26NOV07NFOMCI-2",
@@ -1533,7 +1767,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNCAAFSPREAD-26NOV07FSUBC-FSU8",
@@ -1546,7 +1782,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXPGATOUR-WOWTC26-BHOS",
@@ -1559,7 +1797,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNCAAFGAME-26NOV07ALALSU-LSU",
@@ -1572,7 +1812,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNCAAFSPREAD-26NOV07ALALSU-LSU7",
@@ -1585,7 +1827,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNCAAFSPREAD-26NOV07ALALSU-LSU6",
@@ -1598,7 +1842,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNCAAFTOTAL-26NOV07ALALSU-55",
@@ -1611,7 +1857,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNCAAFTOTAL-26NOV07PSUWASH-45",
@@ -1624,7 +1872,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNCAAFTOTAL-26NOV07ALALSU-53",
@@ -1637,7 +1887,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNCAAFSPREAD-26NOV07ALALSU-LSU5",
@@ -1650,7 +1902,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXPGATOUR-WOWTC26-DMCC",
@@ -1663,7 +1917,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNCAAFSPREAD-26NOV07ALALSU-LSU8",
@@ -1676,7 +1932,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXPGATOUR-WOWTC26-KHIR",
@@ -1689,7 +1947,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNCAAFTOTAL-26NOV07TEMNAVY-56",
@@ -1702,7 +1962,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXEPLGAME-26NOV08SUNCFC-CFC",
@@ -1715,7 +1977,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNCAAFSPREAD-26NOV07CINHOU-HOU11",
@@ -1728,7 +1992,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNCAAFTOTAL-26NOV07ALALSU-56",
@@ -1741,7 +2007,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNCAAFTOTAL-26NOV07RICEUNT-66",
@@ -1754,7 +2022,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXPGATOUR-WOWTC26-KMIT",
@@ -1767,7 +2037,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNCAAFGAME-26NOV07WKUMTU-MTU",
@@ -1780,7 +2052,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNBAGAME-26NOV07NYKCLE-CLE",
@@ -1793,7 +2067,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNCAAF1HSPREAD-26NOV07ALALSU-LSU3",
@@ -1806,7 +2082,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNCAAFSPREAD-26NOV07ALALSU-LSU3",
@@ -1819,7 +2097,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNCAAFSPREAD-26NOV07ALALSU-ALA3",
@@ -1832,7 +2112,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNCAAFSPREAD-26NOV07LTTROY-LT8",
@@ -1845,7 +2127,9 @@
       "grossPnl": -0.07999999999999992,
       "netPnl": -0.08439999999999992,
       "inventory": -1,
-      "maxAbsInventory": 1
+      "maxAbsInventory": 1,
+      "realizedPnl": -0.0044,
+      "unrealizedPnl": -0.07999999999999996
     },
     {
       "ticker": "KXAAAGASD-26NOV08-4.0200",
@@ -1858,7 +2142,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNCAAMBGAME-26NOV07LIULAS-LIU",
@@ -1871,7 +2157,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNCAAFGAME-26NOV07EKYPEAY-EKY",
@@ -1884,7 +2172,9 @@
       "grossPnl": -0.03,
       "netPnl": -0.0319,
       "inventory": 1,
-      "maxAbsInventory": 1
+      "maxAbsInventory": 1,
+      "realizedPnl": -0.0019,
+      "unrealizedPnl": -0.03
     },
     {
       "ticker": "KXNCAAFGAME-26NOV07TEMNAVY-TEM",
@@ -1897,7 +2187,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNCAAF-27-LSU",
@@ -1910,7 +2202,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNCAAMBTOTAL-26NOV07COLOSDSU-154",
@@ -1923,7 +2217,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNCAAFSPREAD-26NOV07UGAMISS-UGA3",
@@ -1936,7 +2232,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNCAAF1HTOTAL-26NOV07OREOSU-24",
@@ -1949,7 +2247,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNCAAF1HTOTAL-26NOV07ALALSU-27",
@@ -1962,7 +2262,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNCAAFSPREAD-26NOV07LTTROY-LT7",
@@ -1975,7 +2277,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNCAAMBSPREAD-26NOV07SAMUNLV-UNLV12",
@@ -1988,7 +2292,9 @@
       "grossPnl": -0.04999999999999997,
       "netPnl": -0.05419999999999997,
       "inventory": -1,
-      "maxAbsInventory": 1
+      "maxAbsInventory": 1,
+      "realizedPnl": -0.0042,
+      "unrealizedPnl": -0.04999999999999999
     },
     {
       "ticker": "KXLIGUE1TOTAL-26NOV07PSGEST-5",
@@ -2001,7 +2307,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNCAAF1HSPREAD-26NOV07OREOSU-OSU7",
@@ -2014,7 +2322,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXAAAGASW-26NOV09-4.0050",
@@ -2027,7 +2337,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNCAAMBTOTAL-26NOV07LAFJOES-148",
@@ -2040,7 +2352,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNCAAFSPREAD-26NOV07MRSHGASO-GASO8",
@@ -2053,7 +2367,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNCAAF1HSPREAD-26NOV07OREOSU-OSU5",
@@ -2066,7 +2382,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNCAAF1H-26NOV07ALALSU-ALA",
@@ -2079,7 +2397,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXLALIGASPREAD-26NOV07VCFRMA-RMA3",
@@ -2092,7 +2412,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXLIGUE1SPREAD-26NOV07PSGEST-PSG3",
@@ -2105,7 +2427,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXPGATOUR-WOWTC26-RGER",
@@ -2118,7 +2442,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXLALIGATOTAL-26NOV07VCFRMA-4",
@@ -2131,7 +2457,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXLIGUE1TOTAL-26NOV07PSGEST-3",
@@ -2144,7 +2472,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXLIGUE1TOTAL-26NOV07PSGEST-4",
@@ -2157,7 +2487,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNCAAFSPREAD-26NOV07UCFKU-KU7",
@@ -2170,7 +2502,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXLIGUE1TOTAL-26NOV07PSGEST-2",
@@ -2183,7 +2517,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXLALIGATOTAL-26NOV07VCFRMA-5",
@@ -2196,7 +2532,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXLALIGASPREAD-26NOV07VCFRMA-RMA4",
@@ -2209,7 +2547,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXLALIGATOTAL-26NOV07VCFRMA-6",
@@ -2222,7 +2562,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNFLNEXTTEAM-26JTAYLOR28-IND",
@@ -2235,7 +2577,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNCAAFTEAMTOTAL-26NOV07RICEUNT-UNT42",
@@ -2248,7 +2592,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXLIGUE1BTTS-26NOV07PSGEST-BTTS",
@@ -2261,7 +2607,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXHEISMAN-27-CCARR",
@@ -2274,7 +2622,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXLALIGAGAME-26NOV08ELCRBB-RBB",
@@ -2287,7 +2637,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNBASPREAD-26NOV07ORLGSW-GSW6",
@@ -2300,7 +2652,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNCAAFTOTAL-26NOV07UGAMISS-57",
@@ -2313,7 +2667,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXHEISMAN-27-SLEA",
@@ -2326,7 +2682,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXPGAR3LEAD-WOWTC26-BJAM",
@@ -2339,7 +2697,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNCAAFTOTAL-26NOV07LTTROY-47",
@@ -2352,7 +2712,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNBASPREAD-26NOV07DENIND-DEN9",
@@ -2365,7 +2727,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXCOPADOBRASILADVANCE-26NOV07ATLGPA-ATL",
@@ -2378,7 +2742,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNCAAFGAME-26NOV07LTTROY-LT",
@@ -2391,7 +2757,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNCAAFTOTAL-26NOV07DELKENN-83",
@@ -2404,7 +2772,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXATP-26PARIS-SHE",
@@ -2417,7 +2787,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNCAAFGAME-26NOV07LTTROY-TROY",
@@ -2430,7 +2802,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXHEISMAN-27-DMES",
@@ -2443,7 +2817,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXHEISMAN-27-JSMIT",
@@ -2456,7 +2832,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNCAAFTOTAL-26NOV07DELKENN-86",
@@ -2469,7 +2847,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNBATOTAL-26NOV07WASOKC-221",
@@ -2482,7 +2862,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXMLSTOTAL-26NOV07MIACLT-5",
@@ -2495,7 +2877,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNCAAFSPREAD-26NOV07UCFKU-KU3",
@@ -2508,7 +2892,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNCAAMBTOTAL-26NOV07OAKUCSB-142",
@@ -2521,7 +2907,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     },
     {
       "ticker": "KXNCAAFSPREAD-26NOV07MIAND-ND14",
@@ -2534,7 +2922,9 @@
       "grossPnl": 0,
       "netPnl": 0,
       "inventory": 0,
-      "maxAbsInventory": 0
+      "maxAbsInventory": 0,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0
     }
   ],
   "total": {
@@ -2545,6 +2935,40 @@
     "markedFills": 4,
     "unmarkedFills": 9,
     "grossPnl": -0.83,
-    "netPnl": -0.8547999999999998
-  }
+    "netPnl": -0.8547999999999998,
+    "realizedPnl": -0.0248,
+    "unrealizedPnl": -0.8299999999999998
+  },
+  "equity": [
+    {
+      "time": 1794053939374,
+      "realizedPnl": 0,
+      "unrealizedPnl": 0,
+      "netPnl": 0
+    },
+    {
+      "time": 1794056034794,
+      "realizedPnl": -0.0044,
+      "unrealizedPnl": -0.07,
+      "netPnl": -0.07440000000000001
+    },
+    {
+      "time": 1794073702457,
+      "realizedPnl": -0.0088,
+      "unrealizedPnl": -0.29500000000000004,
+      "netPnl": -0.3038
+    },
+    {
+      "time": 1794085680797,
+      "realizedPnl": -0.0143,
+      "unrealizedPnl": -0.4799999999999999,
+      "netPnl": -0.4942999999999999
+    },
+    {
+      "time": 1794087869614,
+      "realizedPnl": -0.0248,
+      "unrealizedPnl": -0.83,
+      "netPnl": -0.8548
+    }
+  ]
 }

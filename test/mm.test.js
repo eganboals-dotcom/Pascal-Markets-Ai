@@ -53,3 +53,21 @@ test('quoting candidates require verified focus, liquid narrow books, time and c
 });
 
 
+
+
+test('realized plus unrealized reconciles with equity after fees for long, short and closed inventory', () => {
+  const paths = [
+    [book(0, .48, .54), book(15, .46, .49), book(30, .47, .54), book(45, .53, .57)],
+    [book(0, .48, .54), book(15, .53, .57), book(30, .59, .63)],
+    [book(0, .48, .54), book(15, .43, .49), book(30, .38, .44)]
+  ];
+  for (const path of paths) {
+    const result = simulate(path.map(r => ({ ...r, fee_type: 'quadratic_with_maker_fees' })), { skewTicks: 0 });
+    assert.ok(Math.abs(result.total.realizedPnl + result.total.unrealizedPnl - result.total.netPnl) < 1e-9);
+    assert.ok(Math.abs(result.equity.at(-1).netPnl - result.total.netPnl) < 1e-9);
+    if (!result.markets[0].inventory) assert.equal(result.total.unrealizedPnl, 0);
+    assert.ok(result.total.fees > 0);
+  }
+  const combined = simulate([...paths[0], ...paths[1].map(r => ({ ...r, ticker: 'SECOND' }))], { skewTicks: 0 });
+  assert.ok(Math.abs(combined.equity.at(-1).netPnl - combined.total.netPnl) < 1e-9);
+});

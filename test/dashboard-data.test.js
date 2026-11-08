@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { rmSync } from 'node:fs';
-import { recentRecords, dashboardData } from '../src/dashboard-data.js';
+import { recentRecords, dashboardData, pnlSummary } from '../src/dashboard-data.js';
 import { projectPath, writeProjectFile } from '../src/files.js';
 
 test('recent telemetry reads only a bounded tail and tolerates an incomplete final write', t => {
@@ -30,4 +30,22 @@ test('price checks stay distinct from model positions and realized profit', () =
   assert.equal(data.activity.length, 1); assert.equal(data.activity[0].edge, null);
   assert.equal(JSON.stringify(data).includes('secret'), false);
   assert.equal(data.trades.at(-1).expectedProfit, 900);
+});
+
+
+test('daily P&L uses Los Angeles dates and separates closing profit from changing open marks', () => {
+  const equity = [
+    { time: Date.parse('2026-11-07T06:30Z'), realizedPnl: 2, unrealizedPnl: 3, netPnl: 5 },
+    { time: Date.parse('2026-11-07T09:30Z'), realizedPnl: 6, unrealizedPnl: 1, netPnl: 7 },
+    { time: Date.parse('2026-11-08T01:00Z'), realizedPnl: 8, unrealizedPnl: -1, netPnl: 7 }
+  ];
+  const pnl = pnlSummary({ equity }, Date.parse('2026-11-08T02:00Z'));
+  assert.equal(pnl.today, '2026-11-07');
+  assert.deepEqual(pnl.daily, { realized: 6, unrealized: -4, net: 2 });
+  assert.deepEqual(pnl.all, { realized: 8, unrealized: -1, net: 7 });
+  assert.equal(pnl.history.length, 2);
+  assert.equal(pnl.intraday.length, 2);
+  assert.equal(pnlSummary({ equity }, Date.parse('2026-11-09T02:00Z')).daily, null);
+  assert.equal(pnlSummary({ total: { netPnl: 900 } }).all, null);
+  assert.equal(dashboardData({ checks: [{ outcome: 'filled', expectedProfit: 900 }] }).pnl.all, null);
 });

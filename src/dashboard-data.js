@@ -18,11 +18,11 @@ export function recentRecords(path, limit = 240, bytes = 262144) {
   finally { if (fd !== undefined) closeSync(fd); }
 }
 
-export function dashboardData({ rounds = [], checks = [], mm = null, budget = {} } = {}) {
+export function dashboardData({ rounds = [], checks = [], mm = null, budget = {}, now = Date.now() } = {}) {
   const outcomes = { filled: 0, legged: 0, missed: 0, skipped: 0, error: 0 };
   for (const row of checks) if (Object.hasOwn(outcomes, row.outcome)) outcomes[row.outcome]++;
   return {
-    account: { connected: false }, budget, outcomes,
+    account: { connected: false }, budget, outcomes, pnl: pnlSummary(mm, now),
     activity: rounds.flatMap(r => {
       const time = Date.parse(r.at);
       return Number.isFinite(time) ? [{ time, tier: r.tier, edge: r.bestProfitPerContract ?? null,
@@ -35,4 +35,25 @@ export function dashboardData({ rounds = [], checks = [], mm = null, budget = {}
       .slice(0, 60).map(m => ({ ticker: m.ticker, inventory: m.inventory, netPnl: m.netPnl, fills: m.fills,
         asOf: mm.generatedAt ?? null, source: 'simulator' }))
   };
+}
+
+// All-time means the complete recorded simulator dataset, never the history of a live account.
+export function pnlSummary(mm, now = Date.now(), timezone = 'America/Los_Angeles') {
+  const date = new Intl.DateTimeFormat('en-CA', { timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit' });
+  const day = n => date.format(new Date(n));
+  const points = (mm?.equity ?? []).filter(p => Number.isFinite(p.time) && p.time <= now &&
+    [p.realizedPnl, p.unrealizedPnl, p.netPnl].every(Number.isFinite)).sort((a, b) => a.time - b.time);
+  const today = day(now), current = points.filter(p => day(p.time) === today);
+  const opening = points.filter(p => day(p.time) < today).at(-1) ?? { realizedPnl: 0, unrealizedPnl: 0, netPnl: 0 };
+  const value = p => p ? { realized: p.realizedPnl, unrealized: p.unrealizedPnl, net: p.netPnl } : null;
+  const last = points.at(-1), dailyLast = current.at(-1);
+  const daily = dailyLast ? { realized: dailyLast.realizedPnl - opening.realizedPnl,
+    unrealized: dailyLast.unrealizedPnl - opening.unrealizedPnl, net: dailyLast.netPnl - opening.netPnl } : null;
+  const closes = new Map();
+  for (const p of points) closes.set(day(p.time), p);
+  return { source: 'simulation', timezone, today, from: points[0]?.time ?? null, asOf: last?.time ?? null,
+    all: value(last), daily, openUnrealized: last?.unrealizedPnl ?? null,
+    history: [...closes].map(([date, p]) => ({ label: date, ...value(p) })),
+    intraday: current.map(p => ({ label: new Date(p.time).toLocaleTimeString('en-US', { timeZone: timezone, hour: '2-digit', minute: '2-digit' }),
+      realized: p.realizedPnl - opening.realizedPnl, unrealized: p.unrealizedPnl - opening.unrealizedPnl, net: p.netPnl - opening.netPnl })) };
 }
