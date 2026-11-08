@@ -69,3 +69,7 @@ tokens
 .git-credentials
 .pypirc
 .dockercfg
+
+# Local agent instructions
+AGENTS.md
+agents.md
