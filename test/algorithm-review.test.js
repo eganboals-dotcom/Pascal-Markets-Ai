@@ -13,7 +13,7 @@ const rung = (ticker, strike, fields = {}) => ({ ticker, status: 'active', strik
 const leg = (price, fields = {}) => ({ venue: 'kalshi', ticker: 'A', side: 'yes', price, size: 100,
   closesAt: Date.parse(close), fee: () => 0, ...fields });
 const hit = fields => ({ id: 'h', event: 'E', contracts: 100, cost: 90, payout: 100, profit: 10,
-  returnPct: 10 / 90, annualized: 1, ...fields });
+  returnPct: 10 / 90, annualized: 1, legs: [{ venue: 'kalshi', costPrice: (fields.cost ?? 90) / 100, feeRate: 0 }], ...fields });
 
 test('slippage never reduces the cost of a subpenny quote above 99 cents', () => {
   const result = price('test', 'test', [leg(.995), leg(.005, { ticker: 'B' })], 1, { now });
@@ -156,4 +156,60 @@ test('exclusive-event subsets recover depth without changing the payout guarante
   assert.equal(deep.payout, 100);
   assert.ok(deep.profit >= 1 && deep.returnPct >= .03);
   assert.equal(new Set(candidates.map(c => c.id)).size, candidates.length);
+});
+
+
+test('capital-efficient exclusive subsets recover margins diluted by expensive legs', () => {
+  const series = { S: { contract_url: 'https://assets.kalshi.com/regulatory/product-certifications/S.pdf', fee_multiplier: 0 } };
+  const event = { event_ticker: 'E', series_ticker: 'S', mutually_exclusive: true, settlement_sources: [{}],
+    markets: [rung('A', 1, { no_ask_dollars: '.46' }), rung('B', 2, { no_ask_dollars: '.46' }),
+      ...Array.from({ length: 4 }, (_, i) => rung(`EXPENSIVE${i}`, 3 + i, { no_ask_dollars: '.99' }))]
+      .map(m => ({ ...m, volume_24h_fp: '1000' })) };
+  const options = { now, series, budget: { bankroll: 1000, maxPerEvent: 100 } };
+  const candidates = noBaskets([event], options);
+  const full = candidates.find(c => c.legs.length === event.markets.length);
+  assert.ok(full.returnPct < .03);
+  const result = allocate(candidates.filter(c => c.verified), options.budget);
+  assert.equal(result.funded.length, 1);
+  const funded = result.funded[0];
+  assert.deepEqual(funded.legs.map(l => l.ticker), ['A', 'B']);
+  assert.equal(funded.contracts, 100);
+  assert.equal(funded.cost, 94);
+  assert.equal(funded.profit, 6);
+  // Check every possible winner and no winner, including winners excluded from the subset.
+  for (const winner of [null, ...event.markets.map(m => m.ticker)]) {
+    const actualPayout = funded.legs.filter(l => l.ticker !== winner).length * funded.contracts;
+    assert.ok(actualPayout >= funded.payout);
+  }
+  const reversed = noBaskets([{ ...event, markets: [...event.markets].reverse() }], options);
+  assert.deepEqual(new Set(candidates.map(c => c.id)), new Set(reversed.map(c => c.id)));
+  assert.equal(new Set(candidates.map(c => c.id)).size, candidates.length);
+});
+
+test('exclusive prefix selection retains an affordable qualifying basket after fees', () => {
+  const series = { S: { contract_url: 'https://assets.kalshi.com/regulatory/product-certifications/S.pdf' } };
+  const event = { event_ticker: 'E', series_ticker: 'S', mutually_exclusive: true, settlement_sources: [{}],
+    markets: [.42, .45, .80, .91, .99].map((p, i) => rung(`M${i}`, i, {
+      no_ask_dollars: String(p), volume_24h_fp: '1000', yes_bid_size_fp: String(30 + i * 15)
+    })) };
+  const options = { now, series, maxContracts: 100, budget: { bankroll: 50, maxPerEvent: 50 }, minReturn: .03, minProfit: 1 };
+  const candidates = noBaskets([event], options);
+  const funded = allocate(candidates.filter(c => c.verified), options.budget, options).funded;
+  assert.equal(funded.length, 1);
+  assert.ok(funded[0].cost <= 50 && funded[0].profit >= 1 && funded[0].returnPct >= .03);
+  assert.ok(funded[0].legs.every(l => l.size >= funded[0].contracts));
+  assert.ok(candidates.length <= 2 * (1 + 8 * 3));
+});
+
+
+test('an ineligible cheap ladder does not hide a healthy near-miss group in the same event', () => {
+  const series = { S: { contract_url: 'https://assets.kalshi.com/regulatory/product-certifications/S.pdf' } };
+  const event = { event_ticker: 'E', series_ticker: 'S', settlement_sources: [{}], markets: [
+    rung('ILLIQUID1', 10, { volume_24h_fp: '1' }), rung('ILLIQUID2', 20, { volume_24h_fp: '1' }),
+    ...[10, 20].map((strike, i) => rung(`LIQUID${i}`, strike, { volume_24h_fp: '1000',
+      yes_ask_dollars: '.6', no_ask_dollars: '.5', rules_primary: `Player 2 scores above ${strike} points in period 1.` }))
+  ] };
+  const candidates = ladders([event], { now, series });
+  assert.ok(candidates.some(c => !c.verified && c.profit > 0));
+  assert.ok(candidates.some(c => c.verified && c.profit < 0 && c.legs.every(l => l.ticker.startsWith('LIQUID'))));
 });

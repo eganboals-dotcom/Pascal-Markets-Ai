@@ -15,11 +15,14 @@ export function planOrders(hit) {
   }));
 }
 
-export function checkFill(order, market) {
+export function checkFill(order, market, { reserve = false } = {}) {
+  if (!Number.isSafeInteger(order.count) || order.count < 1) return false;
   if (!market || market.status !== 'active') return false;
   const ask = quote(market)[order.side];
   if (!ask) return false;
-  return ask.price <= Number(order.priceDollars) + 1e-9 && ask.size >= order.count;
+  if (!(ask.price <= Number(order.priceDollars) + 1e-9 && ask.size >= order.count)) return false;
+  if (reserve) market[order.side === 'yes' ? 'yes_ask_size_fp' : 'yes_bid_size_fp'] = String(ask.size - order.count);
+  return true;
 }
 
 export function judge(fills) {
@@ -37,16 +40,24 @@ export function planHit(hit) {
     timeInForce: 'fill_or_kill', count: hit.contracts, priceDollars: leg.price.toFixed(4) }));
 }
 
-export function checkBook(order, book) {
-  const valid = (book?.asks ?? []).map(l => ({ price: Number(l.price), size: Number(l.size) }))
-    .filter(l => l.price > 0 && l.price < 1 && Number.isFinite(l.size) && l.size > 0);
-  const size = valid.filter(l => l.price <= Number(order.priceDollars) + 1e-9).reduce((n, l) => n + l.size, 0);
-  return Number.isSafeInteger(order.count) && order.count > 0 && size >= order.count;
+export function checkBook(order, book, { reserve = false } = {}) {
+  const valid = (book?.asks ?? []).map(level => ({ level, price: Number(level.price), size: Number(level.size) }))
+    .filter(l => l.price > 0 && l.price < 1 && Number.isFinite(l.size) && l.size > 0 && l.price <= Number(order.priceDollars) + 1e-9);
+  const size = valid.reduce((n, l) => n + l.size, 0);
+  if (!Number.isSafeInteger(order.count) || order.count < 1 || size < order.count) return false;
+  if (reserve) {
+    let remaining = order.count;
+    for (const l of valid.sort((a, b) => a.price - b.price)) {
+      const used = Math.min(remaining, l.size);
+      l.level.size = l.size - used;
+      remaining -= used;
+      if (remaining <= 0) break;
+    }
+  }
+  return true;
 }
 
 function costFor(hit, count) {
-  // shortcut: legacy hits use proportional costs, regenerate scan state before relying on resized fees.
-  if (!hit.legs?.every(l => Number.isFinite(l.costPrice))) return hit.cost / hit.contracts * count;
   return hit.legs.reduce((sum, l) => sum + count * l.costPrice + (l.venue === 'kalshi' ?
     kalshiFee(count, l.costPrice, l.feeRate) : count * l.feePerShare), 0);
 }
@@ -64,6 +75,10 @@ export function allocate(hits, { bankroll = 1000, maxPerEvent = 100, maxOpenEven
     else if (events.size >= maxOpenEvents) reason = 'maxOpenEvents';
     else if (!(hit.cost > 0) || !Number.isFinite(hit.cost) || !Number.isSafeInteger(hit.contracts) || hit.contracts < 1 || !Number.isFinite(hit.annualized) ||
       !Number.isFinite(hit.payout) || hit.payout <= 0 || !Number.isFinite(hit.returnPct) || hit.returnPct <= 0) reason = 'invalid cost or size';
+    if (!reason && (!Array.isArray(hit.legs) || !hit.legs.length || !hit.legs.every(l =>
+      Number.isFinite(l.costPrice) && l.costPrice >= 0 && l.costPrice <= 1 &&
+      (l.venue === 'kalshi' ? Number.isFinite(l.feeRate) && l.feeRate >= 0 :
+        l.venue === 'polymarket' && Number.isFinite(l.feePerShare) && l.feePerShare >= 0)))) reason = 'missing or invalid leg costing';
     const cap = Math.min(remaining, maxPerEvent);
     let contracts = 0, upper = reason ? 0 : hit.contracts;
     // Find the largest affordable integer size using recomputed fees, including rounding.

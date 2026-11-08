@@ -9,7 +9,7 @@ export function simulate(snapshots, { maxInventory = 10, skewTicks = 1, pullMinu
   if (![maxQuoteAgeMs, maxMarkoutDelayMs, minQuoteEdge].every(n => Number.isFinite(n) && n >= 0)) throw new Error('Invalid MM freshness or edge');
   const groups = new Map();
   for (const s of snapshots) {
-    if (!s.ticker || !Number.isFinite(s.time) || !Number.isFinite(Date.parse(s.close_time)) || !(s.yesBid > 0 && s.yesAsk < 1 && s.yesBid < s.yesAsk) || !(s.yesBidSize > 0 && s.yesAskSize > 0)) continue;
+    if (!s.ticker || !Number.isFinite(s.time) || !Number.isFinite(Date.parse(s.close_time)) || !(s.yesBid > 0 && s.yesAsk < 1 && s.yesBid < s.yesAsk) || ![s.yesBid, s.yesAsk, s.yesBidSize, s.yesAskSize].every(Number.isFinite) || !(s.yesBidSize > 0 && s.yesAskSize > 0)) continue;
     if (!groups.has(s.ticker)) groups.set(s.ticker, []);
     groups.get(s.ticker).push(s);
   }
@@ -25,7 +25,7 @@ export function simulate(snapshots, { maxInventory = 10, skewTicks = 1, pullMinu
       // shortcut: one contract per crossed quote and no queue model, upgrade with trade/depth recordings before execution research.
       if (quotes && s.time - quotes.time > maxQuoteAgeMs) result.staleIntervals++;
       if (quotes && s.time > quotes.time && s.time - quotes.time <= maxQuoteAgeMs && !pulled) {
-        for (const [side, p, crossed] of [['buy', quotes.bid, s.yesAsk <= quotes.bid + 1e-9], ['sell', quotes.ask, s.yesBid >= quotes.ask - 1e-9]]) {
+        for (const [side, p, crossed] of [['buy', quotes.bid, s.yesAskSize >= 1 && s.yesAsk <= quotes.bid + 1e-9], ['sell', quotes.ask, s.yesBidSize >= 1 && s.yesBid >= quotes.ask - 1e-9]]) {
           if (p == null || !crossed || (side === 'buy' ? inventory >= maxInventory : inventory <= -maxInventory)) continue;
           const direction = side === 'buy' ? 1 : -1;
           const feeRate = quotes.fee_type === 'quadratic' ? 0 : makerFeeRate * quotes.fee_multiplier;

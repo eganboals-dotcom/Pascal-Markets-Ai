@@ -35,18 +35,34 @@ if (planned.length) await new Promise(resolve => setTimeout(resolve, Math.max(0,
 const lookup = publicLookup();
 const tasks = planned.flatMap(plan => plan.orders.map((order, index) => ({ plan, order, index })));
 const markets = new Map();
-await mapConcurrent(tasks, 8, async ({ plan, order, index }) => {
+await mapConcurrent(tasks, 8, async task => {
+  const { plan, order, index } = task;
   try {
     const key = `${order.venue ?? 'kalshi'}:${order.ticker}`;
     if (!markets.has(key)) markets.set(key, order.venue === 'polymarket' ?
       Promise.all([lookup.market(order.ticker.split('#')[0]), lookup.book(order.ticker.split('#')[1])]) : fetchMarket(order.ticker));
-    const market = await markets.get(key);
-    plan.fills[index] = order.venue === 'polymarket' ? market[0].acceptingOrders === true && checkBook(order, market[1]) : checkFill(order, market);
+    task.market = await markets.get(key);
   } catch (error) {
     plan.fills[index] = false;
     plan.errors[index] = error.message;
   }
 });
+// Reserve one shared snapshot in funded order, independent of HTTP completion order.
+const liquidity = new Map();
+for (const { plan, order, index, market } of tasks) {
+  if (plan.errors[index]) continue;
+  try {
+    const poly = order.venue === 'polymarket';
+    const key = poly ? `polymarket:${order.ticker.split('#')[1]}` : `kalshi:${order.ticker}`;
+    if (!liquidity.has(key)) liquidity.set(key, structuredClone(poly ? market[1] : market));
+    const depth = liquidity.get(key);
+    plan.fills[index] = poly ? market[0].acceptingOrders === true && checkBook(order, depth, { reserve: true }) :
+      checkFill(order, depth, { reserve: true });
+  } catch (error) {
+    plan.fills[index] = false;
+    plan.errors[index] = error.message;
+  }
+}
 const lines = skipped.map(hit => ({ checkedAt: Date.now(), startedAt, hitId: hit.id, kind: hit.kind, title: hit.title,
   outcome: 'skipped', reason: hit.reason }));
 const summary = { checked: planned.length, filled: 0, legged: 0, missed: 0, skipped: skipped.length };

@@ -3,7 +3,7 @@
 import { fetchMarket as fetchKalshiMarket, fetchOpenEvents, fetchSeries, kalshiFee, quote } from './kalshi.js';
 import { publicLookup } from './polymarket.js';
 import { autoMatch } from './matching.js';
-import { mapConcurrent } from './dryrun.js';
+import { allocate, mapConcurrent } from './dryrun.js';
 import { takerFeePerShare } from './fees.js';
 
 const DAY_MS = 86400000;
@@ -96,15 +96,44 @@ export function noBaskets(events, { feeRate = 0.07, ...options } = {}) {
     // Bound subset enumeration to eight depth breakpoints per event, including both endpoints.
     const levels = depths.length <= 8 ? depths : Array.from({ length: 8 }, (_, i) => depths[Math.round(i * (depths.length - 1) / 7)]);
     const seen = new Set();
-    for (const subset of [legs, ...levels.map(n => liquid.filter(l => l.size >= n))]) {
-      if (subset.length < 2) continue;
+    const add = subset => {
+      if (subset.length < 2) return;
+      // Canonical leg order keeps a basket's identity stable when price rankings change.
+      subset = [...subset].sort((a, b) => a.ticker.localeCompare(b.ticker));
       const key = JSON.stringify(subset.map(l => l.ticker));
-      if (seen.has(key)) continue;
+      if (seen.has(key)) return;
       seen.add(key);
       const basket = price('no-basket', event.title, subset, subset.length - 1, { ...options, event });
       if (basket) found.push(basket);
       const maker = makerVariant('no-basket', event, subset, subset.length - 1, options);
       if (maker) found.push(maker);
+    };
+    add(legs);
+    const explored = new Set();
+    for (const depth of levels) {
+      const subset = liquid.filter(l => l.size >= depth);
+      const key = JSON.stringify(subset.map(l => l.ticker));
+      if (subset.length < 2 || explored.has(key)) continue;
+      explored.add(key);
+      add(subset);
+      const count = Math.floor(Math.min(options.maxContracts ?? 100, ...subset.map(l => l.size)));
+      const legCost = l => {
+        const p = Math.min(1, l.price + (options.slippageTicks ?? 1) * 0.01);
+        return p * count + l.fee(count, p);
+      };
+      const sorted = [...subset].sort((a, b) => legCost(a) - legCost(b) || a.ticker.localeCompare(b.ticker));
+      let bestReturn, bestFunded;
+      // shortcut: cheapest prefixes at bounded depth levels, not every possible subset or deeper book level.
+      for (let k = 2; k < sorted.length; k++) {
+        const prefix = sorted.slice(0, k);
+        const candidate = price('no-basket', event.title, prefix, k - 1, { ...options, event });
+        if (!candidate?.verified) continue;
+        if (!bestReturn || candidate.returnPct > bestReturn.candidate.returnPct) bestReturn = { prefix, candidate };
+        const funded = allocate([candidate], options.budget, options).funded[0];
+        if (funded && (!bestFunded || funded.profit > bestFunded.profit)) bestFunded = { prefix, profit: funded.profit };
+      }
+      if (bestReturn) add(bestReturn.prefix);
+      if (bestFunded) add(bestFunded.prefix);
     }
   }
   return found;
@@ -165,7 +194,7 @@ export function ladders(events, { feeRate = 0.07, ...options } = {}) {
           const no = kalshiLeg(above ? rungs[j] : rungs[i], 'no', feeRate, options.series?.[event.series_ticker]);
           if (!yes || !no) continue;
           const pair = price('ladder', event.title, [yes, no], 1, { ...options, event });
-          if (pair && yes.price + no.price < 1) { found.push(pair); hasTaker = true; }
+          if (pair && yes.price + no.price < 1) { found.push(pair); if (pair.verified) hasTaker = true; }
           else if (pair && (!nearest || Number(pair.verified) > Number(nearest.verified) ||
               (pair.verified === nearest.verified && pair.returnPct > nearest.returnPct))) nearest = pair;
           // Posting one leg saves at most its spread, so pairs priced further above $1 cannot become a basket.

@@ -8,7 +8,7 @@ import { pathToFileURL } from 'node:url';
 import { PROJECT_ROOT, projectPath, writeProjectFile } from '../src/files.js';
 
 const hit = (id, annualized = 1, fields = {}) => ({ id, event: id, annualized, returnPct: 0.1,
-  contracts: 100, cost: 80, payout: 100, profit: 20, ...fields });
+  contracts: 100, cost: 80, payout: 100, profit: 20, legs: [{ venue: 'kalshi', costPrice: .8, feeRate: 0 }], ...fields });
 
 test('allocate prioritizes annualized return and respects bankroll and per-event caps', () => {
   const hits = [hit('slow', 1), hit('fast', 2), hit('last', 0.5)];
@@ -67,8 +67,8 @@ test('dry-run CLI shares one delay, records skip reasons and catches failed read
   const out = `work/test-dryrun-${randomUUID()}`;
   t.after(() => rmSync(projectPath(out), { recursive: true, force: true }));
   const candidate = id => ({ ...hit(id), kind: 'no-basket', verified: true, scans: 1, legs: [
-    { venue: 'kalshi', ticker: `${id}-OK`, side: 'yes', price: 0.4 },
-    { venue: 'kalshi', ticker: `${id}-FAIL`, side: 'no', price: 0.4 }
+    { venue: 'kalshi', ticker: `${id}-OK`, side: 'yes', price: 0.4, costPrice: .4, feeRate: 0 },
+    { venue: 'kalshi', ticker: `${id}-FAIL`, side: 'no', price: 0.4, costPrice: .4, feeRate: 0 }
   ] });
   writeProjectFile(`${out}/state.json`, JSON.stringify({ open: { a: candidate('a'), b: candidate('b'),
     unverified: { ...candidate('c'), verified: false }, maker: { ...candidate('d'), kind: 'maker-no-basket' }, seenBefore: { ...candidate('e'), scans: 2 } } }));
@@ -90,4 +90,41 @@ test('dry-run CLI shares one delay, records skip reasons and catches failed read
   const checked = lines.filter(l => l.outcome !== 'skipped');
   assert.equal(new Set(checked.map(l => l.delayMs)).size, 1);
   assert.ok(checked.every(l => l.fills[0] && !l.fills[1] && l.errors[1]));
+});
+
+
+test('legacy cost totals cannot bypass exact resized fee and budget checks', () => {
+  const legacy = hit('old', 1, { cost: 69.771, profit: 30.229, returnPct: 30.229 / 69.771,
+    legs: ['A', 'B'].map(ticker => ({ venue: 'kalshi', ticker, price: .3333, feeRate: .07 })) });
+  const result = allocate([legacy], { bankroll: 2.7909 });
+  assert.equal(result.funded.length, 0);
+  assert.equal(result.skipped[0].reason, 'missing or invalid leg costing');
+});
+
+test('dry-run batches reserve shared token depth in funded order', t => {
+  const out = `work/test-shared-depth-${randomUUID()}`;
+  t.after(() => rmSync(projectPath(out), { recursive: true, force: true }));
+  const candidate = (id, annualized) => ({ ...hit(id, annualized), kind: 'cross-venue', verified: true, scans: 1, legs: [
+    { venue: 'kalshi', ticker: id, side: 'yes', price: .4, costPrice: .4, feeRate: 0 },
+    { venue: 'polymarket', ticker: '9#1', side: 'outcome 0', price: .4, costPrice: .4, feePerShare: 0 }
+  ] });
+  writeProjectFile(`${out}/state.json`, JSON.stringify({ open: { a: candidate('A', 2), b: candidate('B', 1) } }));
+  writeProjectFile(`${out}/preload.mjs`, `
+    const timeout = globalThis.setTimeout;
+    globalThis.setTimeout = (fn, ms, ...args) => timeout(fn, Math.min(ms, 1), ...args);
+    globalThis.fetch = async url => {
+      const u = String(url);
+      if (u.includes('clob.polymarket')) return Response.json({ asks: [{ price: '.4', size: '100' }] });
+      if (u.includes('gamma-api')) return Response.json({ acceptingOrders: true });
+      if (u.endsWith('/A')) await new Promise(resolve => timeout(resolve, 15));
+      return Response.json({ market: { status: 'active', yes_ask_dollars: '.4', yes_ask_size_fp: '100' } });
+    };
+  `);
+  const child = spawnSync(process.execPath, ['--import', pathToFileURL(projectPath(`${out}/preload.mjs`)).href,
+    'scripts/kalshi-dryrun.js', out], { cwd: PROJECT_ROOT, encoding: 'utf8' });
+  assert.equal(child.status, 0, child.stderr);
+  assert.deepEqual(JSON.parse(child.stdout), { checked: 2, filled: 1, legged: 1, missed: 0, skipped: 0 });
+  const checks = readFileSync(projectPath(`${out}/dryrun.jsonl`), 'utf8').trim().split('\n').map(JSON.parse);
+  assert.deepEqual(checks.map(c => c.outcome), ['filled', 'legged']);
+  assert.deepEqual(checks[1].fills, [true, false]);
 });

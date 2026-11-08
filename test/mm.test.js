@@ -90,3 +90,12 @@ test('fresh quotes require a positive edge after maker fees and markouts near th
   assert.equal(result.total.unmarkedFills, 1);
   assert.equal(simulateFresh(rows, { minQuoteEdge: .05 }).total.fills, 0);
 });
+
+
+test('fractional displayed depth cannot support whole-contract simulated fills', () => {
+  const rows = [book(0, .48, .54), book(.25, .46, .49, { yesAskSize: .01 }),
+    book(25 / 60, .47, .53), book(40 / 60, .52, .56, { yesBidSize: .01 })];
+  const result = simulateFresh(rows, { skewTicks: 0 });
+  assert.equal(result.total.fills, 0);
+  assert.equal(result.total.netPnl, 0);
+});

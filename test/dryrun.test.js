@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { checkFill, judge, planOrders } from '../src/dryrun.js';
+import { checkBook, checkFill, judge, planOrders } from '../src/dryrun.js';
 
 const hit = {
   id: 'ladder:kalshi:LOW:yes+kalshi:HIGH:no', contracts: 20, profit: 1.5,
@@ -41,4 +41,28 @@ test('judge reports filled, legged, or missed', () => {
   assert.equal(judge([true, true]), 'filled');
   assert.equal(judge([true, false]), 'legged');
   assert.equal(judge([false, false]), 'missed');
+});
+
+
+test('shared depth is consumed cheapest first only for a complete hypothetical fill', () => {
+  const book = { asks: [{ price: '.5', size: '7' }, { price: '.4', size: '3' }] };
+  const order = { count: 4, priceDollars: '.5' };
+  assert.equal(checkBook(order, book), true);
+  assert.equal(book.asks[1].size, '3');
+  assert.equal(checkBook(order, book, { reserve: true }), true);
+  assert.equal(checkBook({ count: 1, priceDollars: '.4' }, book, { reserve: true }), false);
+  assert.equal(checkBook({ count: 7, priceDollars: '.5' }, book, { reserve: true }), false);
+  assert.equal(checkBook({ count: 6, priceDollars: '.5' }, book, { reserve: true }), true);
+  assert.equal(checkBook({ count: 1, priceDollars: '.5' }, book), false);
+});
+
+test('Kalshi depth reservations keep complementary buy sides separate and reject invalid counts', () => {
+  const m = market('A', { yes_ask_dollars: '.4', yes_ask_size_fp: '20', no_ask_dollars: '.5', yes_bid_size_fp: '20' });
+  const yes = { count: 20, priceDollars: '.4', side: 'yes' };
+  const no = { count: 20, priceDollars: '.5', side: 'no' };
+  assert.equal(checkFill(yes, m, { reserve: true }), true);
+  assert.equal(checkFill(yes, m), false);
+  assert.equal(checkFill({ ...no, count: 0 }, m, { reserve: true }), false);
+  assert.equal(checkFill(no, m, { reserve: true }), true);
+  assert.equal(checkFill(no, m), false);
 });
