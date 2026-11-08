@@ -200,3 +200,10 @@ test('background replay errors are reported without aborting the scanner', async
   assert.equal(errors[0].error, 'replay unavailable');
   assert.equal(errors[0].roundAt, new Date(0).toISOString());
 });
+
+
+test('conditional maker savings cannot displace taker events from the fast watch list', () => {
+  const candidates = [{ ...candidate('A', 100), kind: 'maker-no-basket' },
+    { ...candidate('A', -2), kind: 'no-basket' }, { ...candidate('B', -.1), kind: 'ladder' }];
+  assert.deepEqual(selectWatchList(candidates, { events: [event('A'), event('B')] }, 1).map(e => e.ticker), ['B']);
+});

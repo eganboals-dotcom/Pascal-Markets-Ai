@@ -143,3 +143,17 @@ test('maker improvements round upward to a valid whole-cent price and never cros
   event.markets[0].no_ask_dollars = '.388';
   assert.equal(noBaskets([event], { now }).some(c => c.makerLeg), false);
 });
+
+
+test('exclusive-event subsets recover depth without changing the payout guarantee', () => {
+  const event = { event_ticker: 'E', series_ticker: 'S', mutually_exclusive: true, settlement_sources: [{}],
+    markets: [rung('A', 1), rung('B', 2), rung('THIN', 3, { yes_bid_size_fp: '1', no_ask_dollars: '.99' })]
+      .map(m => ({ ...m, volume_24h_fp: '1000' })) };
+  const candidates = noBaskets([event], { now, series: { S: { contract_url: 'https://assets.kalshi.com/regulatory/product-certifications/S.pdf' } } });
+  const deep = candidates.find(c => c.contracts === 100);
+  assert.equal(deep.verified, true);
+  assert.equal(deep.legs.length, 2);
+  assert.equal(deep.payout, 100);
+  assert.ok(deep.profit >= 1 && deep.returnPct >= .03);
+  assert.equal(new Set(candidates.map(c => c.id)).size, candidates.length);
+});

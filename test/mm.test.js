@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { simulate } from '../src/mm.js';
+import { simulate as simulateFresh } from '../src/mm.js';
+// Historical path fixtures explicitly assume quotes remain live between their 15-minute samples.
+const simulate = (rows, options = {}) => simulateFresh(rows, { maxQuoteAgeMs: 1200000, ...options });
 import { quotingCandidates } from '../src/scan.js';
 
 const start = Date.parse('2026-11-07T00:00:00Z');
@@ -37,7 +39,7 @@ test('pulls quotes at cutoff, ignores same-time snapshots and requires crossing'
   assert.equal(simulate([book(0, .48, .54, { close_time }), book(60, .43, .49, { close_time })]).total.fills, 0);
   assert.equal(simulate([book(0, .48, .54), book(0, .43, .49)]).total.fills, 0);
   assert.equal(simulate([book(0, .48, .54), book(15, .48, .54)]).total.fills, 0);
-  assert.equal(simulate([book(0, .49, .51), book(15, .48, .50)]).total.fills, 1);
+  assert.equal(simulate([book(0, .49, .51), book(15, .48, .50)]).total.fills, 0);
 });
 
 test('quoting candidates require verified focus, liquid narrow books, time and cap', () => {
@@ -70,4 +72,21 @@ test('realized plus unrealized reconciles with equity after fees for long, short
   }
   const combined = simulate([...paths[0], ...paths[1].map(r => ({ ...r, ticker: 'SECOND' }))], { skewTicks: 0 });
   assert.ok(Math.abs(combined.equity.at(-1).netPnl - combined.total.netPnl) < 1e-9);
+});
+
+
+test('default quotes expire across sparse snapshots instead of inventing maker fills', () => {
+  const result = simulateFresh([book(0, .48, .54), book(15, .43, .49)]);
+  assert.equal(result.total.fills, 0);
+  assert.equal(result.total.staleIntervals, 1);
+  assert.equal(result.total.netPnl, 0);
+});
+
+test('fresh quotes require a positive edge after maker fees and markouts near their horizon', () => {
+  const rows = [book(0, .48, .54), book(.25, .46, .49), book(60, .46, .50)];
+  const result = simulateFresh(rows, { skewTicks: 0 });
+  assert.equal(result.total.fills, 1);
+  assert.equal(result.total.markedFills, 0);
+  assert.equal(result.total.unmarkedFills, 1);
+  assert.equal(simulateFresh(rows, { minQuoteEdge: .05 }).total.fills, 0);
 });

@@ -1,0 +1,110 @@
+{
+  "date": "2026-11-07",
+  "timezone": "America/Los_Angeles",
+  "sources": [
+    {
+      "directory": "data/dashboard",
+      "rounds": 364,
+      "tiers": {
+        "full": 26,
+        "fast": 338
+      },
+      "hitRounds": 0,
+      "errors": 0,
+      "checks": {},
+      "rejectionObservations": {
+        "liquidity": 1421,
+        "notClosing": 358
+      },
+      "near": [
+        {
+          "id": "maker-no-basket:kalshi:KXNCAAWBGAME-26NOV07SACNEV-NEV:no+kalshi:KXNCAAWBGAME-26NOV07SACNEV-SAC:no",
+          "title": "Sacramento St. vs Nevada",
+          "kind": "maker-no-basket",
+          "contracts": 21,
+          "profit": 0.1937,
+          "returnPct": 0.009309680241080816
+        },
+        {
+          "id": "maker-ladder:kalshi:KXNCAAFTOTAL-26NOV07WVUTTU-55:yes+kalshi:KXNCAAFTOTAL-26NOV07WVUTTU-62:no",
+          "title": "West Virginia vs Texas Tech: Total Points",
+          "kind": "maker-ladder",
+          "contracts": 100,
+          "profit": 0.7291,
+          "returnPct": 0.0073445491075431225
+        },
+        {
+          "id": "maker-ladder:kalshi:KXNCAAFTOTAL-26NOV07WVUTTU-52:yes+kalshi:KXNCAAFTOTAL-26NOV07WVUTTU-62:no",
+          "title": "West Virginia vs Texas Tech: Total Points",
+          "kind": "maker-ladder",
+          "contracts": 100,
+          "profit": 0.7291,
+          "returnPct": 0.0073445491075431225
+        },
+        {
+          "id": "maker-ladder:kalshi:KXNCAAFTOTAL-26NOV07WVUTTU-55:yes+kalshi:KXNCAAFTOTAL-26NOV07WVUTTU-61:no",
+          "title": "West Virginia vs Texas Tech: Total Points",
+          "kind": "maker-ladder",
+          "contracts": 100,
+          "profit": 0.7291,
+          "returnPct": 0.0073445491075431225
+        },
+        {
+          "id": "maker-ladder:kalshi:KXNCAAFTOTAL-26NOV07WVUTTU-52:yes+kalshi:KXNCAAFTOTAL-26NOV07WVUTTU-61:no",
+          "title": "West Virginia vs Texas Tech: Total Points",
+          "kind": "maker-ladder",
+          "contracts": 100,
+          "profit": 0.7291,
+          "returnPct": 0.0073445491075431225
+        }
+      ]
+    },
+    {
+      "directory": "data/gameday",
+      "rounds": 567,
+      "tiers": {
+        "undefined": 10,
+        "full": 46,
+        "fast": 511
+      },
+      "hitRounds": 0,
+      "errors": 0,
+      "checks": {},
+      "rejectionObservations": {},
+      "near": []
+    },
+    {
+      "directory": "research/kalshi",
+      "rounds": 0,
+      "tiers": {},
+      "hitRounds": 0,
+      "errors": 0,
+      "checks": {
+        "filled": 2
+      },
+      "rejectionObservations": {},
+      "near": []
+    }
+  ],
+  "model": {
+    "books": 250,
+    "fills": 0,
+    "spreadCaptured": 0,
+    "fees": 0,
+    "adverseSelectionLoss": 0,
+    "markedFills": 0,
+    "unmarkedFills": 0,
+    "grossPnl": 0,
+    "netPnl": 0,
+    "staleIntervals": 24,
+    "realizedPnl": 0,
+    "unrealizedPnl": 0
+  },
+  "limitations": [
+    "No order ledger is connected; price-availability checks are not executions or realized returns.",
+    "Legacy cross-venue checks do not establish settlement compatibility and are excluded from profit claims.",
+    "Expired quote intervals are unobserved; zero inferred fills does not demonstrate a profitable or loss-free strategy.",
+    "Near misses are only the logged shortlist; rejection counts include repeat observations.",
+    "Daily model replay starts flat at the first recorded snapshot; dashboard daily P&L uses history with opening marks."
+  ]
+}

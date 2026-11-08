@@ -10,7 +10,8 @@ export function selectWatchList(candidates, { events = [], pairs = [] } = {}, si
   if (!Number.isInteger(size) || size < 0) throw new Error('Invalid watch size');
   const best = new Map();
   for (const c of candidates) {
-    if (!c.event || !Array.isArray(c.checks) || c.checks.length > 0) continue;
+    // Fast replays can check takers; conditional maker savings must not displace executable candidates.
+    if (c.kind?.startsWith('maker-') || !c.event || !Array.isArray(c.checks) || c.checks.length > 0) continue;
     const edge = c.profit / c.contracts;
     if (c.contracts > 0 && Number.isFinite(edge) && (!best.has(c.event) || edge > best.get(c.event))) best.set(c.event, edge);
   }

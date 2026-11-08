@@ -126,6 +126,7 @@ function renderPnl() {
   el('unrealized-label').textContent = pnlPeriod === 'day' ? 'Unrealized change today ⓘ' : 'Unrealized at last mark ⓘ';
   el('unrealized-label').title = 'Marked P&L on open positions. Today shows its change since the prior day’s last mark; closing inventory transfers P&L into realized profit.';
   el('pnl-asof').textContent = pnl.asOf ? `Model marks through ${new Date(pnl.asOf).toLocaleString()}` : 'No accounting observations available';
+  if (research.mm?.total?.staleIntervals > 0) el('pnl-asof').textContent += ` · ${research.mm.total.staleIntervals} expired quote intervals · ${research.mm.total.fills} inferred fills (sparse coverage)`;
   const rows = (pnlPeriod === 'day' ? pnl.intraday : pnl.history) ?? [];
   // Sample by time index, retaining the last observation; never fill missing periods with invented values.
   const points = rows.filter((_, i) => i === rows.length - 1 || i % Math.max(1, Math.ceil(rows.length / 12)) === 0);

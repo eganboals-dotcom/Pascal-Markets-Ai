@@ -84,17 +84,28 @@ function makerVariant(kind, event, legs, payout, options) {
 
 // At most one outcome of a mutually exclusive event wins, so No on k outcomes pays at least k - 1.
 // Buying Yes on every outcome is not safe: the outcomes need not be exhaustive.
-// shortcut: uses every outcome with a No ask; dropping a thin leg can allow more contracts, add a subset search if hits are size-limited.
+// Subsets retain the same at-most-one-winner guarantee and can avoid a thin or illiquid leg.
 export function noBaskets(events, { feeRate = 0.07, ...options } = {}) {
   const found = [];
   for (const event of events) {
     if (event.mutually_exclusive !== true) continue;
     const legs = (event.markets ?? []).map(market => kalshiLeg(market, 'no', feeRate, options.series?.[event.series_ticker])).filter(Boolean);
     if (legs.length < 2) continue;
-    const basket = price('no-basket', event.title, legs, legs.length - 1, { ...options, event });
-    if (basket) found.push({ ...basket, event: event.event_ticker });
-    const maker = makerVariant('no-basket', event, legs, legs.length - 1, options);
-    if (maker) found.push(maker);
+    const liquid = legs.filter(l => Number.isFinite(l.volume24h) && l.volume24h >= (options.verified?.minLegVolume24h ?? 500));
+    const depths = [...new Set([1, options.maxContracts ?? 100, ...liquid.map(l => Math.min(options.maxContracts ?? 100, Math.floor(l.size)))])].filter(n => n >= 1).sort((a, b) => a - b);
+    // Bound subset enumeration to eight depth breakpoints per event, including both endpoints.
+    const levels = depths.length <= 8 ? depths : Array.from({ length: 8 }, (_, i) => depths[Math.round(i * (depths.length - 1) / 7)]);
+    const seen = new Set();
+    for (const subset of [legs, ...levels.map(n => liquid.filter(l => l.size >= n))]) {
+      if (subset.length < 2) continue;
+      const key = JSON.stringify(subset.map(l => l.ticker));
+      if (seen.has(key)) continue;
+      seen.add(key);
+      const basket = price('no-basket', event.title, subset, subset.length - 1, { ...options, event });
+      if (basket) found.push(basket);
+      const maker = makerVariant('no-basket', event, subset, subset.length - 1, options);
+      if (maker) found.push(maker);
+    }
   }
   return found;
 }

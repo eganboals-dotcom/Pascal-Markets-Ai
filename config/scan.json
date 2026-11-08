@@ -62,7 +62,10 @@
     "maxMarkets": 50,
     "maxInventory": 10,
     "skewTicks": 1,
-    "pullMinutes": 60
+    "pullMinutes": 60,
+    "maxQuoteAgeMs": 30000,
+    "maxMarkoutDelayMs": 30000,
+    "minQuoteEdge": 0.005
   },
   "trading": {
     "enabled": false,
