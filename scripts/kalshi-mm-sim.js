@@ -1,4 +1,5 @@
-import { readFileSync } from 'node:fs';
+import { createReadStream } from 'node:fs';
+import { createInterface } from 'node:readline';
 import { simulate } from '../src/mm.js';
 import { fetchMarkets } from '../src/kalshi.js';
 import { readResearch, markdownTable } from '../src/report.js';
@@ -6,15 +7,21 @@ import { projectPath, writeProjectFile } from '../src/files.js';
 
 const out = process.argv[2] ?? 'research/kalshi';
 const config = readResearch('config/scan.json', {});
+// Streamed line by line: a week of 100-market recordings is larger than Node can hold as one string.
 // The game-day recorder may be appending while this replay reads; an unfinished final line is left for the next run.
-function readRecent(path) {
-  let text;
-  try { text = readFileSync(projectPath(path), 'utf8'); } catch (error) { if (error.code === 'ENOENT') return []; throw error; }
-  const lines = text.split(/\r?\n/);
-  if (!text.endsWith('\n')) lines.pop();
-  // shortcut: the live recording is read whole and only the last seven days are replayed, rotate the file if it outgrows memory.
-  const since = Date.now() - 7 * 86400000;
-  return lines.filter(Boolean).map(line => JSON.parse(line)).filter(row => row.time >= since);
+// shortcut: the file is never rotated and is re-read in full each run, rotate it daily once runs get slow.
+async function readRecent(path, days = config.mm?.replayDays ?? 7) {
+  const since = Date.now() - days * 86400000, rows = [];
+  const keep = line => { const row = JSON.parse(line); if (row.time >= since) rows.push(row); };
+  let pending = null;
+  try {
+    for await (const line of createInterface({ input: createReadStream(projectPath(path)), crlfDelay: Infinity })) {
+      if (pending) keep(pending);
+      pending = line || null;
+    }
+  } catch (error) { if (error.code === 'ENOENT') return []; throw error; }
+  if (pending) { try { keep(pending); } catch { /* unfinished final line */ } }
+  return rows;
 }
 // Settled outcomes are permanent, so they are cached; only markets missing from recent books are asked about again.
 async function readSettlements(books, now = Date.now()) {
@@ -27,7 +34,7 @@ async function readSettlements(books, now = Date.now()) {
   } catch (error) { console.error(JSON.stringify({ settlementError: error.message })); } // Unsettled marks still stand; the next run retries.
   return known;
 }
-const books = readRecent(`${out}/books.jsonl`), trades = readRecent(`${out}/trades.jsonl`);
+const books = await readRecent(`${out}/books.jsonl`), trades = await readRecent(`${out}/trades.jsonl`);
 const settlements = await readSettlements(books);
 const result = { generatedAt: Date.now(), ...simulate(books, { ...config.mm, makerFeeRate: config.makerFeeRate ?? 0.0175, takerFeeRate: config.feeRate ?? 0.07, settlements, trades }) };
 const rows = [...result.markets, { ticker: 'TOTAL', ...result.total }];

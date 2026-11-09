@@ -60,6 +60,11 @@
   "makerMaxSpread": 0.04,
   "mm": {
     "maxMarkets": 100,
+    "seriesPrefixes": ["KXNFL", "KXNBA", "KXWNBA", "KXNHL", "KXMLB", "KXEPL", "KXLALIGA", "KXSERIEA", "KXBUNDESLIGA", "KXLIGUE1", "KXUCL", "KXUEL", "KXUECL",
+      "KXEREDIVISIE", "KXLIGAPORTUGAL", "KXFACUP", "KXEFLCUP", "KXDFBPOKAL", "KXCOPADELREY", "KXCOPPAITALIA", "KXCOUPEDEFRANCE"],
+    "excludeSeriesPattern": "^KX(LALIGA|BUNDESLIGA|LIGAPORTUGAL)2(?!H)|^KXSERIEAW",
+    "nearTermHours": 48,
+    "replayDays": 3,
     "prioritySeries": ["KXNFLTD", "KXNFLFIRSTTD", "KXNFLREC", "KXNFLRECYDS", "KXNFLRSHYDS", "KXNFLRSHATT", "KXNFLPASSYDS", "KXNFLPASSTDS", "KXNFLPASSCOMP", "KXNFLPASSATT"],
     "tradeSeconds": 60,
     "maxInventory": 5,

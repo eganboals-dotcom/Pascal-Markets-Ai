@@ -287,7 +287,7 @@ export async function runScan(config, pairs = [], now = Date.now(), { retainCont
   const candidates = [...noBaskets(events, options), ...ladders(events, options), ...cross.found].filter(c => !c.checks.includes('horizon'));
   const hits = candidates.filter(c => isHit(c, config));
   return { scannedAt: now, events: events.length, markets: events.reduce((n, e) => n + (e.markets?.length ?? 0), 0),
-    candidates, hits, books: quotingCandidates(events, series, config, now), nearMissSummary: nearMissSummary(candidates.filter(c => !hits.includes(c))), errors: [...auto.errors, ...cross.errors],
+    candidates, hits, books: quotingCandidates(allEvents, series, config, now), nearMissSummary: nearMissSummary(candidates.filter(c => !hits.includes(c))), errors: [...auto.errors, ...cross.errors],
     ...(retainContext ? { context: { events, series, pairs: matchedPairs } } : {}) };
 }
 
@@ -297,16 +297,22 @@ export function quotingCandidates(events, series, config, now = Date.now()) {
   // A market picked inside the pre-game quoting window would never be quoted, so the lead covers that window plus an hour.
   const lead = Math.max(2 * 3600000, ((config.mm?.pullBeforeExpiryMinutes ?? 0) + 60) * 60000);
   if (!Number.isInteger(cap) || cap < 0) throw new Error('Invalid MM market cap');
+  // mm.seriesPrefixes names the leagues to quote (minus mm.excludeSeriesPattern, e.g. second divisions); without it, the
+  // scan focus decides. Any other certified market qualifies when it ends within mm.nearTermHours.
+  const leagues = config.mm?.seriesPrefixes, exclude = config.mm?.excludeSeriesPattern ? new RegExp(config.mm.excludeSeriesPattern) : null;
+  const nearMs = (config.mm?.nearTermHours ?? 0) * 3600000;
+  if (!(nearMs >= 0) || (leagues && !Array.isArray(leagues))) throw new Error('Invalid MM market selection');
   const books = [];
   for (const event of events) {
     const s = series[event.series_ticker];
-    if (!inFocus(event, series, config.focus) || !s?.contract_url?.startsWith('https://assets.kalshi.com/regulatory/product-certifications/') || !event.settlement_sources?.length) continue;
+    if (!s?.contract_url?.startsWith('https://assets.kalshi.com/regulatory/product-certifications/') || !event.settlement_sources?.length) continue;
+    const league = leagues ? leagues.some(p => event.series_ticker?.startsWith(p)) && !exclude?.test(event.series_ticker) : inFocus(event, series, config.focus);
     for (const m of event.markets ?? []) {
       const bid = Number(m.yes_bid_dollars), ask = Number(m.yes_ask_dollars), spread = ask - bid;
       const close = Date.parse(m.close_time), expiry = Date.parse(m.expected_expiration_time || m.close_time);
       if (m.status !== 'active' || !(bid > 0 && ask < 1) || spread < 0.02 - 1e-9 || spread > 0.06 + 1e-9 ||
           Number(m.volume_24h_fp) < 500 || !Number.isFinite(Number(m.volume_24h_fp)) || !(Number(m.yes_bid_size_fp) > 0 && Number(m.yes_ask_size_fp) > 0) ||
-          !(Math.min(close, expiry) - now > lead)) continue;
+          !(Math.min(close, expiry) - now > lead) || !(league || Math.min(close, expiry) - now <= nearMs)) continue;
       books.push(bookRow(m, s, now));
     }
   }

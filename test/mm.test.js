@@ -171,3 +171,16 @@ test('priority series fill the quoting cohort before higher-volume markets', () 
   assert.equal(quotingCandidates(events, series, config, start)[0].ticker, 'KXA-1');
   assert.equal(quotingCandidates(events, series, { ...config, mm: { maxMarkets: 1 } }, start)[0].ticker, 'KXB-1');
 });
+
+test('cohort takes named leagues minus excluded series, plus any certified market ending soon', () => {
+  const at = hours => new Date(start + hours * 3600000).toISOString();
+  const m = (ticker, hours) => ({ ticker, status: 'active', yes_bid_dollars: '.48', yes_ask_dollars: '.52', yes_bid_size_fp: '5', yes_ask_size_fp: '10', volume_24h_fp: '600', close_time: at(hours) });
+  const certified = t => ({ contract_url: `https://assets.kalshi.com/regulatory/product-certifications/${t}`, fee_type: 'quadratic' });
+  const series = { KXEPLGAME: certified('a'), KXLALIGA2GAME: certified('b'), KXLALIGA2HTOTAL: certified('c'), KXCPI: certified('d') };
+  const event = (s, ticker, hours) => ({ series_ticker: s, settlement_sources: [{}], markets: [m(ticker, hours)] });
+  const events = [event('KXEPLGAME', 'KXEPLGAME-A', 100), event('KXLALIGA2GAME', 'KXLALIGA2GAME-B', 100), event('KXLALIGA2HTOTAL', 'KXLALIGA2HTOTAL-C', 100),
+    event('KXCPI', 'KXCPI-NEAR', 24), event('KXCPI', 'KXCPI-FAR', 100), event('KXCPI', 'KXCPI-TOOSOON', 3)];
+  const mm = { maxMarkets: 10, pullBeforeExpiryMinutes: 240, seriesPrefixes: ['KXEPL', 'KXLALIGA'], excludeSeriesPattern: '^KXLALIGA2(?!H)', nearTermHours: 48 };
+  assert.deepEqual(quotingCandidates(events, series, { mm }, start).map(b => b.ticker).sort(), ['KXCPI-NEAR', 'KXEPLGAME-A', 'KXLALIGA2HTOTAL-C']);
+  assert.throws(() => quotingCandidates(events, series, { mm: { ...mm, nearTermHours: -1 } }, start), /Invalid MM market selection/);
+});
