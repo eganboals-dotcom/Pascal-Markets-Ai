@@ -107,3 +107,41 @@ test('open inventory is marked at the exit side less the taker fee to flatten it
   assert.ok(Math.abs(total.netPnl - (-.49 + .46 - .0174)) < 1e-9);
   assert.ok(Math.abs(total.realizedPnl + total.unrealizedPnl - total.netPnl) < 1e-9);
 });
+
+test('settled markets value inventory at the outcome, with no exit fee or unrealized remainder', () => {
+  const rows = [book(0, .48, .54), book(15, .46, .49)];
+  const open = simulate(rows, { skewTicks: 0 });
+  const won = simulate(rows, { skewTicks: 0, settlements: { TEST: 1 } }), lost = simulate(rows, { skewTicks: 0, settlements: { TEST: 0 } });
+  assert.equal(open.markets[0].inventory, 1);
+  assert.equal(won.markets[0].settled, true);
+  assert.ok(Math.abs(won.total.netPnl - (1 - .49)) < 1e-9);
+  assert.ok(Math.abs(lost.total.netPnl + .49) < 1e-9);
+  assert.equal(won.total.unrealizedPnl, 0);
+  assert.ok(Math.abs(won.total.realizedPnl - won.total.netPnl) < 1e-9);
+  assert.ok(Math.abs(won.equity.at(-1).netPnl - won.total.netPnl) < 1e-9);
+});
+
+test('quoting stops before the expected game end window, after a mid jump and outside the mid band', () => {
+  const rows = [book(0, .48, .54), book(15, .46, .49)];
+  const expiry = { expected_expiration_time: new Date(start + 200 * 60000).toISOString() };
+  assert.equal(simulate(rows.map(r => ({ ...r, ...expiry })), { pullBeforeExpiryMinutes: 240 }).total.fills, 0);
+  assert.equal(simulate(rows.map(r => ({ ...r, ...expiry })), { pullBeforeExpiryMinutes: 120 }).total.fills, 1);
+  // The jump itself can still hit the resting quote; nothing is quoted afterwards.
+  const jumpy = [book(0, .48, .54), book(15, .40, .46), book(30, .30, .36)];
+  assert.equal(simulate(jumpy, { jumpHalt: .05 }).total.fills, 1);
+  assert.equal(simulate(jumpy).total.fills, 2);
+  const tail = [book(0, .02, .06), book(15, .01, .03)];
+  assert.equal(simulate(tail, { minMid: .05, maxMid: .95 }).total.fills, 0);
+  for (const bad of [{ pullBeforeExpiryMinutes: -1 }, { minMid: .6, maxMid: .4 }, { jumpHalt: 0 }]) assert.throws(() => simulate(rows, bad));
+});
+
+test('quoting cohort needs enough lead to quote before the pre-game cutoff', () => {
+  const m = { ticker: 'KXTEST-A', status: 'active', yes_bid_dollars: '.48', yes_ask_dollars: '.52', yes_bid_size_fp: '5', yes_ask_size_fp: '10', volume_24h_fp: '500',
+    close_time: new Date(start + 86400000).toISOString(), expected_expiration_time: new Date(start + 4.5 * 3600000).toISOString() };
+  const event = { series_ticker: 'KXTEST', settlement_sources: [{}], markets: [m] };
+  const series = { KXTEST: { contract_url: 'https://assets.kalshi.com/regulatory/product-certifications/test', fee_type: 'quadratic' } };
+  assert.equal(quotingCandidates([event], series, { focus: { seriesPrefixes: ['KXTEST'] }, mm: {} }, start).length, 1);
+  const picked = quotingCandidates([event], series, { focus: { seriesPrefixes: ['KXTEST'] }, mm: { pullBeforeExpiryMinutes: 240 } }, start);
+  assert.equal(picked.length, 0);
+  assert.equal(quotingCandidates([event], series, { focus: { seriesPrefixes: ['KXTEST'] }, mm: {} }, start)[0].expected_expiration_time, m.expected_expiration_time);
+});

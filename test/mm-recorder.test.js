@@ -29,8 +29,10 @@ test('recordBooks keeps cohort fees and drops inactive or unrequested markets', 
   const cohort = [{ ticker: 'A', fee_type: 'quadratic_with_maker_fees', fee_multiplier: 2 }, { ticker: 'B', fee_type: 'quadratic' }];
   const rows = await recordBooks(cohort, 5, async () => [market('A'), market('B', 'closed'), market('C')]);
   assert.deepEqual(rows, [{ ticker: 'A', time: 5, yesBid: .4, yesAsk: .44, yesBidSize: 10, yesAskSize: 12, volume_24h: 900,
-    close_time: '2026-11-09T00:00:00Z', fee_type: 'quadratic_with_maker_fees', fee_multiplier: 2 }]);
+    close_time: '2026-11-09T00:00:00Z', expected_expiration_time: null, fee_type: 'quadratic_with_maker_fees', fee_multiplier: 2 }]);
   assert.equal(bookRow(market('B'), cohort[1], 1).fee_multiplier, 1);
+  // The pre-game cutoff depends on the expected game end being recorded with each snapshot.
+  assert.equal(bookRow({ ...market('B'), expected_expiration_time: '2026-11-08T21:00:00Z' }, cohort[1], 1).expected_expiration_time, '2026-11-08T21:00:00Z');
 });
 
 test('REST game-day loop hands each full scan, with its quoting books, to onFullScan', async () => {

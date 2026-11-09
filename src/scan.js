@@ -294,6 +294,8 @@ export async function runScan(config, pairs = [], now = Date.now(), { retainCont
 export function quotingCandidates(events, series, config, now = Date.now()) {
   // shortcut: eligibility is sampled anew each scan, retain a fixed cohort through close when measuring selection bias and off-focus moves.
   const cap = config.mm?.maxMarkets ?? 50;
+  // A market picked inside the pre-game quoting window would never be quoted, so the lead covers that window plus an hour.
+  const lead = Math.max(2 * 3600000, ((config.mm?.pullBeforeExpiryMinutes ?? 0) + 60) * 60000);
   if (!Number.isInteger(cap) || cap < 0) throw new Error('Invalid MM market cap');
   const books = [];
   for (const event of events) {
@@ -304,7 +306,7 @@ export function quotingCandidates(events, series, config, now = Date.now()) {
       const close = Date.parse(m.close_time), expiry = Date.parse(m.expected_expiration_time || m.close_time);
       if (m.status !== 'active' || !(bid > 0 && ask < 1) || spread < 0.02 - 1e-9 || spread > 0.06 + 1e-9 ||
           Number(m.volume_24h_fp) < 500 || !Number.isFinite(Number(m.volume_24h_fp)) || !(Number(m.yes_bid_size_fp) > 0 && Number(m.yes_ask_size_fp) > 0) ||
-          !(Math.min(close, expiry) - now > 2 * 3600000)) continue;
+          !(Math.min(close, expiry) - now > lead)) continue;
       books.push(bookRow(m, s, now));
     }
   }

@@ -60,9 +60,13 @@
   "makerMaxSpread": 0.04,
   "mm": {
     "maxMarkets": 50,
-    "maxInventory": 10,
+    "maxInventory": 5,
     "skewTicks": 1,
     "pullMinutes": 60,
+    "pullBeforeExpiryMinutes": 240,
+    "jumpHalt": 0.03,
+    "minMid": 0.05,
+    "maxMid": 0.95,
     "maxQuoteAgeMs": 30000,
     "maxMarkoutDelayMs": 30000,
     "minQuoteEdge": 0.005
