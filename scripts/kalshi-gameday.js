@@ -4,7 +4,7 @@ import { readFileSync, appendFileSync, mkdirSync } from 'node:fs';
 import { PROJECT_ROOT, projectPath, writeProjectFile } from '../src/files.js';
 import { runGameday } from '../src/gameday.js';
 import { feedCredentials } from '../src/feed.js';
-import { recordBooks } from '../src/mm-recorder.js';
+import { recordBooks, recordTrades } from '../src/mm-recorder.js';
 
 const arg = (name, fallback) => process.argv.find(a => a.startsWith(`--${name}=`))?.slice(name.length + 3) ?? fallback;
 if (process.argv.some(a => a.startsWith('--minutes'))) throw new Error('Use gameday.fullMinutes and gameday.fastSeconds in config/scan.json');
@@ -42,9 +42,23 @@ const recorder = setInterval(() => {
   recordBooks(cohort, Date.now()).then(appendBooks, error => console.error(JSON.stringify({ bookError: error.message })))
     .finally(() => { recording = false; });
 }, (config.gameday?.fastSeconds ?? 15) * 1000);
+// Public trade prints for the same cohort tell the simulator when a resting quote would really have been hit.
+let tradeCursors = new Map(), tradeRecording = false;
+const tradeRecorder = setInterval(() => {
+  if (tradeRecording || !tradeCursors.size) return;
+  tradeRecording = true;
+  recordTrades(tradeCursors).then(result => {
+    if (result.rows.length) appendFileSync(projectPath(`${out}/trades.jsonl`), result.rows.map(r => JSON.stringify(r)).join('\n') + '\n');
+    if (result.errors.length) console.error(JSON.stringify({ tradeErrors: result.errors.slice(0, 5) }));
+    // The cohort may have changed during the poll; only markets still in it keep their advanced cursor.
+    tradeCursors = new Map([...tradeCursors].map(([ticker, c]) => [ticker, result.cursors.get(ticker) ?? c]));
+  }, error => console.error(JSON.stringify({ tradeError: error.message }))).finally(() => { tradeRecording = false; });
+}, (config.mm?.tradeSeconds ?? 60) * 1000);
 function onFullScan(scan) {
   cohort = scan.books ?? [];
   appendBooks(cohort);
+  const now = Date.now();
+  tradeCursors = new Map(cohort.map(b => [b.ticker, tradeCursors.get(b.ticker) ?? { time: now, ids: new Set() }]));
   if (simulator) return; // The previous replay is still running.
   const child = simulator = spawn(process.execPath, ['scripts/kalshi-mm-sim.js', out], { cwd: PROJECT_ROOT, windowsHide: true, stdio: ['ignore', 'ignore', 'pipe'] });
   children.add(child);
@@ -94,5 +108,6 @@ await runGameday({ config, feedMode, onFullScan, pairs: readJson('config/pairs.j
   }
 });
 clearInterval(recorder);
+clearInterval(tradeRecorder);
 console.log('Game-day loop finished.');
 if (dashboard) shutdown();

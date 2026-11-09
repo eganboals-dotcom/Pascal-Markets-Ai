@@ -310,7 +310,9 @@ export function quotingCandidates(events, series, config, now = Date.now()) {
       books.push(bookRow(m, s, now));
     }
   }
-  return books.sort((a, b) => b.volume_24h - a.volume_24h || a.ticker.localeCompare(b.ticker)).slice(0, cap);
+  // Priority series fill the cohort first: pre-game NFL props were the only group profitable after settlement on 2026-11-08.
+  const priority = config.mm?.prioritySeries ?? [], ranked = b => priority.some(p => b.ticker.startsWith(`${p}-`)) ? 0 : 1;
+  return books.sort((a, b) => ranked(a) - ranked(b) || b.volume_24h - a.volume_24h || a.ticker.localeCompare(b.ticker)).slice(0, cap);
 }
 
 export function nearMissSummary(candidates) {

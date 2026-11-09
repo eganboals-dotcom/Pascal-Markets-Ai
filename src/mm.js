@@ -2,10 +2,10 @@ import { kalshiFee } from './kalshi.js';
 
 const minute = 60000;
 const cents = x => Math.round(x * 100) / 100;
-const metrics = () => ({ fills: 0, spreadCaptured: 0, fees: 0, adverseSelectionLoss: 0, markedFills: 0, unmarkedFills: 0, grossPnl: 0, netPnl: 0, staleIntervals: 0 });
+const metrics = () => ({ fills: 0, spreadCaptured: 0, fees: 0, adverseSelectionLoss: 0, markedFills: 0, unmarkedFills: 0, grossPnl: 0, netPnl: 0, staleIntervals: 0, tradeFills: 0 });
 
 export function simulate(snapshots, { maxInventory = 10, skewTicks = 1, pullMinutes = 60, makerFeeRate = 0.0175, maxQuoteAgeMs = 30000, maxMarkoutDelayMs = 30000, minQuoteEdge = 0.005, takerFeeRate = 0.07,
-  pullBeforeExpiryMinutes = null, minMid = 0, maxMid = 1, jumpHalt = Infinity, settlements = {} } = {}) {
+  pullBeforeExpiryMinutes = null, minMid = 0, maxMid = 1, jumpHalt = Infinity, settlements = {}, trades = [] } = {}) {
   if (!Number.isInteger(maxInventory) || maxInventory < 1 || !Number.isFinite(skewTicks) || skewTicks < 0 || !Number.isFinite(pullMinutes) || pullMinutes < 0 || !Number.isFinite(makerFeeRate) || makerFeeRate < 0 || !Number.isFinite(takerFeeRate) || takerFeeRate < 0) throw new Error('Invalid MM options');
   if (![maxQuoteAgeMs, maxMarkoutDelayMs, minQuoteEdge].every(n => Number.isFinite(n) && n >= 0)) throw new Error('Invalid MM freshness or edge');
   if ((pullBeforeExpiryMinutes !== null && !(pullBeforeExpiryMinutes >= 0)) || !(minMid >= 0 && maxMid <= 1 && minMid < maxMid) || !(jumpHalt > 0)) throw new Error('Invalid MM risk limits');
@@ -15,6 +15,13 @@ export function simulate(snapshots, { maxInventory = 10, skewTicks = 1, pullMinu
     if (!groups.has(s.ticker)) groups.set(s.ticker, []);
     groups.get(s.ticker).push(s);
   }
+  const tapes = new Map();
+  for (const t of trades) {
+    if (!t?.ticker || !Number.isFinite(t.time) || !Number.isFinite(t.price) || !['yes', 'no'].includes(t.takerSide)) continue;
+    if (!tapes.has(t.ticker)) tapes.set(t.ticker, []);
+    tapes.get(t.ticker).push(t);
+  }
+  for (const tape of tapes.values()) tape.sort((a, b) => a.time - b.time);
   const markets = [], changes = [];
   for (const [ticker, rows] of groups) {
     // Open inventory is marked at its exit side (bid for long, ask for short) less the taker fee to flatten it.
@@ -23,18 +30,29 @@ export function simulate(snapshots, { maxInventory = 10, skewTicks = 1, pullMinu
     rows.sort((a, b) => a.time - b.time);
     let halted = false, priorMid = null;
     let inventory = 0, cash = 0, quotes = null, maxAbsInventory = 0, averageEntry = 0, closedGross = 0, priorRealized = 0, priorUnrealized = 0;
-    const fills = [], result = { ticker, ...metrics() };
+    const fills = [], result = { ticker, ...metrics() }, tape = tapes.get(ticker) ?? [];
+    let next = 0;
     for (const s of rows) {
       const mid = (s.yesBid + s.yesAsk) / 2;
       // A game market's close_time is a backstop days out; expected expiry tracks the game, so quoting stops before play starts.
       const expiry = Date.parse(s.expected_expiration_time);
       const cutoff = s.time >= Date.parse(s.close_time) - pullMinutes * minute ||
         (pullBeforeExpiryMinutes !== null && Number.isFinite(expiry) && s.time >= expiry - pullBeforeExpiryMinutes * minute);
-      // shortcut: one contract per crossed quote and no queue model, upgrade with trade/depth recordings before execution research.
+      // A recorded trade while the quote rested also fills it: a seller at or below the model bid would have hit that better
+      // price first, and a buyer at or above the model ask likewise. Without trades, only a crossed book counts.
+      let soldInto = false, boughtFrom = false;
+      while (next < tape.length && tape[next].time <= s.time) {
+        const t = tape[next++];
+        if (!quotes || t.time <= quotes.time) continue;
+        if (t.takerSide === 'no' && quotes.bid != null && t.price <= quotes.bid + 1e-9) soldInto = true;
+        if (t.takerSide === 'yes' && quotes.ask != null && t.price >= quotes.ask - 1e-9) boughtFrom = true;
+      }
+      // shortcut: one contract per side per interval and no queue model, upgrade with depth recordings before sizing up.
       if (quotes && s.time - quotes.time > maxQuoteAgeMs) result.staleIntervals++;
       if (quotes && s.time > quotes.time && s.time - quotes.time <= maxQuoteAgeMs && !cutoff) {
-        for (const [side, p, crossed] of [['buy', quotes.bid, s.yesAskSize >= 1 && s.yesAsk <= quotes.bid + 1e-9], ['sell', quotes.ask, s.yesBidSize >= 1 && s.yesBid >= quotes.ask - 1e-9]]) {
-          if (p == null || !crossed || (side === 'buy' ? inventory >= maxInventory : inventory <= -maxInventory)) continue;
+        for (const [side, p, crossed, traded] of [['buy', quotes.bid, s.yesAskSize >= 1 && s.yesAsk <= quotes.bid + 1e-9, soldInto], ['sell', quotes.ask, s.yesBidSize >= 1 && s.yesBid >= quotes.ask - 1e-9, boughtFrom]]) {
+          if (p == null || !(crossed || traded) || (side === 'buy' ? inventory >= maxInventory : inventory <= -maxInventory)) continue;
+          if (!crossed) result.tradeFills++;
           const direction = side === 'buy' ? 1 : -1;
           const feeRate = quotes.fee_type === 'quadratic' ? 0 : makerFeeRate * quotes.fee_multiplier;
           const fee = kalshiFee(1, p, feeRate);

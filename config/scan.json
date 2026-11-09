@@ -59,7 +59,9 @@
   },
   "makerMaxSpread": 0.04,
   "mm": {
-    "maxMarkets": 50,
+    "maxMarkets": 100,
+    "prioritySeries": ["KXNFLTD", "KXNFLFIRSTTD", "KXNFLREC", "KXNFLRECYDS", "KXNFLRSHYDS", "KXNFLRSHATT", "KXNFLPASSYDS", "KXNFLPASSTDS", "KXNFLPASSCOMP", "KXNFLPASSATT"],
+    "tradeSeconds": 60,
     "maxInventory": 5,
     "skewTicks": 1,
     "pullMinutes": 60,

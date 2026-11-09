@@ -145,3 +145,29 @@ test('quoting cohort needs enough lead to quote before the pre-game cutoff', () 
   assert.equal(picked.length, 0);
   assert.equal(quotingCandidates([event], series, { focus: { seriesPrefixes: ['KXTEST'] }, mm: {} }, start)[0].expected_expiration_time, m.expected_expiration_time);
 });
+
+test('recorded trades fill a resting quote without a crossed book; earlier or wrong-side prints do not', () => {
+  // Quote at 0: bid .49, ask .53. The next book is unchanged, so only trades can fill.
+  const rows = [book(0, .48, .54), book(15, .48, .54)];
+  const at = (minutes, price, takerSide) => ({ ticker: 'TEST', time: start + minutes * 60000, price, takerSide, count: 1 });
+  assert.equal(simulate(rows, { skewTicks: 0 }).total.fills, 0);
+  const sold = simulate(rows, { skewTicks: 0, trades: [at(5, .48, 'no')] });
+  assert.equal(sold.total.fills, 1);
+  assert.equal(sold.total.tradeFills, 1);
+  assert.equal(sold.markets[0].inventory, 1);
+  const bought = simulate(rows, { skewTicks: 0, trades: [at(5, .54, 'yes')] });
+  assert.equal(bought.markets[0].inventory, -1);
+  for (const ignored of [[at(0, .48, 'no')], [at(5, .50, 'no')], [at(5, .48, 'yes')], [{ ...at(5, .48, 'no'), takerSide: 'x' }], [{ ...at(5, .48, 'no'), ticker: 'OTHER' }]]) {
+    assert.equal(simulate(rows, { skewTicks: 0, trades: ignored }).total.fills, 0);
+  }
+});
+
+test('priority series fill the quoting cohort before higher-volume markets', () => {
+  const m = (ticker, volume) => ({ ticker, status: 'active', yes_bid_dollars: '.48', yes_ask_dollars: '.52', yes_bid_size_fp: '5', yes_ask_size_fp: '10', volume_24h_fp: String(volume),
+    close_time: new Date(start + 86400000).toISOString() });
+  const series = { KXA: { contract_url: 'https://assets.kalshi.com/regulatory/product-certifications/a', fee_type: 'quadratic' }, KXB: { contract_url: 'https://assets.kalshi.com/regulatory/product-certifications/b', fee_type: 'quadratic' } };
+  const events = [{ series_ticker: 'KXA', settlement_sources: [{}], markets: [m('KXA-1', 600)] }, { series_ticker: 'KXB', settlement_sources: [{}], markets: [m('KXB-1', 9000)] }];
+  const config = { focus: { seriesPrefixes: ['KXA', 'KXB'] }, mm: { maxMarkets: 1, prioritySeries: ['KXA'] } };
+  assert.equal(quotingCandidates(events, series, config, start)[0].ticker, 'KXA-1');
+  assert.equal(quotingCandidates(events, series, { ...config, mm: { maxMarkets: 1 } }, start)[0].ticker, 'KXB-1');
+});
