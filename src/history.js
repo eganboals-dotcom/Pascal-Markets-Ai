@@ -32,3 +32,10 @@ export const quotable = (rows, end, { minMid = 0, maxMid = 1 } = {}) => rows.som
 export const settlementValue = m => m.result === 'yes' ? 1 : m.result === 'no' ? 0 : null;
 
 export const seriesOf = m => m.event_ticker?.split('-')[0];
+
+// Whether a backfill log shows a finished download: its last line is the script's finished marker; no new line for stallMs means it died.
+export function downloadState(logText, modifiedMs, now = Date.now(), stallMs = 3 * 3600000) {
+  const last = logText.trim().split('\n').at(-1) ?? '';
+  try { if (JSON.parse(last).finished === true) return 'finished'; } catch { /* a partial last line while the backfill appends */ }
+  return now - modifiedMs > stallMs ? 'stalled' : 'running';
+}

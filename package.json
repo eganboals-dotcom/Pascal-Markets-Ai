@@ -10,6 +10,7 @@
     "test": "node --test",
     "scan": "node src/cli.js scan",
     "scan:record": "node scripts/kalshi-scan.js",
-    "start": "node src/cli.js serve"
+    "start": "node src/cli.js serve",
+    "model": "node scripts/kalshi-model.js"
   }
 }

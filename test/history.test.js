@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { fetchCandles, fetchSettledMarkets } from '../src/kalshi.js';
 import { fetchTrades } from '../src/kalshi.js';
-import { HEARTBEAT_MS, candleRows, quotable, quoteEnd, seriesOf, settlementValue } from '../src/history.js';
+import { HEARTBEAT_MS, candleRows, downloadState, quotable, quoteEnd, seriesOf, settlementValue } from '../src/history.js';
 
 test('quoteEnd applies the earlier pull rule and quotable needs a 3-tick spread inside the band before it', async () => {
   const mm = { pullMinutes: 60, pullBeforeExpiryMinutes: 240, minMid: .05, maxMid: .95 };
@@ -54,4 +54,13 @@ test('fetchSettledMarkets excludes combos, filters each page and stops on a repe
   assert.equal(new URL(urls[1]).searchParams.get('cursor'), 'c1');
   await assert.rejects(fetchSettledMarkets(0, 1, undefined, async () => ({ markets: [], cursor: 'x' }), 3), /Repeated/);
   await assert.rejects(fetchSettledMarkets(5, 5), /Invalid Kalshi history request/);
+});
+
+test('the model waits for the backfill finished marker and gives up on a stalled download', () => {
+  const now = Date.parse('2026-11-11T12:00:00Z'), hour = 3600000;
+  assert.equal(downloadState('{"day":"d","total":100}\n{"finished":true,"total":9}\n', now - 10 * hour, now), 'finished');
+  assert.equal(downloadState('{"day":"d","total":100}\n', now - hour, now), 'running');
+  assert.equal(downloadState('{"day":"d","total":100}\n{"fini', now - hour, now), 'running');
+  assert.equal(downloadState('{"day":"d","total":100}\n', now - 4 * hour, now), 'stalled');
+  assert.equal(downloadState('', now, now), 'running');
 });
