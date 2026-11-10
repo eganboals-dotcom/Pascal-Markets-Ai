@@ -49,6 +49,13 @@ for (let d = 1; d <= days && total < maxMarkets; d++) {
 
   async function backfill(m) {
     const series = seriesOf(m), close = Date.parse(m.close_time), start = Math.max(Date.parse(m.open_time), close - windowHours * 3600000);
+    // A market that is never open before its pull time (15-minute crypto and commodity series) cannot be quoted; skip it without a request.
+    if (quoteEnd(m, mm) <= start) {
+      append(`${dir}/markets.jsonl`, [{ ticker: m.ticker, series, volume: Number(m.volume_fp), result: m.result, books: 0, quotable: false, trades: 0, truncated: false, skipped: 'no quote window' }]);
+      settled[m.ticker] = settlementValue(m);
+      total++;
+      return;
+    }
     try {
       const books = candleRows(await fetchCandles(series, m.ticker, start, close, load), m, fees.get(series));
       // Trades after the pull time cannot fill a model quote; live-game tapes are most of Kalshi's volume, so they are skipped.
