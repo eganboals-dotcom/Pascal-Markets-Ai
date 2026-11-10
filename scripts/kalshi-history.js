@@ -12,7 +12,9 @@ const days = Number(arg('days', 60)), minVolume = Number(arg('min-volume', 1000)
 const mm = readResearch('config/scan.json', {}).mm ?? {};
 const rate = Number(arg('rate', 8)), maxMarkets = Number(arg('max-markets', Infinity)), out = arg('out', 'data/history');
 if (![days, minVolume, windowHours, rate].every(n => Number.isFinite(n) && n > 0) || !(maxMarkets > 0)) throw new Error('Usage: --days=60 --min-volume=1000 --window-hours=48 --rate=8 [--max-markets=N] [--out=data/history]');
-const day = 86400000, tradePages = 20, workers = 4;
+const workers = Number(arg('workers', 4));
+if (!(Number.isInteger(workers) && workers > 0)) throw new Error('--workers must be a positive integer');
+const day = 86400000, tradePages = 20;
 
 // The live recorder shares this IP's rate budget, so requests are spaced rather than burst; getJson still backs off on 429.
 let nextAt = 0;

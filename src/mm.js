@@ -4,8 +4,20 @@ const minute = 60000;
 const cents = x => Math.round(x * 100) / 100;
 const metrics = () => ({ fills: 0, spreadCaptured: 0, fees: 0, adverseSelectionLoss: 0, markedFills: 0, unmarkedFills: 0, grossPnl: 0, netPnl: 0, staleIntervals: 0, tradeFills: 0 });
 
+// One tick inside the touch, skewed against inventory, kept only where the edge over mid beats the maker fee.
+// Returns null when no side can be quoted (outside the mid band or no room inside the spread).
+export function quotePrices(s, inventory, { maxInventory = 10, skewTicks = 1, makerFeeRate = 0.0175, minQuoteEdge = 0.005, minMid = 0, maxMid = 1 } = {}) {
+  const mid = (s.yesBid + s.yesAsk) / 2, skew = -inventory * skewTicks * 0.01;
+  const bid = cents(Math.max(0.01, s.yesBid + 0.01 + skew)), ask = cents(Math.min(0.99, s.yesAsk - 0.01 + skew));
+  const rate = s.fee_type === 'quadratic' ? 0 : makerFeeRate * (s.fee_multiplier ?? 1);
+  if (!(mid >= minMid - 1e-9 && mid <= maxMid + 1e-9 && bid < ask && bid < s.yesAsk && ask > s.yesBid)) return null;
+  const buy = inventory < maxInventory && mid - bid - kalshiFee(1, bid, rate) >= minQuoteEdge - 1e-9 ? bid : null;
+  const sell = inventory > -maxInventory && ask - mid - kalshiFee(1, ask, rate) >= minQuoteEdge - 1e-9 ? ask : null;
+  return buy === null && sell === null ? null : { buy, sell, rate };
+}
+
 export function simulate(snapshots, { maxInventory = 10, skewTicks = 1, pullMinutes = 60, makerFeeRate = 0.0175, maxQuoteAgeMs = 30000, maxMarkoutDelayMs = 30000, minQuoteEdge = 0.005, takerFeeRate = 0.07,
-  pullBeforeExpiryMinutes = null, minMid = 0, maxMid = 1, jumpHalt = Infinity, settlements = {}, trades = [] } = {}) {
+  pullBeforeExpiryMinutes = null, minMid = 0, maxMid = 1, jumpHalt = Infinity, settlements = {}, trades = [], allow = null } = {}) {
   if (!Number.isInteger(maxInventory) || maxInventory < 1 || !Number.isFinite(skewTicks) || skewTicks < 0 || !Number.isFinite(pullMinutes) || pullMinutes < 0 || !Number.isFinite(makerFeeRate) || makerFeeRate < 0 || !Number.isFinite(takerFeeRate) || takerFeeRate < 0) throw new Error('Invalid MM options');
   if (![maxQuoteAgeMs, maxMarkoutDelayMs, minQuoteEdge].every(n => Number.isFinite(n) && n >= 0)) throw new Error('Invalid MM freshness or edge');
   if ((pullBeforeExpiryMinutes !== null && !(pullBeforeExpiryMinutes >= 0)) || !(minMid >= 0 && maxMid <= 1 && minMid < maxMid) || !(jumpHalt > 0)) throw new Error('Invalid MM risk limits');
@@ -32,8 +44,8 @@ export function simulate(snapshots, { maxInventory = 10, skewTicks = 1, pullMinu
     let inventory = 0, cash = 0, quotes = null, maxAbsInventory = 0, averageEntry = 0, closedGross = 0, priorRealized = 0, priorUnrealized = 0;
     const fills = [], result = { ticker, ...metrics() }, tape = tapes.get(ticker) ?? [];
     let next = 0;
-    for (const s of rows) {
-      const mid = (s.yesBid + s.yesAsk) / 2;
+    for (let i = 0; i < rows.length; i++) {
+      const s = rows[i], mid = (s.yesBid + s.yesAsk) / 2;
       // A game market's close_time is a backstop days out; expected expiry tracks the game, so quoting stops before play starts.
       const expiry = Date.parse(s.expected_expiration_time);
       const cutoff = s.time >= Date.parse(s.close_time) - pullMinutes * minute ||
@@ -75,17 +87,11 @@ export function simulate(snapshots, { maxInventory = 10, skewTicks = 1, pullMinu
       // A jump in the mid means news or live play. The move already hit any resting quote above; nothing is quoted again.
       if (priorMid !== null && Math.abs(mid - priorMid) >= jumpHalt - 1e-9) halted = true;
       priorMid = mid;
-      const pulled = cutoff || halted;
-      const skew = -inventory * skewTicks * 0.01;
-      const bid = cents(Math.max(0.01, s.yesBid + 0.01 + skew));
-      const ask = cents(Math.min(0.99, s.yesAsk - 0.01 + skew));
-      const rate = s.fee_type === 'quadratic' ? 0 : makerFeeRate * (s.fee_multiplier ?? 1);
-      const buy = inventory < maxInventory && mid - bid - kalshiFee(1, bid, rate) >= minQuoteEdge - 1e-9 ? bid : null;
-      const sell = inventory > -maxInventory && ask - mid - kalshiFee(1, ask, rate) >= minQuoteEdge - 1e-9 ? ask : null;
-      if (!pulled && mid >= minMid - 1e-9 && mid <= maxMid + 1e-9 && bid < ask && bid < s.yesAsk && ask > s.yesBid && (buy !== null || sell !== null)) {
-        quotes = { time: s.time, mid, bid: buy, ask: sell,
-          fee_type: s.fee_type, fee_multiplier: s.fee_multiplier ?? 1 };
-      }
+      const prices = cutoff || halted ? null : quotePrices(s, inventory, { maxInventory, skewTicks, makerFeeRate, minQuoteEdge, minMid, maxMid });
+      // An optional policy (for example the learned bandit) may decline a side the fixed rules would quote; it cannot add one.
+      const buy = prices?.buy != null && (!allow || allow(rows, i, 'buy', prices.buy)) ? prices.buy : null;
+      const sell = prices?.sell != null && (!allow || allow(rows, i, 'sell', prices.sell)) ? prices.sell : null;
+      if (buy !== null || sell !== null) quotes = { time: s.time, mid, bid: buy, ask: sell, fee_type: s.fee_type, fee_multiplier: s.fee_multiplier ?? 1 };
     }
     for (const fill of fills) {
       // Require a mark near the requested horizon; sparse later observations cannot establish a 15-minute markout.
