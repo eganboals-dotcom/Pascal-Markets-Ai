@@ -2,15 +2,21 @@
 // retries markets that hit Kalshi's rate limit in one more resumable pass, then runs kalshi-bandit.js. Research only; no orders.
 // The locked final exam is never run from here; it stays a separate, deliberate `kalshi-bandit.js --final`.
 import { spawnSync } from 'node:child_process';
-import { existsSync, openSync, readFileSync, statSync } from 'node:fs';
+import { existsSync, openSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { downloadState } from '../src/history.js';
 import { PROJECT_ROOT, projectPath } from '../src/files.js';
 
 const root = 'data/history', wait = process.argv.includes('--wait');
-// The same settings as the running backfill, so the retry pass covers the same markets.
-const backfillArgs = ['--days=60', '--rate=10', '--workers=8'];
 const file = name => projectPath(`${root}/${name}`);
+// The retry pass runs days after the backfill started, and both count days back from today, so a fixed --days=60 would skip
+// the oldest days' failures. Its range reaches back to the oldest day folder instead (days since then are downloaded too).
+function backfillArgs() {
+  const folders = existsSync(file('')) ? readdirSync(file('')).filter(d => /^\d{4}-\d{2}-\d{2}$/.test(d)).sort() : [];
+  const today = Math.floor(Date.now() / 86400000) * 86400000;
+  const days = folders.length ? Math.max(60, Math.round((today - Date.parse(folders[0])) / 86400000)) : 60;
+  return [`--days=${days}`, '--rate=10', '--workers=8'];
+}
 const status = () => existsSync(file('backfill.log')) ? downloadState(readFileSync(file('backfill.log'), 'utf8'), statSync(file('backfill.log')).mtimeMs) : 'missing';
 const say = fields => console.log(JSON.stringify({ time: new Date().toISOString(), ...fields }));
 
@@ -32,7 +38,7 @@ function run(args, log) {
 const errorLines = (name, match = '') => existsSync(file(name)) ? readFileSync(file(name), 'utf8').split('\n').filter(l => l && l.includes(match)).length : 0;
 if (errorLines('backfill.err.log')) {
   const before = errorLines('backfill.retry.err.log', '"listingError"');
-  run(['scripts/kalshi-history.js', ...backfillArgs], 'backfill.retry');
+  run(['scripts/kalshi-history.js', ...backfillArgs()], 'backfill.retry');
   // A day whose market list failed again is missing whole; a few single markets that still fail are not worth stopping for.
   if (errorLines('backfill.retry.err.log', '"listingError"') > before) {
     console.error('The retry pass could not list every day (see backfill.retry.err.log); rerun this when the connection is back. No model was run.');
