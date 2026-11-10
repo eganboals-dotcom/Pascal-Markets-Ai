@@ -4,11 +4,11 @@ import { bootstrapTotal, eventOf, pairedDifference, sumByEvent } from '../src/st
 import { simulate } from '../src/mm.js';
 
 test('markets of one game group into one event', () => {
-  assert.equal(eventOf('KXNFLGAME-26NOV08TBCHI-TB'), 'KXNFLGAME-26NOV08TBCHI');
-  assert.equal(eventOf('KXNFLGAME-26NOV08TBCHI-CHI'), 'KXNFLGAME-26NOV08TBCHI');
+  assert.equal(eventOf('KXNFLGAME-26NOV08TBCHI-TB'), '26NOV08TBCHI');
+  assert.equal(eventOf('KXNFLSPREAD-26NOV08TBCHI-TB3'), '26NOV08TBCHI'); // another series of the same game
   assert.equal(eventOf('SOLO'), 'SOLO');
-  const sums = sumByEvent([{ ticker: 'E-1-A', v: 1 }, { ticker: 'E-1-B', v: 2 }, { ticker: 'E-2-A', v: 5 }], m => m.v);
-  assert.deepEqual([...sums], [['E-1', 3], ['E-2', 5]]);
+  const sums = sumByEvent([{ ticker: 'E-1-A', v: 1 }, { ticker: 'F-1-B', v: 2 }, { ticker: 'E-2-A', v: 5 }], m => m.v);
+  assert.deepEqual([...sums], [['1', 3], ['2', 5]]);
 });
 
 test('bootstrap ranges are reproducible, bracket the total, and collapse for identical events', () => {

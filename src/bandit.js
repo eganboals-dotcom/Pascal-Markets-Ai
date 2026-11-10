@@ -85,3 +85,13 @@ export const policy = (model, mm = {}, { minEvents = 30, priorEvents = 10 } = {}
 };
 
 export const emptyModel = () => ({ keys: {}, days: [] });
+
+// Adds a separately trained batch (train on an empty model) into a model; the per-key counts are sums, so this equals training on both.
+export function addTrained(model, batch) {
+  const keys = { ...model.keys };
+  for (const [key, [m, total, squares]] of Object.entries(batch.keys)) {
+    const [m0 = 0, t0 = 0, s0 = 0] = keys[key] ?? [];
+    keys[key] = [m0 + m, t0 + total, s0 + squares];
+  }
+  return { ...model, keys, days: [...model.days, ...batch.days] };
+}

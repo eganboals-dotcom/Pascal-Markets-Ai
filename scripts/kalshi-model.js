@@ -29,7 +29,15 @@ function run(args, log) {
   if (result.status !== 0) throw new Error(`${args[0]} exited with ${result.status ?? result.signal}`);
 }
 
-const failures = existsSync(file('backfill.err.log')) ? readFileSync(file('backfill.err.log'), 'utf8').split('\n').filter(Boolean).length : 0;
-if (failures) run(['scripts/kalshi-history.js', ...backfillArgs], 'backfill.retry');
+const errorLines = (name, match = '') => existsSync(file(name)) ? readFileSync(file(name), 'utf8').split('\n').filter(l => l && l.includes(match)).length : 0;
+if (errorLines('backfill.err.log')) {
+  const before = errorLines('backfill.retry.err.log', '"listingError"');
+  run(['scripts/kalshi-history.js', ...backfillArgs], 'backfill.retry');
+  // A day whose market list failed again is missing whole; a few single markets that still fail are not worth stopping for.
+  if (errorLines('backfill.retry.err.log', '"listingError"') > before) {
+    console.error('The retry pass could not list every day (see backfill.retry.err.log); rerun this when the connection is back. No model was run.');
+    process.exit(1);
+  }
+}
 run(['scripts/kalshi-bandit.js', root]);
 say({ done: true, report: `${root}/bandit-report.md` });

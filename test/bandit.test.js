@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { contextKeys, emptyModel, estimate, marketSamples, policy, train } from '../src/bandit.js';
+import { addTrained, contextKeys, emptyModel, estimate, marketSamples, policy, train } from '../src/bandit.js';
 import { simulate } from '../src/mm.js';
 
 const close = '2026-12-01T00:00:00Z';
@@ -32,6 +32,9 @@ test('good fills raise a context and bad fills lower it, one vote per event', ()
   assert.equal(model.keys[keys[0]][0], 2); // two events, however many snapshots each had
   assert.deepEqual(model.days, ['2026-11-09']);
   assert.equal(train(emptyModel(), [[...win, ...loss]]).keys[keys[0]][0], 1); // sibling markets of one event: one vote
+  const split = addTrained(addTrained(emptyModel(), train(emptyModel(), [win], 'a')), train(emptyModel(), [loss], 'b'));
+  assert.deepEqual(split.keys, train(emptyModel(), [win, loss]).keys); // a held-back day added later counts the same
+  assert.deepEqual(split.days, ['a', 'b']);
 });
 
 test('the policy keeps the fixed rules without enough evidence and can only remove quotes', () => {

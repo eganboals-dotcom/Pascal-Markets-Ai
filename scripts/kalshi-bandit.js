@@ -1,10 +1,10 @@
 // Walk-forward test of the learned quoting policy on backfilled history: each day is first traded by a model trained only on
-// earlier days, scored against the fixed rules on the same day, and only then learned from. Research only; no orders.
+// days at least two before it, scored against the fixed rules on the same day, and learned from a day later. Research only; no orders.
 // The newest 10 days are a locked final exam: skipped unless --final is passed, which should happen once, at the very end.
 import { createReadStream, existsSync, readdirSync } from 'node:fs';
 import { createInterface } from 'node:readline';
 import { simulate } from '../src/mm.js';
-import { emptyModel, marketSamples, policy, train } from '../src/bandit.js';
+import { addTrained, emptyModel, marketSamples, policy, train } from '../src/bandit.js';
 import { HEARTBEAT_MS, settlementValue } from '../src/history.js';
 import { bootstrapTotal, eventOf, pairedDifference, sumByEvent } from '../src/stats.js';
 import { readResearch, markdownTable } from '../src/report.js';
@@ -38,7 +38,7 @@ async function loadDay(dir) {
 const allDays = existsSync(projectPath(root)) ? readdirSync(projectPath(root)).filter(d => /^\d{4}-\d{2}-\d{2}$/.test(d) && existsSync(projectPath(`${root}/${d}/markets.jsonl`))).sort() : [];
 const locked = allDays.length >= minDaysToLock ? allDays.slice(-lockedDays) : [];
 const days = final ? allDays : allDays.filter(d => !locked.includes(d));
-let model = emptyModel();
+let model = emptyModel(), heldBack = null;
 const daily = [], fixedMarkets = [], learnedMarkets = [];
 for (const day of days) {
   const { settlements, books, tapes } = await loadDay(`${root}/${day}`);
@@ -58,8 +58,12 @@ for (const day of days) {
     if (!events.has(e)) events.set(e, []);
     events.get(e).push(...marketSamples(rows, tapes.get(ticker) ?? [], mm));
   }
-  model = train(model, [...events.values()], day);
+  // A day's markets quote up to 48 hours before they close, so the next day's folder overlaps this one in time:
+  // this day joins the model only after the next day has been tested. It is held as trained counts, not raw samples.
+  if (heldBack) model = addTrained(model, heldBack);
+  heldBack = train(emptyModel(), [...events.values()], day);
 }
+if (heldBack) model = addTrained(model, heldBack); // the saved model covers every day
 
 const score = (list, key) => bootstrapTotal(sumByEvent(list, m => m[key]).values());
 const diff = key => bootstrapTotal(pairedDifference(sumByEvent(fixedMarkets, m => m[key]), sumByEvent(learnedMarkets, m => m[key])));
@@ -83,13 +87,13 @@ const range = r => `${money(r.total)} (${money(r.low)} to ${money(r.high)})`;
 writeProjectFile(`${root}/bandit-model.json`, JSON.stringify(model) + '\n');
 writeProjectFile(`${root}/bandit-report.json`, JSON.stringify({ generatedAt: Date.now(), summary, days: daily }, null, 2) + '\n');
 writeProjectFile(`${root}/bandit-report.md`, ['# Quoting policy, walk-forward', '',
-  'Research only. Each day is traded by a model trained on earlier days only, then added to its training. Fixed: the configured quoting rules. Learned: the same rules, minus quotes declined where at least 30 earlier events show a negative closing-line value. One contract per quote; candle books without depth.', '',
+  'Research only. Each day is traded by a model trained only on days at least two before it (markets quote up to 48 hours before their close day, so the day just before overlaps it), then added to its training a day later. Fixed: the configured quoting rules. Learned: the same rules, minus quotes declined where at least 30 earlier events show a negative closing-line value. One contract per quote; candle books without depth.', '',
   'Closing-line value: each fill against the last mid before quoting stopped, after fees. Low noise, but it flatters in thin markets. Settled P&L: the $1/$0 outcome. The truth, but noisy. Ranges are 90%, resampling whole events (all markets of a game together).', '',
   locked.length ? (final ? `The locked final exam (${locked[0]} to ${locked.at(-1)}) is included in this run.` : `Locked final exam, not run: ${locked[0]} to ${locked.at(-1)}.`) : `No locked exam yet: fewer than ${minDaysToLock} days downloaded.`, '',
   daily.length ? markdownTable(['', 'Fills', 'Closing-line value', 'Settled P&L', 'Capacity per day'], [
     ['Fixed rules', summary.fixed.fills, range(summary.fixed.clv), range(summary.fixed.settled), money(summary.fixed.capacityPerDay)],
     ['Learned', summary.learned.fills, range(summary.learned.clv), range(summary.learned.settled), money(summary.learned.capacityPerDay)],
-    ['Learned minus fixed', '', range(summary.learnedMinusFixed.clv), range(summary.learnedMinusFixed.settled), '']]) : 'At least two downloaded days are needed before any day can be tested.', '',
+    ['Learned minus fixed', '', range(summary.learnedMinusFixed.clv), range(summary.learnedMinusFixed.settled), '']]) : 'At least three downloaded days are needed before any day can be tested.', '',
   daily.length ? `Gate 0 (closing-line value above zero across its range, settled P&L not significantly negative): fixed ${summary.gate0.fixed ? 'passes' : 'fails'}, learned ${summary.gate0.learned ? 'passes' : 'fails'}; learned better than fixed: ${summary.gate0.learnedBetter ? 'yes' : 'no'}.` : '', '',
   'Capacity is an upper bound: every contract traded at or through a filled quote, times that fill\'s closing-line value, as if the quote were first in line.', '',
   daily.length ? markdownTable(['Day', 'Markets', 'Fixed fills', 'Fixed CLV', 'Fixed settled', 'Learned fills', 'Learned CLV', 'Learned settled'],

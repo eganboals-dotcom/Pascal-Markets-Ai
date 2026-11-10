@@ -1,5 +1,7 @@
 // Event-grouped statistics. Markets of one game or release (win, spread, total, props) move together, so they are one sample.
-export const eventOf = ticker => ticker.split('-').slice(0, -1).join('-') || ticker;
+// The second ticker segment is the game or date code (KXNFLGAME-26NOV08TBCHI-TB, KXNFLSPREAD-26NOV08TBCHI-TB3): one game across all its
+// series and props. Unrelated markets on one date share it too, which only widens the ranges.
+export const eventOf = ticker => ticker.split('-')[1] ?? ticker;
 
 export function sumByEvent(markets, value) {
   const sums = new Map();
