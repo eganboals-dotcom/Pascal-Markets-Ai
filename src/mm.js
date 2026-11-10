@@ -2,7 +2,7 @@ import { kalshiFee } from './kalshi.js';
 
 const minute = 60000;
 const cents = x => Math.round(x * 100) / 100;
-const metrics = () => ({ fills: 0, spreadCaptured: 0, fees: 0, adverseSelectionLoss: 0, markedFills: 0, unmarkedFills: 0, grossPnl: 0, netPnl: 0, staleIntervals: 0, tradeFills: 0 });
+const metrics = () => ({ fills: 0, spreadCaptured: 0, fees: 0, adverseSelectionLoss: 0, markedFills: 0, unmarkedFills: 0, grossPnl: 0, netPnl: 0, staleIntervals: 0, tradeFills: 0, clv: 0, availableContracts: 0 });
 
 // One tick inside the touch, skewed against inventory, kept only where the edge over mid beats the maker fee.
 // Returns null when no side can be quoted (outside the mid band or no room inside the spread).
@@ -41,7 +41,7 @@ export function simulate(snapshots, { maxInventory = 10, skewTicks = 1, pullMinu
     const exitValue = (s, n) => n ? n * (n > 0 ? s.yesBid : s.yesAsk) - kalshiFee(Math.abs(n), n > 0 ? s.yesBid : s.yesAsk, takerFeeRate * (s.fee_multiplier ?? 1)) : 0;
     rows.sort((a, b) => a.time - b.time);
     let halted = false, priorMid = null;
-    let inventory = 0, cash = 0, quotes = null, maxAbsInventory = 0, averageEntry = 0, closedGross = 0, priorRealized = 0, priorUnrealized = 0;
+    let inventory = 0, cash = 0, quotes = null, maxAbsInventory = 0, averageEntry = 0, closedGross = 0, priorRealized = 0, priorUnrealized = 0, lastOpenMid = null;
     const fills = [], result = { ticker, ...metrics() }, tape = tapes.get(ticker) ?? [];
     let next = 0;
     for (let i = 0; i < rows.length; i++) {
@@ -52,17 +52,19 @@ export function simulate(snapshots, { maxInventory = 10, skewTicks = 1, pullMinu
         (pullBeforeExpiryMinutes !== null && Number.isFinite(expiry) && s.time >= expiry - pullBeforeExpiryMinutes * minute);
       // A recorded trade while the quote rested also fills it: a seller at or below the model bid would have hit that better
       // price first, and a buyer at or above the model ask likewise. Without trades, only a crossed book counts.
-      let soldInto = false, boughtFrom = false;
+      let soldInto = false, boughtFrom = false, soldSize = 0, boughtSize = 0;
       while (next < tape.length && tape[next].time <= s.time) {
         const t = tape[next++];
         if (!quotes || t.time <= quotes.time) continue;
-        if (t.takerSide === 'no' && quotes.bid != null && t.price <= quotes.bid + 1e-9) soldInto = true;
-        if (t.takerSide === 'yes' && quotes.ask != null && t.price >= quotes.ask - 1e-9) boughtFrom = true;
+        if (t.takerSide === 'no' && quotes.bid != null && t.price <= quotes.bid + 1e-9) { soldInto = true; soldSize += t.count ?? 1; }
+        if (t.takerSide === 'yes' && quotes.ask != null && t.price >= quotes.ask - 1e-9) { boughtFrom = true; boughtSize += t.count ?? 1; }
       }
+      if (!cutoff) lastOpenMid = mid;
       // shortcut: one contract per side per interval and no queue model, upgrade with depth recordings before sizing up.
       if (quotes && s.time - quotes.time > maxQuoteAgeMs) result.staleIntervals++;
       if (quotes && s.time > quotes.time && s.time - quotes.time <= maxQuoteAgeMs && !cutoff) {
-        for (const [side, p, crossed, traded] of [['buy', quotes.bid, s.yesAskSize >= 1 && s.yesAsk <= quotes.bid + 1e-9, soldInto], ['sell', quotes.ask, s.yesBidSize >= 1 && s.yesBid >= quotes.ask - 1e-9, boughtFrom]]) {
+        for (const [side, p, crossed, traded, size] of [['buy', quotes.bid, s.yesAskSize >= 1 && s.yesAsk <= quotes.bid + 1e-9, soldInto, Math.max(soldSize, s.yesAsk <= quotes.bid + 1e-9 ? s.yesAskSize : 0)],
+          ['sell', quotes.ask, s.yesBidSize >= 1 && s.yesBid >= quotes.ask - 1e-9, boughtFrom, Math.max(boughtSize, s.yesBid >= quotes.ask - 1e-9 ? s.yesBidSize : 0)]]) {
           if (p == null || !(crossed || traded) || (side === 'buy' ? inventory >= maxInventory : inventory <= -maxInventory)) continue;
           if (!crossed) result.tradeFills++;
           const direction = side === 'buy' ? 1 : -1;
@@ -76,7 +78,7 @@ export function simulate(snapshots, { maxInventory = 10, skewTicks = 1, pullMinu
           maxAbsInventory = Math.max(maxAbsInventory, Math.abs(inventory));
           result.fees += fee;
           result.spreadCaptured += direction * (quotes.mid - p);
-          fills.push({ time: s.time, side, price: p, fee });
+          fills.push({ time: s.time, side, price: p, fee, available: size });
         }
       }
       const realizedPnl = closedGross - result.fees;
@@ -100,6 +102,15 @@ export function simulate(snapshots, { maxInventory = 10, skewTicks = 1, pullMinu
       result.markedFills++;
       result.adverseSelectionLoss += (fill.side === 'buy' ? 1 : -1) * (fill.price - (mark.yesBid + mark.yesAsk) / 2);
     }
+    // Closing-line value: each fill against the last mid before quoting stopped, after its fee. Far less noisy than settlement,
+    // which swings each contract by its whole price. Contracts traded through the quote bound how much size the edge supports.
+    // shortcut: the closing mid of a wide, thin book is not a fair price, so this score flatters; read it beside settled P&L.
+    for (const fill of fills) {
+      fill.clv = (fill.side === 'buy' ? 1 : -1) * (lastOpenMid - fill.price) - fill.fee;
+      result.clv += fill.clv;
+      result.availableContracts += fill.available;
+    }
+    result.fillLog = fills;
     const last = rows.at(-1);
     result.fills = fills.length;
     result.inventory = inventory;

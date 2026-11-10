@@ -1,6 +1,7 @@
 // Learned quoting policy: a contextual bandit that decides, per snapshot and side, whether a quote the fixed rules allow is worth posting.
-// Reward is what that one-contract quote actually earned at settlement after the maker fee (0 when it would not have filled), so
-// good trades raise a context's value and bad ones lower it. Research only; it feeds the simulator, never orders.
+// Reward is the quote's closing-line value after the maker fee (0 when it would not have filled): the fill against the last mid before
+// quoting stops. Settlement is the truth but swings each contract by its whole price, roughly 20x the edge being learned, so
+// learning from it mostly memorizes luck; settled P&L is reported beside every result instead. Research only; never orders.
 import { kalshiFee } from './kalshi.js';
 import { quotePrices } from './mm.js';
 import { quoteEnd } from './history.js';
@@ -20,8 +21,11 @@ export function contextKeys(rows, i, side, mm = {}) {
 
 // Per-decision rewards for one market under flat inventory, using the simulator's own quote and fill rules.
 // shortcut: ignores inventory skew and the per-side cap, which change prices only after a fill; model them if the policy sizes up.
-export function marketSamples(rows, tape, settle, mm = {}) {
+export function marketSamples(rows, tape, mm = {}) {
   const maxAge = mm.maxQuoteAgeMs ?? 30000, samples = [];
+  const open = rows.filter(r => r.time < quoteEnd(r, mm)), close = open.at(-1);
+  if (!close) return samples;
+  const closeMid = (close.yesBid + close.yesAsk) / 2;
   let next = 0;
   for (let i = 0; i + 1 < rows.length; i++) {
     const s = rows[i], after = rows[i + 1];
@@ -37,18 +41,18 @@ export function marketSamples(rows, tape, settle, mm = {}) {
     }
     for (const [side, p, filled] of [['buy', prices.buy, soldInto || after.yesAsk <= (prices.buy ?? -1) + 1e-9], ['sell', prices.sell, boughtFrom || after.yesBid >= (prices.sell ?? 2) - 1e-9]]) {
       if (p == null) continue;
-      const reward = live && filled ? (side === 'buy' ? settle - p : p - settle) - kalshiFee(1, p, prices.rate) : 0;
+      const reward = live && filled ? (side === 'buy' ? closeMid - p : p - closeMid) - kalshiFee(1, p, prices.rate) : 0;
       samples.push({ keys: contextKeys(rows, i, side, mm), reward });
     }
   }
   return samples;
 }
 
-// One update per batch of markets (a day). Each market counts once per context, at its mean reward there:
-// snapshots within a market share one outcome and are not independent evidence.
-export function train(model, markets, day = null) {
+// One update per batch (a day). Each element is one event's samples (all its markets together): each event counts once per
+// context, at its mean reward there, because snapshots and sibling markets of one game share one outcome.
+export function train(model, events, day = null) {
   const keys = { ...model.keys };
-  for (const samples of markets) {
+  for (const samples of events) {
     const perKey = new Map();
     for (const { keys: path, reward } of samples) for (const key of path) {
       const a = perKey.get(key) ?? [0, 0];
@@ -63,17 +67,21 @@ export function train(model, markets, day = null) {
   return { ...model, keys, days: day ? [...model.days, day] : model.days };
 }
 
-// Expected reward per quote decision, shrunk toward zero edge and then toward each coarser context (prior weight in markets).
-export function estimate(model, keys, priorMarkets = 10) {
+// Expected reward per quote decision, shrunk toward zero edge and then toward each coarser context (prior weight in events).
+export function estimate(model, keys, priorEvents = 10) {
   let value = 0;
   for (const key of keys) {
     const [n = 0, total = 0] = model.keys[key] ?? [];
-    value = (total + priorMarkets * value) / (n + priorMarkets);
+    value = (total + priorEvents * value) / (n + priorEvents);
   }
   return value;
 }
 
-export const policy = (model, mm = {}, { minEdge = 0, priorMarkets = 10 } = {}) =>
-  (rows, i, side) => estimate(model, contextKeys(rows, i, side, mm), priorMarkets) > minEdge;
+// The fixed rules stand by default. A quote is declined only where its context has at least minEvents events behind it
+// and the shrunk estimate is negative; an unfamiliar context is never a reason to depart from the rules.
+export const policy = (model, mm = {}, { minEvents = 30, priorEvents = 10 } = {}) => (rows, i, side) => {
+  const keys = contextKeys(rows, i, side, mm);
+  return (model.keys[keys[1]]?.[0] ?? 0) < minEvents || estimate(model, keys, priorEvents) >= 0;
+};
 
 export const emptyModel = () => ({ keys: {}, days: [] });
