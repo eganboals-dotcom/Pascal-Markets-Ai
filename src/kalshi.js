@@ -113,6 +113,41 @@ export async function fetchCandles(series, ticker, fromMs, toMs, load = getJson)
   return [...byEnd.values()].sort((a, b) => a.end_period_ts - b.end_period_ts);
 }
 
+// Kalshi's batch candlestick endpoint takes up to 100 markets but refuses a request whose markets x minutes exceed 10,000
+// (a 400 at 12,330, measured 2026-11-10); the margin covers rounding to whole seconds.
+const BATCH_MARKETS = 100, BATCH_CANDLES = 9900;
+
+// Groups market windows { ticker, start, close } (ms) into requests under those caps. Sorted by close, so a game's sibling
+// markets, which share a window, share a request.
+export function candleBatches(windows) {
+  const batches = [];
+  let batch = [], from = Infinity, to = -Infinity;
+  for (const w of [...windows].sort((a, b) => a.close - b.close || a.start - b.start)) {
+    const f = Math.min(from, w.start), t = Math.max(to, w.close);
+    if (batch.length && (batch.length === BATCH_MARKETS || (batch.length + 1) * (t - f) / 60000 > BATCH_CANDLES)) {
+      batches.push(batch);
+      batch = []; from = w.start; to = w.close;
+    } else { from = f; to = t; }
+    batch.push(w);
+  }
+  if (batch.length) batches.push(batch);
+  return batches;
+}
+
+// One request for one batch. Each market's candles are cut to its own window, which gives exactly what fetchCandles
+// returns for it (checked on three settled NBA markets). A market missing from the response is missing from the map.
+export async function fetchCandleBatch(windows, load = getJson) {
+  if (!windows.length || windows.length > BATCH_MARKETS || !windows.every(w => /^[A-Z0-9._-]{1,120}$/i.test(w.ticker ?? '') && Number.isFinite(w.start) && Number.isFinite(w.close))) throw new Error('Invalid Kalshi candles request');
+  const from = Math.min(...windows.map(w => w.start)), to = Math.max(...windows.map(w => w.close));
+  const body = await load(`${BASE}/markets/candlesticks?market_tickers=${windows.map(w => w.ticker).join(',')}&start_ts=${Math.floor(from / 1000)}&end_ts=${Math.floor(to / 1000)}&period_interval=1`);
+  if (!Array.isArray(body.markets)) throw new Error('Invalid Kalshi candles response');
+  const byTicker = new Map(body.markets.filter(m => Array.isArray(m.candlesticks)).map(m => [m.market_ticker, m.candlesticks]));
+  return new Map(windows.filter(w => byTicker.has(w.ticker)).map(w => {
+    const s = Math.floor(w.start / 1000), e = Math.floor(w.close / 1000);
+    return [w.ticker, byTicker.get(w.ticker).filter(c => c.end_period_ts >= s && c.end_period_ts <= e).sort((a, b) => a.end_period_ts - b.end_period_ts)];
+  }));
+}
+
 export async function fetchEvent(ticker, load = getJson) {
   if (!/^[A-Z0-9._-]{1,120}$/i.test(ticker ?? '')) throw new Error('Invalid Kalshi ticker');
   const body = await load(`${BASE}/events/${encodeURIComponent(ticker)}?with_nested_markets=true`);

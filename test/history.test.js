@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { fetchCandles, fetchSettledMarkets } from '../src/kalshi.js';
+import { candleBatches, fetchCandleBatch, fetchCandles, fetchSettledMarkets } from '../src/kalshi.js';
 import { fetchTrades } from '../src/kalshi.js';
 import { HEARTBEAT_MS, candleRows, downloadState, quotable, quoteEnd, seriesOf, settlementValue } from '../src/history.js';
 
@@ -42,6 +42,29 @@ test('fetchCandles splits ranges under the 5000-candle cap and dedupes boundarie
   assert.equal(new Set(candles.map(c => c.end_period_ts)).size, candles.length);
   assert.ok(candles.every((c, i) => !i || c.end_period_ts > candles[i - 1].end_period_ts));
   await assert.rejects(fetchCandles('BAD SERIES', 'T', 0, 1, async () => ({})), /Invalid Kalshi candles request/);
+});
+
+test('candle batches stay under the batch caps and cut each market to its own window', async () => {
+  const h = 3600000, w = (ticker, start, close) => ({ ticker, start, close });
+  // Three 48-hour siblings fit one request (8,640 candles); a fourth would pass 9,900.
+  const batches = candleBatches([w('A', 0, 48 * h), w('B', 0, 48 * h), w('C', 0, 48 * h), w('D', 0, 48 * h), w('E', 40 * h, 50 * h)]);
+  assert.deepEqual(batches.map(b => b.map(x => x.ticker)), [['A', 'B', 'C'], ['D', 'E']]);
+  assert.ok(batches.every(b => b.length * (Math.max(...b.map(x => x.close)) - Math.min(...b.map(x => x.start))) / 60000 <= 9900));
+  assert.equal(candleBatches(Array.from({ length: 250 }, (_, i) => w(`T${i}`, 0, h))).map(b => b.length).join(), '100,100,50');
+  assert.deepEqual(candleBatches([]), []);
+
+  const urls = [];
+  const got = await fetchCandleBatch([w('A', 60000, 180000), w('B', 0, 240000), w('GONE', 0, 60000)], async url => {
+    urls.push(url);
+    const all = [0, 60, 120, 180, 240].map(t => ({ end_period_ts: t }));
+    return { markets: [{ market_ticker: 'A', candlesticks: all }, { market_ticker: 'B', candlesticks: [...all].reverse() }] };
+  });
+  assert.equal(urls.length, 1);
+  assert.match(urls[0], /market_tickers=A,B,GONE&start_ts=0&end_ts=240&period_interval=1/);
+  assert.deepEqual(got.get('A').map(c => c.end_period_ts), [60, 120, 180]);
+  assert.deepEqual(got.get('B').map(c => c.end_period_ts), [0, 60, 120, 180, 240]);
+  assert.equal(got.has('GONE'), false); // missing markets are not invented; the backfill leaves them undone
+  await assert.rejects(fetchCandleBatch([w('BAD TICKER', 0, 1)], async () => ({})), /Invalid Kalshi candles request/);
 });
 
 test('fetchSettledMarkets excludes combos, filters each page and stops on a repeated cursor', async () => {
