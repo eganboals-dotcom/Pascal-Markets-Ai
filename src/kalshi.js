@@ -4,7 +4,7 @@ const BASE = 'https://api.elections.kalshi.com/trade-api/v2';
 const RETRIES = 6;
 
 // Retries rate limits (HTTP 429) with exponential backoff, honoring Retry-After when given.
-async function getJson(url) {
+export async function getJson(url) {
   for (let attempt = 0; ; attempt++) {
     const response = await fetch(url, { signal: AbortSignal.timeout(20000) });
     if (response.ok) return response.json();
@@ -70,18 +70,47 @@ export async function fetchMarkets(tickers, load = getJson) {
 
 // Public trade prints for one market since sinceMs; min_ts is whole seconds, so callers drop repeats by trade id.
 // shortcut: at most maxPages x 1000 prints per call, newest first; a busier market loses its oldest prints, raise maxPages or poll faster for it.
-export async function fetchTrades(ticker, sinceMs, load = getJson, maxPages = 10) {
-  if (!/^[A-Z0-9._-]{1,120}$/i.test(ticker ?? '') || !Number.isFinite(sinceMs)) throw new Error('Invalid Kalshi trades request');
+export async function fetchTrades(ticker, sinceMs, load = getJson, maxPages = 10, untilMs = null) {
+  if (!/^[A-Z0-9._-]{1,120}$/i.test(ticker ?? '') || !Number.isFinite(sinceMs) || (untilMs !== null && !Number.isFinite(untilMs))) throw new Error('Invalid Kalshi trades request');
   const trades = [];
   let cursor = '';
   for (let page = 0; page < maxPages; page++) {
-    const body = await load(`${BASE}/markets/trades?ticker=${encodeURIComponent(ticker)}&min_ts=${Math.floor(sinceMs / 1000)}&limit=1000${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`);
+    const body = await load(`${BASE}/markets/trades?ticker=${encodeURIComponent(ticker)}&min_ts=${Math.floor(sinceMs / 1000)}${untilMs === null ? '' : `&max_ts=${Math.ceil(untilMs / 1000)}`}&limit=1000${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`);
     if (!Array.isArray(body.trades)) throw new Error('Invalid Kalshi trades response');
     trades.push(...body.trades);
     if (!body.cursor || body.trades.length < 1000) break;
     cursor = body.cursor;
   }
   return trades;
+}
+
+// Settled markets closing in [fromMs, toMs), filtered page by page so a day of ~100k listings never sits in memory.
+// Multivariate combo markets are excluded: they are priced from their legs, not quoted on their own.
+export async function fetchSettledMarkets(fromMs, toMs, keep = () => true, load = getJson, maxPages = 1000) {
+  if (!Number.isFinite(fromMs) || !Number.isFinite(toMs) || fromMs >= toMs) throw new Error('Invalid Kalshi history request');
+  const markets = [];
+  let cursor = '';
+  for (let page = 0; page < maxPages; page++) {
+    const body = await load(`${BASE}/markets?status=settled&mve_filter=exclude&min_close_ts=${Math.floor(fromMs / 1000)}&max_close_ts=${Math.ceil(toMs / 1000) - 1}&limit=1000${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`);
+    if (!Array.isArray(body.markets)) throw new Error('Invalid Kalshi markets response');
+    markets.push(...body.markets.filter(keep));
+    if (!body.cursor) return markets;
+    if (body.cursor === cursor) throw new Error('Repeated Kalshi cursor');
+    cursor = body.cursor;
+  }
+  throw new Error('Kalshi settled listing exceeded maxPages');
+}
+
+// One-minute candlesticks; Kalshi serves at most 5000 per request, so longer ranges are split.
+export async function fetchCandles(series, ticker, fromMs, toMs, load = getJson) {
+  if (![series, ticker].every(t => /^[A-Z0-9._-]{1,120}$/i.test(t ?? '')) || !Number.isFinite(fromMs) || !Number.isFinite(toMs)) throw new Error('Invalid Kalshi candles request');
+  const span = 4900 * 60, end = Math.floor(toMs / 1000), byEnd = new Map();
+  for (let start = Math.floor(fromMs / 1000); start < end; start += span) {
+    const body = await load(`${BASE}/series/${encodeURIComponent(series)}/markets/${encodeURIComponent(ticker)}/candlesticks?start_ts=${start}&end_ts=${Math.min(end, start + span)}&period_interval=1`);
+    if (!Array.isArray(body.candlesticks)) throw new Error('Invalid Kalshi candles response');
+    for (const c of body.candlesticks) byEnd.set(c.end_period_ts, c);
+  }
+  return [...byEnd.values()].sort((a, b) => a.end_period_ts - b.end_period_ts);
 }
 
 export async function fetchEvent(ticker, load = getJson) {

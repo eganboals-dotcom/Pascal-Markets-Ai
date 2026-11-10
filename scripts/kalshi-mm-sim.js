@@ -4,9 +4,13 @@ import { simulate } from '../src/mm.js';
 import { fetchMarkets } from '../src/kalshi.js';
 import { readResearch, markdownTable } from '../src/report.js';
 import { projectPath, writeProjectFile } from '../src/files.js';
+import { HEARTBEAT_MS } from '../src/history.js';
 
-const out = process.argv[2] ?? 'research/kalshi';
+const out = process.argv.slice(2).find(a => !a.startsWith('--')) ?? 'research/kalshi';
 const config = readResearch('config/scan.json', {});
+// --history replays a backfilled day in full; its candle rows are a minute or more apart (see src/history.js), so quotes rest until the next change.
+const history = process.argv.includes('--history');
+const historyLimits = history ? { maxQuoteAgeMs: HEARTBEAT_MS + 60000, maxMarkoutDelayMs: HEARTBEAT_MS + 60000 } : {};
 // Streamed line by line: a week of 100-market recordings is larger than Node can hold as one string.
 // The game-day recorder may be appending while this replay reads; an unfinished final line is left for the next run.
 // shortcut: the file is never rotated and is re-read in full each run, rotate it daily once runs get slow.
@@ -34,9 +38,10 @@ async function readSettlements(books, now = Date.now()) {
   } catch (error) { console.error(JSON.stringify({ settlementError: error.message })); } // Unsettled marks still stand; the next run retries.
   return known;
 }
-const books = await readRecent(`${out}/books.jsonl`), trades = await readRecent(`${out}/trades.jsonl`);
+const days = history ? Infinity : undefined;
+const books = await readRecent(`${out}/books.jsonl`, days), trades = await readRecent(`${out}/trades.jsonl`, days);
 const settlements = await readSettlements(books);
-const result = { generatedAt: Date.now(), ...simulate(books, { ...config.mm, makerFeeRate: config.makerFeeRate ?? 0.0175, takerFeeRate: config.feeRate ?? 0.07, settlements, trades }) };
+const result = { generatedAt: Date.now(), ...simulate(books, { ...config.mm, makerFeeRate: config.makerFeeRate ?? 0.0175, takerFeeRate: config.feeRate ?? 0.07, ...historyLimits, settlements, trades }) };
 const rows = [...result.markets, { ticker: 'TOTAL', ...result.total }];
 writeProjectFile(`${out}/mm-sim.md`, ['# Market-making simulation', '', 'Research only. One-contract quotes, replaced at each snapshot. Quotes stop before a game starts, after a mid jump, and outside the mid-price band.', '',
   `Settled markets: ${result.markets.filter(m => m.settled).length} of ${result.markets.length}, valued at their $1/$0 outcome. Recorded trades: ${trades.length}; fills from trades: ${result.total.tradeFills}.`, '',
