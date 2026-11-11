@@ -1,7 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { get } from 'node:http';
+import { rmSync } from 'node:fs';
+import { randomUUID } from 'node:crypto';
 import { createDashboardServer } from '../src/dashboard.js';
+import { projectPath } from '../src/files.js';
 
 function fakeRunner() {
   let active = false, starts = 0, stops = 0;
@@ -19,6 +22,27 @@ async function withServer(options, run) {
   finally { await new Promise(resolve => server.close(resolve)); }
 }
 const controls = { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Pascal-Control': '1' } };
+
+test('department leaderboard serves its report and saves switches only through the guarded control', async () => {
+  const switchesPath = `work/switches-${randomUUID()}.json`;
+  try {
+    await withServer({ runner: fakeRunner(), departmentsRoot: 'work/no-such-history', switchesPath }, async base => {
+      const read = async () => (await fetch(`${base}/api/departments`)).json();
+      const post = (body, options = controls) => fetch(`${base}/api/departments/switch`, { ...options, body: JSON.stringify(body) });
+      const first = await read();
+      assert.equal(first.report, null);
+      assert.equal(first.switches.weather, true);
+      assert.equal((await post({ id: 'weather', on: false })).status, 200);
+      assert.equal((await read()).switches.weather, false);
+      assert.equal((await post({ id: 'nope', on: false })).status, 400);
+      assert.equal((await post({ id: 'weather', on: 'off' })).status, 400);
+      assert.equal((await post({ id: 'weather', on: true }, { method: 'POST' })).status, 403);
+      assert.equal((await post({ id: 'weather', on: true }, { ...controls, headers: { ...controls.headers, Origin: 'https://example.com' } })).status, 403);
+      assert.equal((await fetch(`${base}/api/departments/switch`)).status, 405);
+      assert.equal((await read()).switches.weather, false);
+    });
+  } finally { rmSync(projectPath(switchesPath), { force: true }); }
+});
 
 test('dashboard opens idle; status reads never start scanning; Start and Stop are explicit', async () => {
   const runner = fakeRunner();

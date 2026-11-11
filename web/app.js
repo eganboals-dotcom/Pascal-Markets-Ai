@@ -8,6 +8,7 @@ let scan = { running: false, phase: 'idle', hits: [], near: [], hitCount: 0, eve
 let research = { activity: [], positions: [], trades: [], outcomes: {}, account: { connected: false } };
 let pnlPeriod = 'day';
 let view = 'opportunities', chartMode = 'edge', fetching = false, controlling = false;
+let departments = { report: null, switches: {} }, departmentsText = '', switching = false;
 
 function tag(text, style = '') {
   return Object.assign(document.createElement('span'), { className: `badge ${style}`, textContent: text });
@@ -72,6 +73,48 @@ function renderWorkspace() {
     tag(labels[row.outcome] ?? row.outcome ?? 'Unknown', row.outcome === 'filled' ? 'good' : ['legged', 'error'].includes(row.outcome) ? 'bad' : ''),
     number(row.contracts), money(row.expectedProfit), row.reason ?? `${row.legs?.length ?? 0} legs checked`
   ]));
+}
+// Department leaderboard: one row per department from the history tests, with a saved on/off switch each.
+function departmentSwitch(row) {
+  const input = Object.assign(document.createElement('input'), { type: 'checkbox', className: 'switch', checked: departments.switches[row.id] !== false, disabled: switching });
+  input.dataset.department = row.id;
+  input.setAttribute('aria-label', `${row.name}: ${input.checked ? 'on' : 'off'}`);
+  input.addEventListener('change', () => setSwitch(row.id, input.checked));
+  return input;
+}
+function renderDepartments() {
+  const report = departments.report, rows = report?.departments ?? [], target = report?.weeklyTarget ?? 1000;
+  if (!rows.length) {
+    el('departments-total').textContent = 'No department report yet';
+    return empty('departments-table', 'No department report yet', 'The leaderboard fills in when the model run finishes its history tests.', '▦');
+  }
+  const total = rows.reduce((t, r) => ({ trades: t.trades + r.trades, settled: t.settled + r.settled.total, week: t.week + r.week }), { trades: 0, settled: 0, week: 0 });
+  el('departments-total').textContent = `${report.firstDay} to ${report.lastDay} · ${number(total.trades)} trades · ${money(total.settled)} settled · ${money(total.week)} in the last 7 days, ${percent(total.week / target)} of the $${target.toLocaleString('en-US')} weekly target`;
+  const cents = n => Number.isFinite(n) ? money(n) : '—';
+  table('departments-table', ['#', 'On', 'Department', 'Mode', 'Trades', 'Settled P&L', '97.5% range', 'Last day', 'Last 7 days', 'Share of target', 'Closing-line value', 'Gate', 'Agents'], rows.map((r, i) => [
+    String(i + 1), departmentSwitch(r), market(r.name, r.id), tag(r.mode === 'research' ? 'Research' : r.mode), number(r.trades), signed(r.settled.total),
+    `${cents(r.settled.low)} to ${cents(r.settled.high)}`, signed(r.lastDay), signed(r.week), percent(r.week / target), r.clv === null ? '—' : signed(r.clv),
+    r.records ? tag(r.passes ? 'Passes' : 'Fails', r.passes ? 'good' : 'bad') : '—',
+    Object.entries(r.agents ?? {}).map(([agent, v]) => `${agent} ${number(v.trades)} (${money(v.pnl)})`).join(' · ') || '—'
+  ]));
+  el('departments-table').querySelectorAll('tbody tr').forEach((tr, i) => tr.classList.toggle('off', departments.switches[rows[i].id] === false));
+}
+async function setSwitch(id, on) {
+  if (switching) return;
+  switching = true; renderDepartments();
+  let failure;
+  try {
+    const response = await fetch('/api/departments/switch', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Pascal-Control': '1' }, body: JSON.stringify({ id, on }) });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error ?? 'Department switch failed');
+    departments = { report: departments.report, switches: data.switches };
+    departmentsText = JSON.stringify(departments);
+  } catch (error) { failure = error.message; }
+  finally {
+    switching = false; renderDepartments();
+    el('departments-table').querySelector(`input[data-department="${id}"]`)?.focus(); // the redraw replaced the focused box
+    if (failure) el('status').textContent = failure;
+  }
 }
 function svgElement(name, attributes = {}, text) {
   const node = document.createElementNS('http://www.w3.org/2000/svg', name);
@@ -277,11 +320,14 @@ async function load() {
   if (fetching) return;
   fetching = true;
   try {
-    const [statusResponse, researchResponse] = await Promise.all([fetch('/api/scan'), fetch('/api/research')]);
+    const [statusResponse, researchResponse, departmentsResponse] = await Promise.all([fetch('/api/scan'), fetch('/api/research'), fetch('/api/departments')]);
     if (!statusResponse.ok) throw new Error('Engine status unavailable. Check the local dashboard server.');
     scan = await statusResponse.json();
     if (researchResponse.ok) research = await researchResponse.json();
     render();
+    // Redrawn only when it changes, so a focused switch keeps its focus between polls.
+    const text = departmentsResponse.ok ? await departmentsResponse.text() : departmentsText;
+    if (text && text !== departmentsText && !switching) { departmentsText = text; departments = JSON.parse(text); renderDepartments(); }
     if (!researchResponse.ok) el('status').textContent += ' Saved research is temporarily unavailable.';
   } catch (error) { el('status').textContent = error.message; }
   finally { fetching = false; }
@@ -326,7 +372,7 @@ window.addEventListener('pagehide', () => windowSession.close());
 window.addEventListener('pageshow', event => { if (event.persisted) location.reload(); });
 // Opening the page never starts scanning.
 setInterval(load, 5000);
-render(); load();
+render(); renderDepartments(); load();
 
 for (const period of ['day', 'all']) el(`pnl-${period}`).addEventListener('click', () => {
   pnlPeriod = period;

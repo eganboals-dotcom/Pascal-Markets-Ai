@@ -62,7 +62,7 @@ summary.gateC = summary.passes && summary.clv.low > 0;
 const table = calibration(seen);
 const money = x => (x < 0 ? '−$' : '$') + Math.abs(x).toFixed(2), cents = x => x === null ? '' : `${(x * 100).toFixed(1)}¢`;
 const range = r => `${money(r.total)} (${money(r.low)} to ${money(r.high)})`;
-writeProjectFile(`${root}/agents/longshot-report.json`, JSON.stringify({ generatedAt: Date.now(), margin, summary, calibration: table, days: daily }, null, 2) + '\n');
+writeProjectFile(`${root}/agents/longshot-report.json`, JSON.stringify({ generatedAt: Date.now(), margin, summary, calibration: table, days: daily, trades }, null, 2) + '\n');
 writeProjectFile(`${root}/agents/longshot-report.md`, ['# Agent C: favorite-longshot fade, walk-forward', '',
   'Research only. Each settled market is read an hour before quoting would stop (before play for games). A day is traded by price-bucket rules learned from days at least two before it: the better side of a bucket is bought only where at least 30 earlier events back it and its mean settled return beats the margin. One contract at the posted price, taker fee, held to settlement.', '',
   `Ranges are 97.5%, resampling whole events. Margin ${cents(margin)}. ${locked.length ? (final ? `The locked final exam (${locked[0]} to ${locked.at(-1)}) is included.` : `Locked final exam, not run: ${locked[0]} to ${locked.at(-1)}.`) : `No locked exam yet: fewer than ${minDaysToLock} days downloaded.`}`, '',

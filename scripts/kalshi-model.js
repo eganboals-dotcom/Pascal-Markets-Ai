@@ -49,7 +49,7 @@ if (errorLines('backfill.err.log')) {
 const failed = [];
 for (const [script, report] of [['kalshi-bandit', 'bandit-report.md'], ['agent-sportsbook', 'agents/sportsbook-report.md'],
   ['agent-longshot', 'agents/longshot-report.md'], ['agent-weather', 'agents/weather-report.md'],
-  ['agent-crossvenue', 'agents/crossvenue-report.md']]) {
+  ['agent-crossvenue', 'agents/crossvenue-report.md'], ['departments-report', 'departments-report.md']]) {
   try { run([`scripts/${script}.js`, root]); say({ report: `${root}/${report}` }); }
   catch (error) { failed.push(script); console.error(error.message); }
 }

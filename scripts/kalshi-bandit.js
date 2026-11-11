@@ -34,7 +34,7 @@ for (const day of days) {
   if (model.days.length) {
     const run = allow => simulate(snapshots, { ...mm, settlements, trades, allow }).markets;
     const fixed = run(null), learned = run(policy(model, mm));
-    fixedMarkets.push(...fixed); learnedMarkets.push(...learned);
+    fixedMarkets.push(...fixed.map(m => ({ ...m, day }))); learnedMarkets.push(...learned);
     const sum = (list, key) => list.reduce((n, m) => n + m[key], 0);
     daily.push({ day, locked: locked.includes(day), markets: books.size, fixedFills: sum(fixed, 'fills'), fixedClv: sum(fixed, 'clv'), fixedNet: sum(fixed, 'netPnl'),
       learnedFills: sum(learned, 'fills'), learnedClv: sum(learned, 'clv'), learnedNet: sum(learned, 'netPnl') });
@@ -73,7 +73,9 @@ summary.gate0 = { fixed: passes(summary.fixed), learned: passes(summary.learned)
 const money = x => (x < 0 ? '−$' : '$') + Math.abs(x).toFixed(2);
 const range = r => `${money(r.total)} (${money(r.low)} to ${money(r.high)})`;
 writeProjectFile(`${root}/bandit-model.json`, JSON.stringify(model) + '\n');
-writeProjectFile(`${root}/bandit-report.json`, JSON.stringify({ generatedAt: Date.now(), summary, days: daily }, null, 2) + '\n');
+writeProjectFile(`${root}/bandit-report.json`, JSON.stringify({ generatedAt: Date.now(), summary, days: daily,
+  // The fixed rules quote for the department scoreboard until the learned policy passes Gate 0; markets without fills are left out.
+  markets: fixedMarkets.filter(m => m.fills).map(m => ({ day: m.day, ticker: m.ticker, fills: m.fills, clv: m.clv, pnl: m.netPnl })) }, null, 2) + '\n');
 writeProjectFile(`${root}/bandit-report.md`, ['# Quoting policy, walk-forward', '',
   'Research only. Each day is traded by a model trained only on days at least two before it (markets quote up to 48 hours before their close day, so the day just before overlaps it), then added to its training a day later. Fixed: the configured quoting rules. Learned: the same rules, minus quotes declined where at least 30 earlier events show a negative closing-line value. One contract per quote; candle books without depth.', '',
   'Closing-line value: each fill against the last mid before quoting stopped, after fees. Low noise, but it flatters in thin markets. Settled P&L: the $1/$0 outcome. The truth, but noisy. Ranges are 90%, resampling whole events (all markets of a game together).', '',

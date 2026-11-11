@@ -9,6 +9,7 @@
   <aside class="rail" aria-label="Workspace">
     <a class="monogram" href="#overview" aria-label="Pascal overview">p<span>·</span></a>
     <a class="rail-link active" href="#overview" aria-label="Overview"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z"/></svg></a>
+    <a class="rail-link" href="#departments" aria-label="Department leaderboard"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V10M12 20V4M19 20v-7"/></svg></a>
     <a class="rail-link" href="#workspace" aria-label="Opportunities and trades"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 17 6-6 4 3 8-10M16 4h5v5"/></svg></a>
     <a class="rail-link" href="#engine" aria-label="Engine status"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h3l3-7 4 14 3-7h3"/></svg></a>
     <span class="rail-bottom" title="Local workspace">↳</span>
@@ -28,6 +29,11 @@
         <div class="metric"><span>Opportunities now</span><strong id="hit-count">0</strong><small>After fees and margin checks</small><span class="metric-symbol">↗</span></div>
         <div class="metric"><span>Model positions</span><strong id="position-count">0</strong><small>Simulated inventory only</small><span class="metric-symbol">▤</span></div>
         <div class="metric"><span>Dry-run checks</span><strong id="trade-count">0</strong><small id="trade-note">No recorded price checks</small><span class="metric-symbol">⇄</span></div>
+      </section>
+      <section class="panel departments-panel" id="departments" aria-labelledby="departments-title">
+        <div class="panel-heading"><div><span class="section-kicker">Departments / history test</span><h2 id="departments-title">The leaderboard</h2></div><span class="quiet-tag" id="departments-total">No department report yet</span></div>
+        <div class="account-note">Research only: each row is a history test, and no department places orders yet. A switch is saved now and takes effect once the paper-trading loop runs.</div>
+        <div id="departments-table" class="table-wrap"></div>
       </section>
       <section class="panel performance-panel" aria-labelledby="performance-title">
         <div class="panel-heading"><div><span class="section-kicker">Performance / simulation</span><h2 id="performance-title">The equity desk</h2></div><div class="segmented" aria-label="P&L period"><button type="button" id="pnl-day" class="selected" aria-pressed="true">Today</button><button type="button" id="pnl-all" aria-pressed="false">All recorded</button></div></div>

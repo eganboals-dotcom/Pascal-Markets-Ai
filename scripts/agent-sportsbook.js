@@ -87,7 +87,7 @@ const summary = { ...summarize(trades), accuracy: brierComparison(forecasts), co
 summary.gateS = summary.passes;
 const money = x => (x < 0 ? '−$' : '$') + Math.abs(x).toFixed(2), cents = x => `${(x * 100).toFixed(1)}¢`;
 const range = r => `${money(r.total)} (${money(r.low)} to ${money(r.high)})`, a = summary.accuracy;
-writeProjectFile(`${root}/agents/sportsbook-report.json`, JSON.stringify({ generatedAt: Date.now(), margin, summary }, null, 2) + '\n');
+writeProjectFile(`${root}/agents/sportsbook-report.json`, JSON.stringify({ generatedAt: Date.now(), margin, summary, trades }, null, 2) + '\n');
 writeProjectFile(`${root}/agents/sportsbook-report.md`, ['# Agent A: sportsbook closing line against Kalshi, history test', '',
   'Research only. Each Kalshi game market is matched exactly to an ESPN game (Eastern date, away and home codes) and read at the game start, beside the DraftKings closing moneyline with its margin removed. The side the books favor is bought when its edge after the taker fee beats the margin; one contract, held to settlement.', '',
   `Ranges are 97.5%, resampling whole games. Margin ${cents(margin)}. ${locked.length ? (final ? `The locked final exam (${locked[0]} to ${locked.at(-1)}) is included.` : `Locked final exam, not run: ${locked[0]} to ${locked.at(-1)}.`) : `No locked exam yet: fewer than ${minDaysToLock} days downloaded.`}`, '',

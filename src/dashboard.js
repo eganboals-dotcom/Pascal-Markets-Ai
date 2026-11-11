@@ -3,8 +3,19 @@ import { readFileSync } from 'node:fs';
 import { projectPath } from './files.js';
 import { createDashboardRunner } from './dashboard-runner.js';
 import { recentRecords, dashboardData } from './dashboard-data.js';
+import { SWITCHES_PATH, loadDepartments, readSwitches, writeSwitch } from './departments.js';
 
-const LEASE_MS = 20000;
+const LEASE_MS = 20000, MAX_BODY = 1024;
+
+function readBody(request) {
+  return new Promise((resolve, reject) => {
+    let text = '';
+    request.setEncoding('utf8');
+    request.on('data', chunk => { text += chunk; if (text.length > MAX_BODY) reject(new Error('Request too large')); });
+    request.on('end', () => resolve(text));
+    request.on('error', reject);
+  });
+}
 
 function readJson(path, fallback) {
   try { return JSON.parse(readFileSync(projectPath(path), 'utf8')); }
@@ -21,7 +32,7 @@ export function createDashboardServer({ runner = createDashboardRunner(),
       checks: localChecks.length ? localChecks : recentRecords('research/kalshi/dryrun.jsonl'), mm,
       budget: readJson('config/scan.json', {}).budget ?? {} }) };
   },
-  now = Date.now, leaseMs = LEASE_MS } = {}) {
+  now = Date.now, leaseMs = LEASE_MS, departmentsRoot = 'data/history', switchesPath = SWITCHES_PATH } = {}) {
   let lastContact = now();
   const sessions = new Set();
   const lease = setInterval(() => {
@@ -42,11 +53,18 @@ export function createDashboardServer({ runner = createDashboardRunner(),
       response.end(JSON.stringify(body));
     };
     if (!/^(?:127\.0\.0\.1|localhost):\d+$/.test(request.headers.host ?? '')) { json(403, { error: 'Local dashboard access only' }); return; }
-    if (['/api/start', '/api/stop'].includes(request.url)) {
+    if (['/api/start', '/api/stop', '/api/departments/switch'].includes(request.url)) {
       const origin = request.headers.origin;
       if (request.method !== 'POST') { json(405, { error: 'POST required' }); return; }
       if (request.headers['content-type'] !== 'application/json' || request.headers['x-pascal-control'] !== '1' ||
           (origin && origin !== `http://${request.headers.host}`)) { json(403, { error: 'Local dashboard controls only' }); return; }
+      if (request.url === '/api/departments/switch') {
+        let body;
+        try { body = JSON.parse(await readBody(request)); } catch { json(400, { error: 'A JSON body { id, on } is required' }); return; }
+        try { json(200, { switches: writeSwitch(loadDepartments(), body?.id, body?.on, switchesPath) }); }
+        catch (error) { json(/^(Unknown department|A switch must)/.test(error.message) ? 400 : 500, { error: error.message }); }
+        return;
+      }
       lastContact = now();
       try { json(200, request.url === '/api/start' ? runner.start() : await runner.stop()); }
       catch { json(500, { error: 'Scanner control failed' }); }
@@ -63,6 +81,11 @@ export function createDashboardServer({ runner = createDashboardRunner(),
     if (request.url === '/api/research') {
       try { json(200, research()); }
       catch { json(500, { error: 'Research reports unavailable' }); }
+      return;
+    }
+    if (request.url === '/api/departments') {
+      try { json(200, { report: readJson(`${departmentsRoot}/departments-report.json`, null), switches: readSwitches(loadDepartments(), switchesPath) }); }
+      catch { json(500, { error: 'Department report unavailable' }); }
       return;
     }
     if (request.url === '/api/scan') {

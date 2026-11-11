@@ -125,7 +125,7 @@ const summary = { ...summarize(trades), accuracy: brierComparison(forecasts), co
 summary.gateD = summary.passes;
 const money = x => (x < 0 ? '−$' : '$') + Math.abs(x).toFixed(2), cents = x => `${(x * 100).toFixed(1)}¢`;
 const range = r => `${money(r.total)} (${money(r.low)} to ${money(r.high)})`, a = summary.accuracy;
-writeProjectFile(`${root}/agents/weather-report.json`, JSON.stringify({ generatedAt: Date.now(), margin, summary }, null, 2) + '\n');
+writeProjectFile(`${root}/agents/weather-report.json`, JSON.stringify({ generatedAt: Date.now(), margin, summary, trades }, null, 2) + '\n');
 writeProjectFile(`${root}/agents/weather-report.md`, ['# Agent D: weather forecast against Kalshi, history test', '',
   `Research only. Each market is read at ${DECISION_UTC_HOUR}:00 UTC on its target date (the evening before in the US), beside the day-ahead forecast for its station, corrected by that station's bias and spread over its last ${RESIDUAL_DAYS} reported days up to two days earlier (at least 10). The side the forecast favors is bought when its edge after the taker fee beats the margin; one contract, held to settlement.`, '',
   `Ranges are 97.5%, resampling whole dates. Margin ${cents(margin)}. ${locked.length ? (final ? `The locked final exam (${locked[0]} to ${locked.at(-1)}) is included.` : `Locked final exam, not run: ${locked[0]} to ${locked.at(-1)}.`) : `No locked exam yet: fewer than ${minDaysToLock} days downloaded.`}`, '',

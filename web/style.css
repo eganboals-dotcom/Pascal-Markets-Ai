@@ -249,3 +249,7 @@ footer > span:first-child { display: flex; align-items: center; gap: 7px; }
   .chip.live .dot, .live .engine-foot .connection-dot, .engine-panel.live .radar::before { animation: none; }
 }
 .maker-dot { display: inline-block; width: 7px; height: 7px; border-radius: 2px; background: var(--amber); box-shadow: 0 0 8px rgba(255,181,71,.6); }
+/* department leaderboard */
+input.switch { width: 16px; height: 16px; margin: 0; accent-color: var(--green); cursor: pointer; vertical-align: middle; }
+input.switch:disabled { cursor: wait; }
+tbody tr.off td:not(:nth-child(2)) { opacity: .45; }
