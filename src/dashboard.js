@@ -5,6 +5,7 @@ import { createDashboardRunner } from './dashboard-runner.js';
 import { recentRecords, dashboardData } from './dashboard-data.js';
 import { SWITCHES_PATH, loadDepartments, readSwitches, writeSwitch } from './departments.js';
 import { HEARTBEAT_DIR, isStale, recentBeats } from './heartbeat.js';
+import { LEDGERS, PAPER_DIR } from './paper.js';
 
 const LEASE_MS = 20000, MAX_BODY = 1024;
 
@@ -33,7 +34,7 @@ export function createDashboardServer({ runner = createDashboardRunner(),
       checks: localChecks.length ? localChecks : recentRecords('research/kalshi/dryrun.jsonl'), mm,
       budget: readJson('config/scan.json', {}).budget ?? {} }) };
   },
-  now = Date.now, leaseMs = LEASE_MS, departmentsRoot = 'data/history', switchesPath = SWITCHES_PATH, heartbeatDir = HEARTBEAT_DIR, paperDir = 'data/paper' } = {}) {
+  now = Date.now, leaseMs = LEASE_MS, departmentsRoot = 'data/history', switchesPath = SWITCHES_PATH, heartbeatDir = HEARTBEAT_DIR, paperDir = PAPER_DIR } = {}) {
   // One department's page: each agent's latest heartbeat (the live scanner reports through the runner), its part of the history
   // test, a merged activity feed and the newest history-test trades.
   const departmentPage = department => {
@@ -50,10 +51,12 @@ export function createDashboardServer({ runner = createDashboardRunner(),
       return { ...a, state: last?.state ?? (a.built ? 'no reports yet' : 'planned'), detail: last?.detail ?? '', time: last?.time ?? null,
         stale: isStale(last, clock), history: row?.agents?.[a.id] ?? null };
     });
-    // The live gap-taker's paper trades for this department, newest first, with the settled P&L once the game is over.
-    const results = new Map(recentRecords(`${paperDir}/gap-settled.jsonl`, 5000, 1048576).map(s => [s.ticker, s.pnl]));
-    const paper = recentRecords(`${paperDir}/gap-taker.jsonl`, 5000, 1048576).filter(t => t.department === department.id)
-      .reverse().slice(0, 25).map(t => ({ ...t, pnl: results.get(t.ticker) ?? null }));
+    // The live paper agents' trades for this department, newest first, with the settled P&L once Kalshi has settled them.
+    const paper = LEDGERS.flatMap(l => {
+      const results = new Map(recentRecords(`${paperDir}/${l.settled}`, 5000, 1048576).map(s => [s.ticker, s.pnl]));
+      return recentRecords(`${paperDir}/${l.trades}`, 5000, 1048576).filter(t => t.department === department.id)
+        .map(t => ({ ...t, agent: l.agent, pnl: results.get(t.ticker) ?? null }));
+    }).sort((x, y) => y.time - x.time).slice(0, 25);
     return { id: department.id, name: department.name, on: readSwitches(loadDepartments(), switchesPath)[department.id], row, agents,
       activity: activity.sort((x, y) => y.time - x.time).slice(0, 40), paper };
   };

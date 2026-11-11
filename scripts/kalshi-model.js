@@ -1,6 +1,6 @@
 // Runs the quoting-policy walk-forward once the history download is complete: waits for the backfill's finished marker,
 // retries markets that hit Kalshi's rate limit in one more resumable pass, then runs kalshi-bandit.js, the four taker agents
-// (sportsbook, longshot, weather, cross-venue) and the department report, each on its own so one failure does not stop the rest.
+// (sportsbook, longshot, weather, station-watch, cross-venue) and the department report, each on its own so one failure does not stop the rest.
 // Each agent's state goes to its heartbeat file for the dashboard's department pages. Research only; no orders.
 // The locked final exam is never run from here; it stays a separate, deliberate `kalshi-bandit.js --final`.
 import { spawnSync } from 'node:child_process';
@@ -27,6 +27,7 @@ const say = fields => console.log(JSON.stringify({ time: new Date().toISOString(
 
 // Heartbeats for the department pages; a failed write is logged and never stops the model run.
 const AGENT_OF = { 'kalshi-bandit': 'maker', 'agent-sportsbook': 'sportsbook', 'agent-longshot': 'longshot', 'agent-weather': 'weather', 'agent-crossvenue': 'crossvenue' };
+// station-watch reports through its live script (scripts/station-watch.js), so its history test runs without heartbeats here.
 const WAIT_MS = 10 * 60000, RUN_MS = 12 * 3600000;
 const checkIn = (agent, state, detail, nextWithinMs = 0) => {
   try { beat(agent, state, detail, { nextWithinMs }); } catch (error) { console.error(JSON.stringify({ heartbeat: agent, error: error.message })); }
@@ -73,7 +74,7 @@ if (errorLines('backfill.err.log')) {
 const failed = [];
 checkInAll('queued', 'Download finished; queued behind the earlier history tests', RUN_MS);
 for (const [script, report] of [['kalshi-bandit', 'bandit-report.md'], ['agent-sportsbook', 'agents/sportsbook-report.md'],
-  ['agent-longshot', 'agents/longshot-report.md'], ['agent-weather', 'agents/weather-report.md'],
+  ['agent-longshot', 'agents/longshot-report.md'], ['agent-weather', 'agents/weather-report.md'], ['agent-station-watch', 'agents/station-watch-report.md'],
   ['agent-crossvenue', 'agents/crossvenue-report.md'], ['departments-report', 'departments-report.md']]) {
   const agent = AGENT_OF[script];
   try {

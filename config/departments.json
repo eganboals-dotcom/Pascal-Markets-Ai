@@ -8,7 +8,7 @@
     "maker": { "name": "Quoting engine, fixed rules (Agent G)", "role": "trading", "built": true },
     "longshot": { "name": "Favorite-longshot fade (Agent C)", "role": "trading", "built": true },
     "weather": { "name": "Forecast taker (Agent D)", "role": "trading", "built": true },
-    "station-watch": { "name": "Station readings so far today", "role": "research", "built": false },
+    "station-watch": { "name": "Station readings so far today, paper (decided ranges)", "role": "research", "built": true },
     "weather-maker": { "name": "Bracket quoting around the forecast", "role": "trading", "built": false },
     "spot-feed": { "name": "Live crypto, metal and oil prices", "role": "research", "built": false },
     "vol-model": { "name": "Chance of finishing up, from volatility", "role": "research", "built": false },

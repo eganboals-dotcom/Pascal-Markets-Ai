@@ -6,15 +6,15 @@
 // dashboard are skipped. Paper trades go to data/paper/gap-taker.jsonl and their results, after the game, to gap-settled.jsonl.
 // Kalshi is read through its public API only; no orders, no key. While the history download or its retry pass is using Kalshi's
 // request limit, --wait holds off (without it the script exits); --force skips that check for a one-off look. --once runs one pass.
-import { appendFileSync, existsSync, mkdirSync, readFileSync, statSync } from 'node:fs';
+import { appendFileSync, existsSync, readFileSync } from 'node:fs';
 import { setTimeout as sleep } from 'node:timers/promises';
-import { fetchMarkets, fetchOpenEvents } from '../src/kalshi.js';
+import { fetchOpenEvents } from '../src/kalshi.js';
 import { LEAGUES } from '../src/agents/fair-odds.js';
 import { LINE_AGE_MS, bookIndexes, fairsFor, gapDecision, lineGames } from '../src/agents/gap-taker.js';
-import { settle } from '../src/takers.js';
 import { departmentOf, loadDepartments, readSwitches, seriesOf } from '../src/departments.js';
-import { downloadState, jsonLines, settlementValue } from '../src/history.js';
-import { beat, isStale, recentBeats } from '../src/heartbeat.js';
+import { jsonLines } from '../src/history.js';
+import { beat } from '../src/heartbeat.js';
+import { downloadBusy, eventOf, openLedger } from '../src/paper.js';
 import { projectPath } from '../src/files.js';
 import { readResearch } from '../src/report.js';
 
@@ -22,28 +22,15 @@ const text = (name, fallback) => process.argv.find(a => a.startsWith(`--${name}=
 const flag = name => process.argv.includes(`--${name}`);
 const minutes = Number(text('minutes', 5)), margin = Number(text('margin', 0.01)), leadMs = Number(text('lead-hours', 12)) * 3600000;
 const onlySeries = text('series', '').split(',').filter(Boolean), feeRate = readResearch('config/scan.json', {}).feeRate ?? 0.07;
-const TRADES = 'data/paper/gap-taker.jsonl', FLAGS = 'data/paper/gap-flags.jsonl', SETTLED = 'data/paper/gap-settled.jsonl';
+const FLAGS = 'data/paper/gap-flags.jsonl';
 const AGENT = 'gap-taker', SETTLE_AFTER_MS = 4 * 3600000, PAUSE_MS = 250, WAIT_MS = 10 * 60000;
 const warn = fields => console.error(JSON.stringify({ time: new Date().toISOString(), ...fields }));
 const say = fields => console.log(JSON.stringify({ time: new Date().toISOString(), ...fields }));
 const checkIn = (state, detail, nextWithinMs) => { try { beat(AGENT, state, detail, { nextWithinMs }); } catch (error) { warn({ heartbeat: error.message }); } };
 const append = (path, row) => appendFileSync(projectPath(path), JSON.stringify(row) + '\n');
 const money = x => (x < 0 ? '−$' : '$') + Math.abs(x).toFixed(2);
-mkdirSync(projectPath('data/paper'), { recursive: true });
-
-// Kalshi allows about 10 requests a second and the download uses all of it, so this waits while the download runs or while the
-// model run's waiter is still in its waiting or retry phase (its maker heartbeat says 'waiting').
-function downloadBusy() {
-  const log = projectPath('data/history/backfill.log');
-  if (existsSync(log) && downloadState(readFileSync(log, 'utf8'), statSync(log).mtimeMs) === 'running') return true;
-  const waiter = recentBeats('maker', { limit: 1 })[0];
-  return waiter?.state === 'waiting' && !isStale(waiter);
-}
-
-const readAll = path => existsSync(projectPath(path)) ? readFileSync(projectPath(path), 'utf8').split('\n').filter(Boolean).map(JSON.parse) : [];
-const eventOf = ticker => ticker.slice(0, ticker.lastIndexOf('-'));
-const trades = readAll(TRADES), taken = new Set(trades.map(t => eventOf(t.ticker))), flagged = new Set(readAll(FLAGS).map(f => f.ticker));
-const settled = new Map(readAll(SETTLED).map(s => [s.ticker, s.pnl]));
+const ledger = openLedger(AGENT), { trades, settled } = ledger, taken = new Set(trades.map(t => eventOf(t.ticker)));
+const flagged = new Set(existsSync(projectPath(FLAGS)) ? readFileSync(projectPath(FLAGS), 'utf8').split('\n').filter(Boolean).map(l => JSON.parse(l).ticker) : []);
 
 async function freshLines(now) {
   const rows = [];
@@ -55,17 +42,7 @@ async function freshLines(now) {
 }
 
 async function settleDue() {
-  const due = trades.filter(t => !settled.has(t.ticker) && Date.now() - Date.parse(t.start) > SETTLE_AFTER_MS);
-  if (!due.length) return;
-  try {
-    for (const m of await fetchMarkets(due.map(t => t.ticker))) {
-      const value = settlementValue(m), trade = due.find(t => t.ticker === m.ticker);
-      if (value === null || !trade) continue;
-      const pnl = settle(trade, value);
-      append(SETTLED, { time: Date.now(), ticker: m.ticker, result: m.result, pnl });
-      settled.set(m.ticker, pnl);
-    }
-  } catch (error) { warn({ settle: error.message }); }
+  try { await ledger.settleDue((t, now) => now - Date.parse(t.start) > SETTLE_AFTER_MS); } catch (error) { warn({ settle: error.message }); }
 }
 
 async function pass() {
@@ -93,7 +70,7 @@ async function pass() {
         const row = { time: Date.now(), ticker: m.ticker, league: g.league, department: departmentOf(seriesOf(m.ticker), departments),
           game: `${g.away} at ${g.home}`, start: g.start, side, price, fee, edge, fair: decision.fair,
           books: { pinnacle: fairs.pinnacle ?? null, draftkings: fairs.draftkings ?? null }, ...(decision.reason ? { reason: decision.reason } : {}) };
-        if (decision.action === 'take') { append(TRADES, row); trades.push(row); taken.add(eventOf(m.ticker)); } else { append(FLAGS, row); flagged.add(m.ticker); }
+        if (decision.action === 'take') { ledger.record(row); taken.add(eventOf(m.ticker)); } else { append(FLAGS, row); flagged.add(m.ticker); }
         counts[decision.action]++;
         say({ [decision.action]: m.ticker, side, price, edge: Number(edge.toFixed(4)) });
       }
@@ -101,7 +78,7 @@ async function pass() {
     await sleep(PAUSE_MS);
   }
   await settleDue();
-  const pnl = [...settled.values()].reduce((a, b) => a + b, 0);
+  const pnl = ledger.pnl();
   const detail = `Checked ${counts.checked} markets in ${games.length} games: ${counts.take} new paper trades, ${counts.flag} flagged. `
     + `${trades.length} paper trades so far, ${settled.size} settled, ${money(pnl)}`;
   checkIn('waiting', detail, 2 * minutes * 60000 + 60000);

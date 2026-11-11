@@ -150,9 +150,9 @@ function renderDepartmentPage() {
   } else empty('department-activity', 'No activity reported yet', 'Agents report here as they work: the odds logger every sweep, the history tests while they wait and run.', '◷');
   const paper = page.paper ?? [], cents = n => Number.isFinite(n) ? `${(n * 100).toFixed(1)}¢` : '—';
   if (paper.length) {
-    table('department-paper', ['When', 'Game', 'Market', 'Side', 'Price', 'Books', 'Edge', 'P&L'], paper.map(t => [ago(t.time), t.game, market(t.ticker),
+    table('department-paper', ['When', 'Agent', 'Why', 'Market', 'Side', 'Price', 'Fair', 'Edge', 'P&L'], paper.map(t => [ago(t.time), t.agent ?? '—', t.game, market(t.ticker),
       t.side, cents(t.price), cents(t.fair), cents(t.edge), Number.isFinite(t.pnl) ? signed(t.pnl) : 'open']));
-  } else empty('department-paper', 'No paper trades yet', 'The live gap-taker buys, on paper, any Kalshi price that beats the sportsbooks after fees. It starts once the history download finishes.', '⇄');
+  } else empty('department-paper', 'No paper trades yet', 'The live paper agents buy, on paper, any Kalshi price their fair value beats after fees: the gap-taker against the sportsbooks, station-watch on temperature ranges the readings have already decided. They start once the history download finishes.', '⇄');
   const trades = r?.recent ?? [];
   if (trades.length) {
     table('department-trades', ['Day', 'Agent', 'Market', 'Side', 'Price', 'Why', 'P&L'], trades.map(t => [t.day, t.agent, market(t.ticker),

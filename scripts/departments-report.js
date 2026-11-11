@@ -1,4 +1,4 @@
-// The department leaderboard from the history tests: every saved trade (quoting engine and agents A, C, D, F) split into the
+// The department leaderboard from the history tests: every saved trade (quoting engine, agents A, C, D, F and station-watch) split into the
 // seven departments of config/departments.json. Research only; it reads reports and writes one. An agent whose report is missing
 // or predates saved trades is listed, not guessed.
 import { loadDepartments, scoreboard, ARBITRAGE } from '../src/departments.js';
@@ -12,6 +12,7 @@ const SOURCES = [
   { agent: 'sportsbook', path: 'agents/sportsbook-report.json', key: 'trades' },
   { agent: 'longshot', path: 'agents/longshot-report.json', key: 'trades' },
   { agent: 'weather', path: 'agents/weather-report.json', key: 'trades' },
+  { agent: 'station-watch', path: 'agents/station-watch-report.json', key: 'trades' },
   { agent: 'crossvenue', path: 'agents/crossvenue-report.json', key: 'trades', department: ARBITRAGE },
 ];
 
