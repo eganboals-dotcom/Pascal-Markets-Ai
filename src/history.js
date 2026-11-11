@@ -1,5 +1,26 @@
 // Converts settled-market history into the simulator's live recording format. Read-only research data; no orders.
+import { createReadStream, existsSync, readdirSync } from 'node:fs';
+import { createInterface } from 'node:readline';
+import { projectPath } from './files.js';
+
 export const HEARTBEAT_MS = 15 * 60000;
+
+export async function* jsonLines(path) {
+  if (!existsSync(projectPath(path))) return;
+  for await (const line of createInterface({ input: createReadStream(projectPath(path)), crlfDelay: Infinity })) {
+    if (!line) continue;
+    try { yield JSON.parse(line); } catch { /* the backfill may be mid-append on today's folder */ }
+  }
+}
+
+// Downloaded day folders, oldest first. Once 20 exist, the newest 10 are a locked final exam, left out unless final is set,
+// the same rule for the quoting walk-forward and every agent.
+export function historyDays(root, final = false, { lockedDays = 10, minDaysToLock = 20 } = {}) {
+  const all = existsSync(projectPath(root)) ? readdirSync(projectPath(root))
+    .filter(d => /^\d{4}-\d{2}-\d{2}$/.test(d) && existsSync(projectPath(`${root}/${d}/markets.jsonl`))).sort() : [];
+  const locked = all.length >= minDaysToLock ? all.slice(-lockedDays) : [];
+  return { days: final ? all : all.filter(d => !locked.includes(d)), locked, minDaysToLock };
+}
 
 // One book row per minute candle whose closing bid or ask changed, plus a heartbeat so cutoffs and markouts see time pass.
 // shortcut: candles carry no depth, so sizes are a nominal 1 contract; matches the sim's one-contract quotes, replace before sizing up.

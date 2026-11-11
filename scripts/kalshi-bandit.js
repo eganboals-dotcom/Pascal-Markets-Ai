@@ -1,27 +1,17 @@
 // Walk-forward test of the learned quoting policy on backfilled history: each day is first traded by a model trained only on
 // days at least two before it, scored against the fixed rules on the same day, and learned from a day later. Research only; no orders.
 // The newest 10 days are a locked final exam: skipped unless --final is passed, which should happen once, at the very end.
-import { createReadStream, existsSync, readdirSync } from 'node:fs';
-import { createInterface } from 'node:readline';
 import { simulate } from '../src/mm.js';
 import { addTrained, emptyModel, marketSamples, policy, train } from '../src/bandit.js';
-import { HEARTBEAT_MS, settlementValue } from '../src/history.js';
+import { HEARTBEAT_MS, historyDays, jsonLines, settlementValue } from '../src/history.js';
 import { bootstrapTotal, eventOf, pairedDifference, sumByEvent } from '../src/stats.js';
 import { readResearch, markdownTable } from '../src/report.js';
-import { projectPath, writeProjectFile } from '../src/files.js';
+import { writeProjectFile } from '../src/files.js';
 
 const root = process.argv.slice(2).find(a => !a.startsWith('--')) ?? 'data/history';
-const final = process.argv.includes('--final'), lockedDays = 10, minDaysToLock = 20;
+const final = process.argv.includes('--final');
 const config = readResearch('config/scan.json', {});
 const mm = { ...config.mm, makerFeeRate: config.makerFeeRate ?? 0.0175, takerFeeRate: config.feeRate ?? 0.07, maxQuoteAgeMs: HEARTBEAT_MS + 60000, maxMarkoutDelayMs: HEARTBEAT_MS + 60000 };
-
-async function* jsonLines(path) {
-  if (!existsSync(projectPath(path))) return;
-  for await (const line of createInterface({ input: createReadStream(projectPath(path)), crlfDelay: Infinity })) {
-    if (!line) continue;
-    try { yield JSON.parse(line); } catch { /* the backfill may be mid-append on today's folder */ }
-  }
-}
 
 // Only finished, quotable markets: others cannot fill. A restarted backfill can repeat one market's rows, so rows dedupe by time and trades by id.
 async function loadDay(dir) {
@@ -35,9 +25,7 @@ async function loadDay(dir) {
   return { settlements, books: sorted(books), tapes: sorted(tapes) };
 }
 
-const allDays = existsSync(projectPath(root)) ? readdirSync(projectPath(root)).filter(d => /^\d{4}-\d{2}-\d{2}$/.test(d) && existsSync(projectPath(`${root}/${d}/markets.jsonl`))).sort() : [];
-const locked = allDays.length >= minDaysToLock ? allDays.slice(-lockedDays) : [];
-const days = final ? allDays : allDays.filter(d => !locked.includes(d));
+const { days, locked, minDaysToLock } = historyDays(root, final);
 let model = emptyModel(), heldBack = null;
 const daily = [], fixedMarkets = [], learnedMarkets = [];
 for (const day of days) {

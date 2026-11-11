@@ -1,5 +1,6 @@
 // Runs the quoting-policy walk-forward once the history download is complete: waits for the backfill's finished marker,
-// retries markets that hit Kalshi's rate limit in one more resumable pass, then runs kalshi-bandit.js. Research only; no orders.
+// retries markets that hit Kalshi's rate limit in one more resumable pass, then runs kalshi-bandit.js and the three taker agents
+// (sportsbook, longshot, weather), each on its own so one failure does not stop the rest. Research only; no orders.
 // The locked final exam is never run from here; it stays a separate, deliberate `kalshi-bandit.js --final`.
 import { spawnSync } from 'node:child_process';
 import { existsSync, openSync, readdirSync, readFileSync, statSync } from 'node:fs';
@@ -45,5 +46,11 @@ if (errorLines('backfill.err.log')) {
     process.exit(1);
   }
 }
-run(['scripts/kalshi-bandit.js', root]);
-say({ done: true, report: `${root}/bandit-report.md` });
+const failed = [];
+for (const [script, report] of [['kalshi-bandit', 'bandit-report.md'], ['agent-sportsbook', 'agents/sportsbook-report.md'],
+  ['agent-longshot', 'agents/longshot-report.md'], ['agent-weather', 'agents/weather-report.md']]) {
+  try { run([`scripts/${script}.js`, root]); say({ report: `${root}/${report}` }); }
+  catch (error) { failed.push(script); console.error(error.message); }
+}
+say({ done: true, failed });
+if (failed.length) process.exit(1);
