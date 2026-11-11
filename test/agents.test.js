@@ -2,8 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { americanProb, bookAt, brierComparison, noVig, settle, summarize, take } from '../src/takers.js';
 import { bucketOf, longshotRules } from '../src/agents/longshot.js';
-import { closingRow, gameIndex, matchMarket, parseGameTicker, tickerDate } from '../src/agents/fair-odds.js';
+import { closingRow, gameIndex, matchGame, matchMarket, parseGameTicker, tickerDate } from '../src/agents/fair-odds.js';
 import { dailyExtremes, errorModel, paysYes, stationOf, strikeProbability } from '../src/agents/fair-weather.js';
+import { hedge, polyGame, polyUsFee } from '../src/agents/cross-venue.js';
 
 const book = (yesBid, yesAsk) => ({ yesBid, yesAsk, fee_multiplier: 1 });
 
@@ -98,4 +99,24 @@ test('weather strikes follow Kalshi rules and the forecast spread has a floor', 
   assert.deepEqual([model.bias, model.sd], [1, 1.5]);
   const hours = Array.from({ length: 24 }, (_, h) => `2026-11-04T${String(h).padStart(2, '0')}:00`);
   assert.deepEqual(dailyExtremes([...hours, '2026-11-05T00:00'], [...hours.map((_, h) => 60 + h), 50]), { '2026-11-04': { high: 83, low: 60, hours: 24 } });
+});
+
+test('cross-venue hedges buy one team on each venue and count both taker fees', () => {
+  const market = { slug: 'aec-nba-phi-det-2026-11-04', gameStartTime: '2026-11-05T00:00:00Z',
+    marketSides: [{ long: true, team: { abbreviation: 'phi' } }, { long: false, team: { abbreviation: 'det' } }] };
+  const game = polyGame(market);
+  assert.deepEqual([game.league, game.date, game.awayCode, game.homeCode], ['nba', '2026-11-04', 'PHI', 'DET']);
+  assert.equal(polyGame({ ...market, marketSides: [{ long: true, team: { abbreviation: 'det' } }] }), null); // slug and sides disagree
+  assert.equal(polyGame({ ...market, slug: 'aec-lol-t1-geng-2026-11-04' }), null); // no Kalshi game series
+  const match = matchGame('KXNBAGAME-26NOV04PHIDET-DET', gameIndex([game]));
+  assert.equal(match.isAway !== match.swapped, false); // DET is Polymarket's second team
+  // 76ers-Pistons at tip-off: Kalshi 42/43, Polymarket US asks 45 (76ers) and 56 (Pistons). No hedge clears the fees.
+  const atTip = hedge({ yesBid: 0.42, yesAsk: 0.43, fee_multiplier: 1 }, { longPrice: 0.45, shortPrice: 0.56 }, true);
+  assert.ok(Math.abs(atTip.gross - 0.01) < 1e-9 && atTip.profit < 0 && atTip.kalshi === 'yes');
+  // Kalshi Yes on PHI at 40 plus Polymarket Pistons at 55 costs 95 before fees: 5 cents gross, about 4.2 cents of fees.
+  const gap = hedge({ yesBid: 0.39, yesAsk: 0.40, fee_multiplier: 1 }, { longPrice: 0.46, shortPrice: 0.55 }, true);
+  assert.ok(Math.abs(gap.fees - (0.0168 + polyUsFee(0.55))) < 1e-9 && gap.profit > 0 && gap.profit < 0.01);
+  // Seen from the Pistons' market (X is the second team): Kalshi Pistons Yes at 57 plus Polymarket 76ers at 41 is the cheaper hedge.
+  assert.equal(hedge({ yesBid: 0.56, yesAsk: 0.57, fee_multiplier: 1 }, { longPrice: 0.41, shortPrice: 0.60 }, false).kalshi, 'yes');
+  assert.equal(hedge({ yesBid: 0, yesAsk: 1 }, { longPrice: 0, shortPrice: 1 }, true), null);
 });

@@ -59,11 +59,12 @@ export function gameIndex(games) {
   return index;
 }
 
-// Fair chance that a Kalshi game market pays, or null when it cannot be matched to exactly one game and side (never guessed).
-// The market's own team code starts (away) or ends (home) the event's team string. Both teams must resemble an ESPN game's codes,
-// in either order (neutral sites are listed both ways) and on the same Eastern date or one day either side, with the exact date
-// and order preferred. The best game must beat every other one, or the market is skipped.
-export function matchMarket(ticker, index) {
+// The one game a Kalshi game market belongs to, or null when it cannot be matched to exactly one (never guessed). The market's
+// own team code starts (away) or ends (home) the event's team string. Both teams must resemble a game's codes, in either order
+// (neutral sites are listed both ways) and on the same Eastern date or one day either side, with the exact date and order
+// preferred. The best game must beat every other one, or the market is skipped. `isAway` says which team the market pays on;
+// `swapped` that the game lists the teams the other way round. `usable` drops games that cannot be priced.
+export function matchGame(ticker, index, usable = () => true) {
   const parsed = parseGameTicker(ticker), league = parsed && leagueOfSeries(parsed.series);
   if (!league) return null;
   const { teams, outcome } = parsed, isAway = teams.startsWith(outcome), isHome = teams.endsWith(outcome);
@@ -72,7 +73,7 @@ export function matchMarket(ticker, index) {
   const scored = [];
   for (const shift of [0, 1, -1]) {
     for (const g of index.get(`${league}|${shiftDate(parsed.date, shift)}`) ?? []) {
-      if (!Number.isFinite(g.close?.away) || !Number.isFinite(g.close?.home)) continue;
+      if (!usable(g)) continue;
       const ga = teamCode(g.awayCode), gh = teamCode(g.homeCode);
       for (const swapped of [false, true]) {
         const a = codeSimilarity(away, swapped ? gh : ga), h = codeSimilarity(home, swapped ? ga : gh);
@@ -87,7 +88,15 @@ export function matchMarket(ticker, index) {
   }
   scored.sort((x, y) => y.score - x.score);
   if (!scored.length || (scored[1] && scored[1].score === scored[0].score && scored[1].g !== scored[0].g)) return null;
-  const { g: game, swapped, exact } = scored[0], [awayFair, homeFair] = noVig([americanProb(game.close.away), americanProb(game.close.home)]);
+  const { g: game, swapped, exact } = scored[0];
+  return { league, game, isAway, swapped, exact };
+}
+
+// Fair chance that a Kalshi game market pays, from the matched game's closing moneyline with the margin removed.
+export function matchMarket(ticker, index) {
+  const match = matchGame(ticker, index, g => Number.isFinite(g.close?.away) && Number.isFinite(g.close?.home));
+  if (!match) return null;
+  const { league, game, isAway, swapped, exact } = match, [awayFair, homeFair] = noVig([americanProb(game.close.away), americanProb(game.close.home)]);
   return { league, game, fair: isAway !== swapped ? awayFair : homeFair, exact };
 }
 
