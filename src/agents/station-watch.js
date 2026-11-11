@@ -16,11 +16,12 @@ export function standardOffsetMs(tz) {
 export const climateDate = (time, offsetMs) => new Date(time + offsetMs).toISOString().slice(0, 10);
 export const climateDayStart = (date, offsetMs) => Date.parse(date) - offsetMs;
 
-// Highest and lowest reading on that climate day up to a moment, or null before the first one. Readings are { time, temp }.
+// Highest and lowest reading on that climate day among those that had arrived by a moment, or null before the first one.
+// Readings are { time, temp, arrived? }; without an arrival time a reading counts from its own time.
 export function soFar(readings, date, offsetMs, until = Infinity) {
   let high = -Infinity, low = Infinity, count = 0;
   for (const r of readings) {
-    if (r.time > until || !Number.isFinite(r.temp) || climateDate(r.time, offsetMs) !== date) continue;
+    if ((r.arrived ?? r.time) > until || !Number.isFinite(r.temp) || climateDate(r.time, offsetMs) !== date) continue;
     high = Math.max(high, r.temp); low = Math.min(low, r.temp); count++;
   }
   return count ? { high, low, count } : null;
@@ -54,11 +55,13 @@ export const tGroupF = metar => { const m = / T([01])(\d{3})/.exec(metar ?? '');
 // since a whole-degree Celsius reading can sit almost a degree Fahrenheit from the truth.
 export function asosReadings(csv) {
   const [head = '', ...lines] = csv.split('\n'), cols = head.trim().split(','), at = name => cols.indexOf(name);
-  return lines.map(line => line.trim().split(',')).filter(f => f.length >= 3).map(f => {
+  return clean(lines.map(line => line.trim().split(',')).filter(f => f.length >= 3).map(f => {
     const fine = tGroupF(f[at('metar')]);
     return { time: Date.parse(`${f[at('valid')]?.replace(' ', 'T')}Z`), temp: Number.isFinite(fine) ? Math.round(fine * 100) / 100 : f[at('tmpf')] ? Number(f[at('tmpf')]) : NaN };
-  }).filter(r => Number.isFinite(r.time) && r.temp >= MIN_F && r.temp <= MAX_F).sort((a, b) => a.time - b.time).filter(nearNeighbor);
+  }));
 }
+// Readings in time order without impossible values and lone spikes; run again on readings merged from several feeds.
+export const clean = readings => readings.filter(r => Number.isFinite(r.time) && r.temp >= MIN_F && r.temp <= MAX_F).sort((a, b) => a.time - b.time).filter(nearNeighbor);
 // Sensors sometimes send one wild value (-61°C is a common error code). A reading with others within 2 hours counts only when one
 // of them is within 10°F, so the newest one waits for the next to confirm a jump; a reading after a long gap stands.
 const SPIKE_F = 10, NEIGHBOR_MS = 2 * 3600000, MIN_F = -60, MAX_F = 135; // outside US station records: an error code
@@ -75,3 +78,22 @@ function nearNeighbor(r, i, all) {
 // Routine and special reports plus the 5-minute ones (report_type 1) where a station sends them; Central Park sends hourly only.
 export const asosUrl = (code, start, end) => 'https://mesonet.agron.iastate.edu/cgi-bin/request/asos.py?station=' + code +
   `&data=tmpf&data=metar&tz=Etc/UTC&format=onlycomma&latlon=no&missing=empty&report_type=1&report_type=3&report_type=4&sts=${new Date(start).toISOString().slice(0, 16)}Z&ets=${new Date(end).toISOString().slice(0, 16)}Z`;
+
+// Kalshi's public city temperature index carries each member station's 1-minute reading (whole °C, like the 5-minute reports),
+// about 2.4 minutes after the minute (Chicago Midway, Oct 20 and Nov 11), against 24 to 27 for the Mesonet. Twelve settlement
+// stations are members (calibration timelines, Nov 11); a station that leaves its city simply falls back to the Mesonet.
+export const INDEX_CITY = { MDW: 'chicago', DFW: 'dfw', BOS: 'greater-boston', HOU: 'houston', LAX: 'la-coastal', MIA: 'miami',
+  MSP: 'minneapolis-st-paul', EWR: 'nyc', PHL: 'phl-delaware-valley', TTN: 'phl-delaware-valley', SEA: 'puget-sound', SFO: 'sf-bay' };
+export const indexUrl = (city, from, to) => `https://api.elections.kalshi.com/trade-api/v2/live_data/weather/${city}?detailed=true&from=${from}&to=${to}`;
+// The index response into station code ('KMDW1M' -> 'MDW') -> readings { time, temp, arrived }, unfiltered. A carried-forward
+// hourly reading keeps its own observation time, so each reading appears once.
+export function indexReadings(json) {
+  const byStation = new Map();
+  for (const p of json?.timeseries ?? []) for (const s of p.stations ?? []) {
+    if (!Number.isFinite(s.temp_f) || !s.station_id) continue;
+    const code = s.station_id.replace(/^K/, '').replace(/1M$/, ''), time = s.obs_time_ms ?? p.t;
+    const seen = byStation.get(code) ?? byStation.set(code, new Map()).get(code);
+    if (!seen.has(time)) seen.set(time, { time, temp: s.temp_f, arrived: s.received_at_ms ?? time });
+  }
+  return new Map([...byStation].map(([code, seen]) => [code, [...seen.values()]]));
+}

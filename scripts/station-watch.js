@@ -1,14 +1,16 @@
 // Station-watch, live (weather department). Every --minutes (default 10) it reads each Kalshi weather station's 5-minute and hourly readings
 // on its last two climate days from the Iowa Environmental Mesonet (free, no key, no Kalshi requests) and reports on the dashboard.
-// Once the history download is done (or with --force), it also reads Kalshi's open KXHIGH/KXLOW markets and buys on paper the side
+// Once the history download is done (or with --force), every --every-seconds (60) it also reads the 1-minute readings Kalshi's public
+// city index carries for twelve of the stations (about 2.4 minutes late, against 24 to 27 for the Mesonet), then Kalshi's open
+// KXHIGH/KXLOW markets, and buys on paper the side
 // of any range the readings have already decided (src/agents/station-watch.js): one contract per market, held to settlement, when
 // its edge after the taker fee beats --margin (1¢) and something is offered at that price. The weather switch on the leaderboard
 // turns the Kalshi part off. Stations and series come from Agent D's caches in data/weather/. --once runs one pass. No orders.
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { setTimeout as sleep } from 'node:timers/promises';
-import { fetchOpenEvents } from '../src/kalshi.js';
+import { fetchOpenEvents, getJson } from '../src/kalshi.js';
 import { kindOf, stationOf } from '../src/agents/fair-weather.js';
-import { asosReadings, asosUrl, climateDate, climateDayStart, decided, soFar, standardOffsetMs } from '../src/agents/station-watch.js';
+import { INDEX_CITY, asosReadings, asosUrl, clean, climateDate, climateDayStart, decided, indexReadings, indexUrl, soFar, standardOffsetMs } from '../src/agents/station-watch.js';
 import { tickerDate } from '../src/agents/fair-odds.js';
 import { take } from '../src/takers.js';
 import { departmentOf, loadDepartments, readSwitches } from '../src/departments.js';
@@ -19,8 +21,8 @@ import { readResearch } from '../src/report.js';
 
 const option = (name, fallback) => process.argv.find(a => a.startsWith(`--${name}=`))?.split('=')[1] ?? fallback;
 const flag = name => process.argv.includes(`--${name}`);
-const minutes = Number(option('minutes', 10)), margin = Number(option('margin', 0.01)), feeRate = readResearch('config/scan.json', {}).feeRate ?? 0.07;
-const AGENT = 'station-watch', PAUSE_MS = 3000, DAY_MS = 86400000, SETTLE_AFTER_MS = 6 * 3600000, NEXT_MS = 2 * minutes * 60000 + 5 * 60000;
+const minutes = Number(option('minutes', 10)), everyMs = Number(option('every-seconds', 60)) * 1000, margin = Number(option('margin', 0.01)), feeRate = readResearch('config/scan.json', {}).feeRate ?? 0.07;
+const AGENT = 'station-watch', PAUSE_MS = 3000, DAY_MS = 86400000, SETTLE_AFTER_MS = 6 * 3600000, NEXT_MS = 2 * minutes * 60000 + 5 * 60000, OVERLAP_MS = 15 * 60000;
 const say = fields => console.log(JSON.stringify({ time: new Date().toISOString(), ...fields }));
 const warn = fields => console.error(JSON.stringify({ time: new Date().toISOString(), ...fields }));
 const checkIn = (state, detail) => { try { beat(AGENT, state, detail, { nextWithinMs: NEXT_MS }); } catch (error) { warn({ heartbeat: error.message }); } };
@@ -49,6 +51,24 @@ async function readStations(now) {
     await sleep(PAUSE_MS);
   }
   return readings;
+}
+
+// Kalshi's index, per station code: time -> reading. The first read takes two days, later ones what is new plus an overlap.
+const fromIndex = new Map(), indexedAt = new Map();
+async function readIndex(now) {
+  for (const city of new Set(Object.values(INDEX_CITY))) {
+    try {
+      const got = indexReadings(await getJson(indexUrl(city, indexedAt.has(city) ? indexedAt.get(city) - OVERLAP_MS : now - 2 * DAY_MS, now)));
+      for (const [code, list] of got) {
+        if (INDEX_CITY[code] !== city || !stations.has(code)) continue;
+        const seen = fromIndex.get(code) ?? fromIndex.set(code, new Map()).get(code);
+        for (const r of list) seen.set(r.time, r);
+        for (const time of seen.keys()) if (time < now - 2 * DAY_MS) seen.delete(time);
+      }
+      indexedAt.set(city, now);
+    } catch (error) { warn({ city, error: error.message }); }
+    await sleep(250);
+  }
 }
 
 async function trade(readings, departments) {
@@ -80,11 +100,15 @@ async function trade(readings, departments) {
   return counts;
 }
 
+let mesonet = new Map(), mesonetAt = -Infinity;
 async function pass() {
-  const now = Date.now(), readings = await readStations(now);
+  const now = Date.now(), busy = !flag('force') && downloadBusy();
+  if (now - mesonetAt >= minutes * 60000) { mesonet = new Map([...mesonet, ...await readStations(now)]); mesonetAt = now; }
+  if (!busy) await readIndex(now);
+  const readings = new Map([...stations.keys()].map(code => [code, clean([...mesonet.get(code) ?? [], ...fromIndex.get(code)?.values() ?? []])]).filter(([, r]) => r.length));
   const newest = Math.max(...[...readings.values()].flat().map(r => r.time));
-  const read = `Read ${readings.size} of ${stations.size} stations` + (Number.isFinite(newest) ? `, newest reading ${new Date(newest).toISOString().slice(11, 16)} UTC` : '');
-  if (!flag('force') && downloadBusy()) { checkIn('waiting', `${read}. Kalshi prices wait for the history download`); say({ stations: readings.size, kalshi: 'waiting' }); return; }
+  const read = `Read ${readings.size} of ${stations.size} stations (${fromIndex.size} on Kalshi's 1-minute feed)` + (Number.isFinite(newest) ? `, newest reading ${new Date(newest).toISOString().slice(11, 16)} UTC` : '');
+  if (busy) { checkIn('waiting', `${read}. Kalshi's feed and prices wait for the history download`); say({ stations: readings.size, kalshi: 'waiting' }); return; }
   checkIn('scanning', `${read}. Checking Kalshi's open weather markets`);
   const c = await trade(readings, loadDepartments());
   checkIn('waiting', `${read}. ${c.checked} markets checked, ${c.decided} already decided, ${c.take} new paper trades; `
@@ -92,9 +116,10 @@ async function pass() {
   say({ stations: readings.size, ...c, trades: ledger.trades.length, settled: ledger.settled.size, pnl: ledger.pnl() });
 }
 
-say({ started: true, minutes, margin, series: watch.size, stations: stations.size });
+say({ started: true, minutes, everySeconds: everyMs / 1000, margin, series: watch.size, stations: stations.size });
 for (;;) {
+  const started = Date.now();
   try { await pass(); } catch (error) { warn({ error: error.message }); checkIn('error', error.message); }
   if (flag('once')) break;
-  await sleep(minutes * 60000);
+  await sleep(Math.max(0, everyMs - (Date.now() - started)));
 }

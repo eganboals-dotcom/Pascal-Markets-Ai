@@ -1,15 +1,19 @@
 // Station-watch on the downloaded history: did Kalshi keep pricing a temperature range after the station's readings so far had
 // already decided it? Research only; no orders. Each settled KXHIGH/KXLOW market's books are walked in time order; at each book
-// the readings taken at least --lag-minutes (30) earlier on its climate day bound the official high or low (src/agents/station-watch.js).
+// the readings that had arrived by then on its climate day bound the official high or low (src/agents/station-watch.js).
 // Once that settles the range, the decided side is bought, one contract held to settlement, at the first book where its edge after
 // the taker fee beats --margin (1¢). A decided range that settled the other way counts as a wrong call, at its full loss.
-// Strikes, rules and station sites come from Agent D's caches in data/weather/ (so it runs after agent-weather.js), hourly
-// readings from the Iowa Environmental Mesonet. The history has one-contract sizes only, so depth is not tested. Newest 10 days locked.
+// Strikes, rules and station sites come from Agent D's caches in data/weather/ (so it runs after agent-weather.js), 5-minute and
+// hourly readings from the Iowa Environmental Mesonet, and for twelve stations the 1-minute readings in Kalshi's public city index,
+// each counted from the moment Kalshi received it (one request per city and climate day, cached; skipped while the history download
+// runs unless --index, or with --no-index). The history has one-contract sizes only, so depth is not tested. Newest 10 days locked.
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { HEARTBEAT_MS, historyDays, jsonLines, settlementValue } from '../src/history.js';
 import { kindOf, stationOf } from '../src/agents/fair-weather.js';
-import { CUSHION, asosReadings, asosUrl, climateDayStart, decided, soFar, standardOffsetMs } from '../src/agents/station-watch.js';
+import { CUSHION, INDEX_CITY, asosReadings, asosUrl, clean, climateDayStart, decided, indexReadings, indexUrl, soFar, standardOffsetMs } from '../src/agents/station-watch.js';
+import { getJson } from '../src/kalshi.js';
+import { downloadBusy } from '../src/paper.js';
 import { tickerDate } from '../src/agents/fair-odds.js';
 import { settle, summarize, take } from '../src/takers.js';
 import { markdownTable, readResearch } from '../src/report.js';
@@ -23,7 +27,8 @@ const feeRate = readResearch('config/scan.json', {}).feeRate ?? 0.07;
 // by default a reading is used 30 minutes after its time; --lag-minutes changes that. On Sept 21 to Oct 31 Kalshi priced a decided
 // range out 15 to 20 minutes after the reading: 358 trades (+$45) at 5 minutes, 135 (+$20) at 15, 4 (+$0.08) at 20.
 const lagMinutes = Number(process.argv.find(a => a.startsWith('--lag-minutes='))?.split('=')[1] ?? 30);
-const LAG_MS = lagMinutes * 60000, PAUSE_MS = 5000, RETRY_MS = 60000, DAY_MS = 86400000;
+const useIndex = !process.argv.includes('--no-index') && (process.argv.includes('--index') || !downloadBusy());
+const LAG_MS = lagMinutes * 60000, EDGE_MS = 2 * 3600000, PAUSE_MS = 5000, RETRY_MS = 60000, DAY_MS = 86400000;
 const shift = (date, days) => new Date(Date.parse(date) + days * DAY_MS).toISOString().slice(0, 10);
 const readJson = path => JSON.parse(readFileSync(projectPath(path), 'utf8'));
 
@@ -52,11 +57,31 @@ async function station(code) {
         readings = asosReadings(await response.text());
         writeProjectFile(path, JSON.stringify(readings) + '\n');
       }
-      value = { offset: standardOffsetMs(site.tz), readings };
+      value = { offset: standardOffsetMs(site.tz), readings: readings.map(r => ({ ...r, arrived: r.time + LAG_MS })) };
     }
   } catch (error) { console.error(JSON.stringify({ station: code, error: error.message })); }
   stations.set(code, value);
   return value;
+}
+
+// One climate day of a city's index, station code -> readings; an empty map when it cannot be read.
+const indexDays = new Map();
+async function indexDay(city, date, offset) {
+  const key = `${city}-${date}`, path = `data/weather/kidx-${key}.json`;
+  if (!indexDays.has(key)) {
+    let got = new Map();
+    try {
+      if (existsSync(projectPath(path))) got = new Map(Object.entries(readJson(path)));
+      else if (useIndex) {
+        const start = climateDayStart(date, offset);
+        got = indexReadings(await getJson(indexUrl(city, start, start + DAY_MS)));
+        writeProjectFile(path, JSON.stringify(Object.fromEntries(got)) + '\n');
+        await sleep(500);
+      }
+    } catch (error) { console.error(JSON.stringify({ city, date, error: error.message })); }
+    indexDays.set(key, got);
+  }
+  return indexDays.get(key);
 }
 
 const trades = [], coverage = {};
@@ -72,7 +97,10 @@ for (const day of days) {
   }
   for await (const r of jsonLines(`${root}/${day}/books.jsonl`)) want.get(r.ticker)?.books.push(r);
   for (const w of want.values()) {
-    const start = climateDayStart(w.date, w.st.offset), readings = w.st.readings.filter(r => r.time >= start && r.time < start + DAY_MS);
+    const start = climateDayStart(w.date, w.st.offset), code = stationOf(w.strike.rules), city = INDEX_CITY[code];
+    const fast = city ? (await indexDay(city, w.date, w.st.offset)).get(code) ?? [] : [];
+    const near = r => r.time >= start - EDGE_MS && r.time < start + DAY_MS + EDGE_MS; // spike checks look 2 hours past midnight
+    const readings = clean([...w.st.readings.filter(near), ...fast]).filter(r => r.time >= start && r.time < start + DAY_MS);
     const c = coverage[w.series];
     if (!readings.length || !w.books.length) continue;
     c.tested++;
@@ -83,12 +111,12 @@ for (const day of days) {
     for (const [i, book] of books.entries()) {
       if (book.time < start) continue;
       const standsUntil = Math.min(books[i + 1]?.time ?? Infinity, book.time + HEARTBEAT_MS);
-      call ??= decided(w.strike, w.kind, soFar(readings, w.date, w.st.offset, standsUntil - LAG_MS));
+      call ??= decided(w.strike, w.kind, soFar(readings, w.date, w.st.offset, standsUntil));
       if (!call) continue;
       const trade = take(call === 'yes' ? 1 : 0, book, { feeRate, margin });
       if (!trade) continue;
       trades.push({ day, ticker: w.ticker, group: w.series, side: trade.side, price: trade.price, edge: trade.edge, pnl: settle(trade, w.value),
-        minutesIntoDay: Math.round((book.time - start) / 60000), wrong: (call === 'yes' ? 1 : 0) !== w.value });
+        minutesIntoDay: Math.round((book.time - start) / 60000), feed: fast.length ? 'kalshi' : 'mesonet', wrong: (call === 'yes' ? 1 : 0) !== w.value });
       c.trades++;
       break;
     }
@@ -101,7 +129,8 @@ const money = x => (x < 0 ? '−$' : '$') + Math.abs(x).toFixed(2), cents = x =>
 const totals = Object.values(coverage).reduce((a, c) => ({ decided: a.decided + c.decided, wrong: a.wrong + c.wrong, tested: a.tested + c.tested }), { decided: 0, wrong: 0, tested: 0 });
 writeProjectFile(`${root}/agents/station-watch-report.json`, JSON.stringify({ generatedAt: Date.now(), margin, lagMinutes, summary, trades }, null, 2) + '\n');
 writeProjectFile(`${root}/agents/station-watch-report.md`, ['# Station-watch: readings so far against Kalshi, history test', '',
-  `Research only. A range counts as decided once the station's readings so far (5-minute and hourly), taken at least ${lagMinutes} minutes earlier, settle it whatever the rest of the climate day does (cushion ${CUSHION.high}° on highs, ${CUSHION.low}° on lows). The decided side is bought at the first book where its edge after the taker fee beats ${cents(margin)}; one contract, held to settlement. Ranges are 97.5%, resampling whole dates. ${locked.length ? (final ? `The locked final exam (${locked[0]} to ${locked.at(-1)}) is included.` : `Locked final exam, not run: ${locked[0]} to ${locked.at(-1)}.`) : `No locked exam yet: fewer than ${minDaysToLock} days downloaded.`}`, '',
+  `Research only. A range counts as decided once the station's readings so far (5-minute and hourly, and Kalshi's 1-minute ones where it has them), as they had arrived, settle it whatever the rest of the climate day does (cushion ${CUSHION.high}° on highs, ${CUSHION.low}° on lows). The decided side is bought at the first book where its edge after the taker fee beats ${cents(margin)}; one contract, held to settlement. Ranges are 97.5%, resampling whole dates. ${locked.length ? (final ? `The locked final exam (${locked[0]} to ${locked.at(-1)}) is included.` : `Locked final exam, not run: ${locked[0]} to ${locked.at(-1)}.`) : `No locked exam yet: fewer than ${minDaysToLock} days downloaded.`}`, '',
+  `Mesonet readings count ${lagMinutes} minutes after their time; Kalshi's 1-minute readings count from when Kalshi received them${useIndex ? '' : ' (not read this run: the history download was running, or --no-index)'}. ${trades.filter(t => t.feed === 'kalshi').length} of ${trades.length} trades came on stations with Kalshi's feed.`, '',
   `Of ${totals.tested} markets with readings and books, ${totals.decided} were decided before they closed and ${totals.wrong} of those settled the other way.`, '',
   markdownTable(['Series', 'Markets', 'Tested', 'Decided', 'Wrong calls', 'Trades'], Object.entries(coverage).sort().map(([s, c]) => [s, c.markets, c.tested, c.decided, c.wrong, c.trades])), '',
   '## Trades', '',

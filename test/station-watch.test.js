@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, rmSync } from 'node:fs';
 import { randomUUID } from 'node:crypto';
-import { asosReadings, climateDate, climateDayStart, decided, soFar, standardOffsetMs } from '../src/agents/station-watch.js';
+import { asosReadings, clean, climateDate, climateDayStart, decided, indexReadings, soFar, standardOffsetMs } from '../src/agents/station-watch.js';
 import { eventOf, openLedger } from '../src/paper.js';
 import { projectPath } from '../src/files.js';
 
@@ -25,6 +25,24 @@ test('climate days run on local standard time all year, and readings so far boun
   // A lone error-code reading (-61°C) is dropped; a reading next to one within 10°F stays.
   const spike = asosReadings('station,valid,tmpf\nDCA,2026-10-14 17:15,84.2\nDCA,2026-10-14 17:20,-77.8\nDCA,2026-10-14 17:25,84.2\nDCA,2026-10-14 17:30,-77.8\n');
   assert.deepEqual(spike.map(r => r.temp), [84.2, 84.2]);
+});
+
+test('Kalshi\'s index gives each station\'s 1-minute readings with their arrival times, and only arrived readings bound the day', () => {
+  const t0 = Date.parse('2026-10-20T18:00Z'), minute = 60000;
+  const json = { timeseries: [
+    { t: t0, stations: [{ station_id: 'KMDW1M', source: 'hf_asos', code: 'ok', temp_f: 66.2, received_at_ms: t0 + 144000 },
+      { station_id: 'KDPA1M', source: 'metar', code: 'ok', obs_time_ms: t0 - 30 * minute, temp_f: 53.96, received_at_ms: t0 - 25 * minute },
+      { station_id: 'KORD1M', code: 'missing' }] },
+    { t: t0 + minute, stations: [{ station_id: 'KMDW1M', code: 'pending', temp_f: 68, received_at_ms: t0 + minute + 150000 },
+      { station_id: 'KDPA1M', source: 'metar', code: 'ok', obs_time_ms: t0 - 30 * minute, temp_f: 53.96, received_at_ms: t0 - 25 * minute }] }] };
+  const got = indexReadings(json);
+  assert.deepEqual([...got.keys()], ['MDW', 'DPA']); // the missing reading is skipped
+  assert.equal(got.get('DPA').length, 1); // a carried-forward reading counts once, at its own time
+  assert.deepEqual(got.get('MDW')[0], { time: t0, temp: 66.2, arrived: t0 + 144000 });
+  const chicago = standardOffsetMs('America/Chicago'), mdw = clean(got.get('MDW'));
+  assert.equal(soFar(mdw, '2026-10-20', chicago, t0 + 3 * minute).high, 66.2); // 68 was read at 18:01 but had not arrived by 18:03
+  assert.equal(soFar(mdw, '2026-10-20', chicago, t0 + 4 * minute).high, 68);
+  assert.equal(indexReadings(null).size, 0);
 });
 
 test('a range is decided only when no rest of the day can change it, with the cushion on each side', () => {
