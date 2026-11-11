@@ -1,4 +1,4 @@
-// Station-watch, live (weather department). Every --minutes (default 10) it reads each Kalshi weather station's hourly readings
+// Station-watch, live (weather department). Every --minutes (default 10) it reads each Kalshi weather station's 5-minute and hourly readings
 // on its last two climate days from the Iowa Environmental Mesonet (free, no key, no Kalshi requests) and reports on the dashboard.
 // Once the history download is done (or with --force), it also reads Kalshi's open KXHIGH/KXLOW markets and buys on paper the side
 // of any range the readings have already decided (src/agents/station-watch.js): one contract per market, held to settlement, when

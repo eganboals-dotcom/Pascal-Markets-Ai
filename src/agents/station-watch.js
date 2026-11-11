@@ -1,8 +1,9 @@
 // Station-watch (weather department): the readings a station has reported so far on its climate day bound that day's official
 // high and low. The high can only rise from here and the low only fall, so some of Kalshi's strike ranges are already decided
-// before the report comes out. Hourly readings miss the peaks between them, which only widens the bound in the safe direction;
-// the cushion covers the difference between an hourly reading and the climate report. On 230 station-days (Sept 25 to Nov 7)
-// the report's high was never below the hourly maximum, while its low was above the hourly minimum on 7, by up to 4°.
+// before the report comes out. Most stations send a reading every 5 minutes, in whole degrees Celsius (up to 0.9°F off), and an
+// hourly one in tenths; Central Park sends hourly only. The cushion covers the difference from the climate report: on 1,027
+// station-days (Sept 21 to Nov 1, all 24 stations) the report's high was never more than 1° below the highest reading, and its
+// low was more than 2° above the lowest reading once (Miami, Sept 28: steady 75°F readings for over an hour, report says 80).
 export const CUSHION = { high: 1, low: 2 };
 
 // NWS climate days run midnight to midnight local standard time all year, so the offset is January's.
@@ -45,9 +46,32 @@ export function decided(strike, kind, bound, cushion = CUSHION) {
   return null;
 }
 
-// Iowa Environmental Mesonet ASOS rows ("NYC,2026-11-04 17:51,71.00", times in UTC) into readings.
-export const asosReadings = csv => csv.split('\n').slice(1).map(line => line.trim().split(','))
-  .filter(f => f.length >= 3 && f[2] !== '').map(([, valid, temp]) => ({ time: Date.parse(`${valid.replace(' ', 'T')}Z`), temp: Number(temp) }))
-  .filter(r => Number.isFinite(r.time) && Number.isFinite(r.temp));
+// The METAR's T group, tenths of a degree Celsius ("T01900050" is 19.0°C), in °F; NaN without one.
+export const tGroupF = metar => { const m = / T([01])(\d{3})/.exec(metar ?? ''); return m ? (m[1] === '1' ? -1 : 1) * Number(m[2]) / 10 * 9 / 5 + 32 : NaN; };
+
+// Iowa Environmental Mesonet ASOS rows (station,valid,tmpf,metar; times in UTC) into readings. The 5-minute reports leave tmpf
+// empty but carry the T group, which is also finer than the hourly tmpf; tmpf is the fallback. A row with neither is dropped,
+// since a whole-degree Celsius reading can sit almost a degree Fahrenheit from the truth.
+export function asosReadings(csv) {
+  const [head = '', ...lines] = csv.split('\n'), cols = head.trim().split(','), at = name => cols.indexOf(name);
+  return lines.map(line => line.trim().split(',')).filter(f => f.length >= 3).map(f => {
+    const fine = tGroupF(f[at('metar')]);
+    return { time: Date.parse(`${f[at('valid')]?.replace(' ', 'T')}Z`), temp: Number.isFinite(fine) ? Math.round(fine * 100) / 100 : f[at('tmpf')] ? Number(f[at('tmpf')]) : NaN };
+  }).filter(r => Number.isFinite(r.time) && r.temp >= MIN_F && r.temp <= MAX_F).sort((a, b) => a.time - b.time).filter(nearNeighbor);
+}
+// Sensors sometimes send one wild value (-61°C is a common error code). A reading with others within 2 hours counts only when one
+// of them is within 10°F, so the newest one waits for the next to confirm a jump; a reading after a long gap stands.
+const SPIKE_F = 10, NEIGHBOR_MS = 2 * 3600000, MIN_F = -60, MAX_F = 135; // outside US station records: an error code
+function nearNeighbor(r, i, all) {
+  let others = 0;
+  for (const step of [-1, 1]) {
+    for (let j = i + step; all[j] && Math.abs(all[j].time - r.time) <= NEIGHBOR_MS; j += step) {
+      if (Math.abs(all[j].temp - r.temp) <= SPIKE_F) return true;
+      others++;
+    }
+  }
+  return others === 0;
+}
+// Routine and special reports plus the 5-minute ones (report_type 1) where a station sends them; Central Park sends hourly only.
 export const asosUrl = (code, start, end) => 'https://mesonet.agron.iastate.edu/cgi-bin/request/asos.py?station=' + code +
-  `&data=tmpf&tz=Etc/UTC&format=onlycomma&latlon=no&missing=empty&report_type=3&report_type=4&sts=${new Date(start).toISOString().slice(0, 16)}Z&ets=${new Date(end).toISOString().slice(0, 16)}Z`;
+  `&data=tmpf&data=metar&tz=Etc/UTC&format=onlycomma&latlon=no&missing=empty&report_type=1&report_type=3&report_type=4&sts=${new Date(start).toISOString().slice(0, 16)}Z&ets=${new Date(end).toISOString().slice(0, 16)}Z`;

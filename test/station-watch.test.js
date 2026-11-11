@@ -17,6 +17,14 @@ test('climate days run on local standard time all year, and readings so far boun
   assert.deepEqual(soFar(readings, '2026-11-04', ny), { high: 71, low: 62, count: 2 }); // 04:51 UTC belongs to Nov 3
   assert.deepEqual(soFar(readings, '2026-11-04', ny, Date.parse('2026-11-04T14:00Z')), { high: 62, low: 62, count: 1 });
   assert.equal(soFar(readings, '2026-11-05', ny), null);
+  // 5-minute reports leave tmpf empty; the METAR's T group is read instead, and is preferred to tmpf when both are there.
+  const five = asosReadings('station,valid,tmpf,metar\nMDW,2026-10-20 18:00,,KMDW 201800Z AUTO 16004KT 10SM CLR 19/05 A3037 RMK T01900050 MADISHF\n' +
+    'MDW,2026-10-20 18:05,,KMDW 201805Z AUTO 10SM CLR M02/M05 A3037 RMK T10170050 MADISHF\nMDW,2026-10-20 18:10,66.00,KMDW 201810Z AUTO 10SM CLR 19/05 A3037\n' +
+    'MDW,2026-10-20 18:15,,KMDW 201815Z AUTO 10SM CLR 19/05 A3037\nMDW,2026-10-20 17:53,66.02,KMDW 201753Z 16004KT 10SM CLR 19/05 RMK T01890050');
+  assert.deepEqual(five.map(r => r.temp), [66.02, 66.2, 66]); // sorted by time; the -1.7°C spike and the row without a reading are gone
+  // A lone error-code reading (-61°C) is dropped; a reading next to one within 10°F stays.
+  const spike = asosReadings('station,valid,tmpf\nDCA,2026-10-14 17:15,84.2\nDCA,2026-10-14 17:20,-77.8\nDCA,2026-10-14 17:25,84.2\nDCA,2026-10-14 17:30,-77.8\n');
+  assert.deepEqual(spike.map(r => r.temp), [84.2, 84.2]);
 });
 
 test('a range is decided only when no rest of the day can change it, with the cushion on each side', () => {
