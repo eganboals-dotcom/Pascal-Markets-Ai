@@ -8,7 +8,8 @@ let scan = { running: false, phase: 'idle', hits: [], near: [], hitCount: 0, eve
 let research = { activity: [], positions: [], trades: [], outcomes: {}, account: { connected: false } };
 let pnlPeriod = 'day';
 let view = 'opportunities', chartMode = 'edge', fetching = false, controlling = false;
-let departments = { report: null, switches: {} }, departmentsText = '', switching = false;
+let departments = { departments: [], report: null, switches: {} }, departmentsText = '', switching = false;
+let openDepartmentId = null, departmentPage = null;
 
 function tag(text, style = '') {
   return Object.assign(document.createElement('span'), { className: `badge ${style}`, textContent: text });
@@ -82,19 +83,28 @@ function departmentSwitch(row) {
   input.addEventListener('change', () => setSwitch(row.id, input.checked));
   return input;
 }
+function departmentButton(row) {
+  const button = Object.assign(document.createElement('button'), { type: 'button', className: 'department-link' });
+  button.dataset.open = row.id;
+  button.setAttribute('aria-expanded', String(openDepartmentId === row.id));
+  button.append(market(row.name, 'Open agents and activity'));
+  button.addEventListener('click', () => openDepartment(row.id));
+  return button;
+}
 function renderDepartments() {
-  const report = departments.report, rows = report?.departments ?? [], target = report?.weeklyTarget ?? 1000;
-  if (!rows.length) {
-    el('departments-total').textContent = 'No department report yet';
-    return empty('departments-table', 'No department report yet', 'The leaderboard fills in when the model run finishes its history tests.', '▦');
-  }
-  const total = rows.reduce((t, r) => ({ trades: t.trades + r.trades, settled: t.settled + r.settled.total, week: t.week + r.week }), { trades: 0, settled: 0, week: 0 });
-  el('departments-total').textContent = `${report.firstDay} to ${report.lastDay} · ${number(total.trades)} trades · ${money(total.settled)} settled · ${money(total.week)} in the last 7 days, ${percent(total.week / target)} of the $${target.toLocaleString('en-US')} weekly target`;
-  const cents = n => Number.isFinite(n) ? money(n) : '—';
+  const report = departments.report, target = report?.weeklyTarget ?? 1000;
+  // Before the first report the rows still show, so the switches and department pages are reachable.
+  const rows = report?.departments ?? departments.departments.map(d => ({ ...d, mode: 'research' }));
+  if (!rows.length) return departmentsText ? empty('departments-table', 'Departments unavailable', 'The department list could not be read from the dashboard server.', '▦')
+    : empty('departments-table', 'Loading departments', 'Reading the department list from the dashboard server.', '▦');
+  if (report) {
+    const total = rows.reduce((t, r) => ({ trades: t.trades + r.trades, settled: t.settled + r.settled.total, week: t.week + r.week }), { trades: 0, settled: 0, week: 0 });
+    el('departments-total').textContent = `${report.firstDay} to ${report.lastDay} · ${number(total.trades)} trades · ${money(total.settled)} settled · ${money(total.week)} in the last 7 days, ${percent(total.week / target)} of the $${target.toLocaleString('en-US')} weekly target`;
+  } else el('departments-total').textContent = 'No history test yet: the leaderboard fills in when the model run finishes';
   table('departments-table', ['#', 'On', 'Department', 'Mode', 'Trades', 'Settled P&L', '97.5% range', 'Last day', 'Last 7 days', 'Share of target', 'Closing-line value', 'Gate', 'Agents'], rows.map((r, i) => [
-    String(i + 1), departmentSwitch(r), market(r.name, r.id), tag(r.mode === 'research' ? 'Research' : r.mode), number(r.trades), signed(r.settled.total),
-    `${cents(r.settled.low)} to ${cents(r.settled.high)}`, signed(r.lastDay), signed(r.week), percent(r.week / target), r.clv === null ? '—' : signed(r.clv),
-    r.records ? tag(r.passes ? 'Passes' : 'Fails', r.passes ? 'good' : 'bad') : '—',
+    String(i + 1), departmentSwitch(r), departmentButton(r), tag(r.mode === 'research' ? 'Research' : r.mode), number(r.trades), signed(r.settled?.total),
+    r.settled ? `${money(r.settled.low)} to ${money(r.settled.high)}` : '—', signed(r.lastDay), signed(r.week), percent(r.week / target),
+    Number.isFinite(r.clv) ? signed(r.clv) : '—', r.records ? tag(r.passes ? 'Passes' : 'Fails', r.passes ? 'good' : 'bad') : '—',
     Object.entries(r.agents ?? {}).map(([agent, v]) => `${agent} ${number(v.trades)} (${money(v.pnl)})`).join(' · ') || '—'
   ]));
   el('departments-table').querySelectorAll('tbody tr').forEach((tr, i) => tr.classList.toggle('off', departments.switches[rows[i].id] === false));
@@ -107,7 +117,7 @@ async function setSwitch(id, on) {
     const response = await fetch('/api/departments/switch', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Pascal-Control': '1' }, body: JSON.stringify({ id, on }) });
     const data = await response.json();
     if (!response.ok) throw new Error(data.error ?? 'Department switch failed');
-    departments = { report: departments.report, switches: data.switches };
+    departments = { ...departments, switches: data.switches };
     departmentsText = JSON.stringify(departments);
   } catch (error) { failure = error.message; }
   finally {
@@ -116,6 +126,54 @@ async function setSwitch(id, on) {
     if (failure) el('status').textContent = failure;
   }
 }
+// Department page: what each agent is doing now (heartbeats), its activity, and the newest history-test trades.
+const ACTIVE_STATES = { scanning: 'good', running: 'good', quoting: 'good', starting: 'good', done: 'good', error: 'bad', halted: 'bad' };
+function ago(t) {
+  if (!Number.isFinite(t)) return '—';
+  const s = Math.max(0, Math.round((Date.now() - t) / 1000));
+  return s < 90 ? `${s} s ago` : s < 5400 ? `${Math.round(s / 60)} min ago` : s < 172800 ? `${Math.round(s / 3600)} h ago` : new Date(t).toLocaleDateString();
+}
+function renderDepartmentPage() {
+  const page = departmentPage;
+  if (!page) return;
+  el('department-title').textContent = page.name;
+  const r = page.row;
+  el('department-summary').textContent = `${page.on ? 'Switched on' : 'Switched off'} · research only, no orders · ` + (r ?
+    `history test: ${number(r.trades)} trades, ${money(r.settled.total)} settled (${money(r.settled.low)} to ${money(r.settled.high)}), gate ${r.passes ? 'passes' : 'fails'}` : 'no history test yet');
+  table('department-agents', ['Agent', 'Role', 'State', 'Last action', 'When', 'History test'], page.agents.map(a => [
+    market(a.name, a.id), a.role === 'research' ? 'Research' : 'Trading',
+    tag(a.stale ? `${a.state} · overdue` : a.state, a.stale ? 'bad' : ACTIVE_STATES[a.state] ?? ''), a.detail || '—', ago(a.time),
+    a.history ? `${number(a.history.trades)} trades, ${money(a.history.pnl)}` : '—'
+  ]));
+  if (page.activity.length) {
+    table('department-activity', ['When', 'Agent', 'State', 'Detail'], page.activity.map(b => [ago(b.time), b.agent, b.state, b.detail || '—']));
+  } else empty('department-activity', 'No activity reported yet', 'Agents report here as they work: the odds logger every sweep, the history tests while they wait and run.', '◷');
+  const trades = r?.recent ?? [];
+  if (trades.length) {
+    table('department-trades', ['Day', 'Agent', 'Market', 'Side', 'Price', 'Why', 'P&L'], trades.map(t => [t.day, t.agent, market(t.ticker),
+      t.side ?? '—', Number.isFinite(t.price) ? `${(t.price * 100).toFixed(0)}¢` : '—',
+      Number.isFinite(t.edge) ? `edge ${(t.edge * 100).toFixed(1)}¢` : Number.isFinite(t.fills) ? `${t.fills} quote fill${t.fills === 1 ? '' : 's'}` : '—', signed(t.pnl)]));
+  } else empty('department-trades', 'No history-test trades yet', 'Trades appear after the model run finishes.', '⇄');
+}
+async function loadDepartmentPage() {
+  if (!openDepartmentId) return;
+  const response = await fetch(`/api/departments/${encodeURIComponent(openDepartmentId)}`);
+  if (response.ok) { departmentPage = await response.json(); renderDepartmentPage(); }
+}
+async function openDepartment(id) {
+  openDepartmentId = id; departmentPage = null;
+  el('department-detail').hidden = false;
+  for (const button of document.querySelectorAll('[data-open]')) button.setAttribute('aria-expanded', String(button.dataset.open === id));
+  await loadDepartmentPage();
+  el('department-detail').scrollIntoView({ block: 'start' });
+  el('department-title').focus();
+}
+el('department-close').addEventListener('click', () => {
+  const id = openDepartmentId;
+  openDepartmentId = null; departmentPage = null; el('department-detail').hidden = true;
+  renderDepartments();
+  document.querySelector(`[data-open="${id}"]`)?.focus();
+});
 function svgElement(name, attributes = {}, text) {
   const node = document.createElementNS('http://www.w3.org/2000/svg', name);
   for (const [key, value] of Object.entries(attributes)) node.setAttribute(key, value);
@@ -328,6 +386,7 @@ async function load() {
     // Redrawn only when it changes, so a focused switch keeps its focus between polls.
     const text = departmentsResponse.ok ? await departmentsResponse.text() : departmentsText;
     if (text && text !== departmentsText && !switching) { departmentsText = text; departments = JSON.parse(text); renderDepartments(); }
+    await loadDepartmentPage();
     if (!researchResponse.ok) el('status').textContent += ' Saved research is temporarily unavailable.';
   } catch (error) { el('status').textContent = error.message; }
   finally { fetching = false; }

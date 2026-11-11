@@ -7,13 +7,18 @@ import { summarize } from './takers.js';
 
 export const DEPARTMENTS_PATH = 'config/departments.json', SWITCHES_PATH = 'config/departments.local.json';
 export const FALLBACK = 'else', ARBITRAGE = 'arbitrage';
+const RECENT_TRADES = 25;
 
 export function loadDepartments(path = DEPARTMENTS_PATH) {
-  const list = readResearch(path, null)?.departments;
+  const config = readResearch(path, null), list = config?.departments, catalog = config?.agents ?? {};
   if (!Array.isArray(list) || ![FALLBACK, ARBITRAGE].every(id => list.some(d => d.id === id))) {
     throw new Error(`${path} must list departments, including "${FALLBACK}" and "${ARBITRAGE}"`);
   }
-  return list.map(d => ({ id: d.id, name: d.name, patterns: (d.patterns ?? []).map(p => new RegExp(p)) }));
+  return list.map(d => ({ id: d.id, name: d.name, patterns: (d.patterns ?? []).map(p => new RegExp(p)),
+    agents: (d.agents ?? []).map(id => {
+      if (!catalog[id]) throw new Error(`${path}: department ${d.id} lists unknown agent ${id}`);
+      return { id, ...catalog[id] };
+    }) }));
 }
 
 // Kalshi market tickers start with their series ticker (KXHIGHNY-26NOV07-B72.5).
@@ -49,6 +54,8 @@ export function scoreboard(results, departments, { weekDays = 7 } = {}) {
     for (const t of trades) agents[t.group] = { trades: (agents[t.group]?.trades ?? 0) + (t.fills ?? 1), pnl: (agents[t.group]?.pnl ?? 0) + t.pnl };
     return { id: d.id, name: d.name, trades: sum(trades, t => t.fills ?? 1), records: trades.length, wins: trades.filter(t => t.pnl > 0).length,
       lastDay: sum(trades.filter(t => t.day === last), t => t.pnl), week: sum(trades.filter(t => t.day >= weekStart), t => t.pnl),
-      settled: s.settled, passes: s.passes, clv: withClv.length ? sum(withClv, t => t.clv) : null, agents };
+      settled: s.settled, passes: s.passes, clv: withClv.length ? sum(withClv, t => t.clv) : null, agents,
+      recent: [...trades].sort((a, b) => b.day.localeCompare(a.day)).slice(0, RECENT_TRADES)
+        .map(t => ({ day: t.day, agent: t.group, ticker: t.ticker, side: t.side ?? null, price: t.price ?? null, edge: t.edge ?? null, fills: t.fills ?? null, pnl: t.pnl })) };
   }).sort((a, b) => b.settled.total - a.settled.total);
 }

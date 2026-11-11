@@ -5,6 +5,7 @@ import { rmSync } from 'node:fs';
 import { randomUUID } from 'node:crypto';
 import { createDashboardServer } from '../src/dashboard.js';
 import { projectPath } from '../src/files.js';
+import { beat } from '../src/heartbeat.js';
 
 function fakeRunner() {
   let active = false, starts = 0, stops = 0;
@@ -31,6 +32,7 @@ test('department leaderboard serves its report and saves switches only through t
       const post = (body, options = controls) => fetch(`${base}/api/departments/switch`, { ...options, body: JSON.stringify(body) });
       const first = await read();
       assert.equal(first.report, null);
+      assert.equal(first.departments.length, 7); // rows and switches show before any report exists
       assert.equal(first.switches.weather, true);
       assert.equal((await post({ id: 'weather', on: false })).status, 200);
       assert.equal((await read()).switches.weather, false);
@@ -42,6 +44,29 @@ test('department leaderboard serves its report and saves switches only through t
       assert.equal((await read()).switches.weather, false);
     });
   } finally { rmSync(projectPath(switchesPath), { force: true }); }
+});
+
+test('a department page shows each agent\'s latest heartbeat, flags overdue ones and marks unbuilt agents as planned', async () => {
+  const dir = `work/beats-${randomUUID()}`;
+  try {
+    beat('books-espn', 'waiting', 'Logged 40 lines', { now: 1000, nextWithinMs: 60000, dir });
+    beat('sportsbook', 'done', 'History test finished', { now: 2000, dir });
+    let clock = 5000;
+    await withServer({ runner: fakeRunner(), now: () => clock, departmentsRoot: 'work/no-such-history', heartbeatDir: dir }, async base => {
+      const page = async id => (await fetch(`${base}/api/departments/${id}`)).json();
+      const sports = await page('sportsUS'), agent = id => sports.agents.find(a => a.id === id);
+      assert.equal(agent('books-espn').state, 'waiting');
+      assert.equal(agent('books-espn').stale, false);
+      assert.equal(agent('sportsbook').state, 'done');
+      assert.equal(agent('consensus').state, 'planned');
+      assert.equal(agent('maker').state, 'no reports yet');
+      assert.deepEqual(sports.activity.map(r => r.agent), ['sportsbook', 'books-espn']); // newest first
+      clock = 61001;
+      assert.equal((await page('sportsUS')).agents.find(a => a.id === 'books-espn').stale, true);
+      assert.equal((await page('arbitrage')).agents.find(a => a.id === 'engine').state, 'idle');
+      assert.equal((await fetch(`${base}/api/departments/nope`)).status, 404);
+    });
+  } finally { rmSync(projectPath(dir), { recursive: true, force: true }); }
 });
 
 test('dashboard opens idle; status reads never start scanning; Start and Stop are explicit', async () => {

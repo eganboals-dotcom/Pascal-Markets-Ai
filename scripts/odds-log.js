@@ -8,6 +8,7 @@ import { appendFileSync, mkdirSync } from 'node:fs';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { dueLeagues, espnRows, fetchJson, oddsApiRows } from '../src/odds.js';
 import { projectPath } from '../src/files.js';
+import { beat } from '../src/heartbeat.js';
 
 const LEAGUES = [ // [name, ESPN path and query, Odds API sport key]
   ['nfl', 'football/nfl', 'americanfootball_nfl'],
@@ -33,6 +34,10 @@ const key = process.env.ODDS_API_KEY;
 const say = fields => console.log(JSON.stringify({ time: new Date().toISOString(), ...fields }));
 const warn = fields => console.error(JSON.stringify({ time: new Date().toISOString(), ...fields }));
 mkdirSync(projectPath('data/odds'), { recursive: true });
+// Heartbeats for the dashboard's Sports US page: one per sweep, due again within two sweeps. A failed write never stops logging.
+const checkIn = (agent, state, detail) => {
+  try { beat(agent, state, detail, { nextWithinMs: 2 * minutes * 60000 + 60000 }); } catch (error) { warn({ heartbeat: agent, error: error.message }); }
+};
 
 function write(rows) {
   if (!rows.length) return;
@@ -62,6 +67,7 @@ async function espnSweep() {
     starts.set(league, [...new Set(rows.filter(r => r.state === 'pre').map(r => Date.parse(r.start)))]);
   }
   say({ source: 'espn', rows: count });
+  checkIn('books-espn', 'waiting', `Logged ${count} DraftKings lines across ${LEAGUES.length} leagues; next sweep in ${minutes} min`);
 }
 
 let booksOn = Boolean(key), spent = { day: '', credits: 0 };
@@ -69,7 +75,10 @@ const lastSwept = new Map();
 async function booksSweep() {
   const now = Date.now(), day = new Date(now).toISOString().slice(0, 10);
   if (spent.day !== day) spent = { day, credits: 0 };
-  for (const league of dueLeagues(starts, lastSwept, now, lead, spacing)) {
+  const due = dueLeagues(starts, lastSwept, now, lead, spacing);
+  checkIn('books-oddsapi', due.length ? 'scanning' : 'waiting', due.length ? `Sweeping ${due.join(', ')}; ${spent.credits} of ${dailyCap} credits used today`
+    : `No game starts within ${lead / 60000} min; ${spent.credits} of ${dailyCap} credits used today`);
+  for (const league of due) {
     if (spent.credits + cost > dailyCap) { say({ source: 'the-odds-api', skipped: league, reason: `daily cap of ${dailyCap} credits reached` }); continue; }
     const sport = LEAGUES.find(l => l[0] === league)[2];
     lastSwept.set(league, now);
@@ -83,12 +92,14 @@ async function booksSweep() {
       if (remaining < CREDIT_FLOOR) { booksOn = false; warn({ source: 'the-odds-api', stopped: `fewer than ${CREDIT_FLOOR} credits left` }); return; }
     } catch (error) { warn({ source: 'the-odds-api', league, error: error.message }); }
   }
+  if (due.length) checkIn('books-oddsapi', 'waiting', `Swept ${due.join(', ')}; ${spent.credits} of ${dailyCap} credits used today`);
 }
 
 say({ started: true, espnMinutes: minutes, books: booksOn ? BOOKS : 'off (no ODDS_API_KEY)', booksMarkets, leadMinutes: lead / 60000, dailyCap });
 for (;;) {
   await espnSweep();
   if (booksOn) await booksSweep();
+  else checkIn('books-oddsapi', 'idle', key ? `Stopped: fewer than ${CREDIT_FLOOR} credits left this month` : 'Off: ODDS_API_KEY is not set');
   if (once) break;
   await sleep(minutes * 60000);
 }

@@ -35,6 +35,15 @@
         <div class="account-note">Research only: each row is a history test, and no department places orders yet. A switch is saved now and takes effect once the paper-trading loop runs.</div>
         <div id="departments-table" class="table-wrap"></div>
       </section>
+      <section class="panel department-panel" id="department-detail" aria-labelledby="department-title" hidden>
+        <div class="panel-heading"><div><span class="section-kicker">Department</span><h2 id="department-title" tabindex="-1">—</h2></div><button type="button" id="department-close" class="close-button">Close</button></div>
+        <p id="department-summary" class="department-summary"></p>
+        <h3 class="sub-heading">Agents</h3><div id="department-agents" class="table-wrap"></div>
+        <div class="department-columns">
+          <div><h3 class="sub-heading">Activity</h3><div id="department-activity" class="table-wrap"></div></div>
+          <div><h3 class="sub-heading">Newest history-test trades</h3><div id="department-trades" class="table-wrap"></div></div>
+        </div>
+      </section>
       <section class="panel performance-panel" aria-labelledby="performance-title">
         <div class="panel-heading"><div><span class="section-kicker">Performance / simulation</span><h2 id="performance-title">The equity desk</h2></div><div class="segmented" aria-label="P&L period"><button type="button" id="pnl-day" class="selected" aria-pressed="true">Today</button><button type="button" id="pnl-all" aria-pressed="false">All recorded</button></div></div>
         <div class="pnl-layout"><div class="pnl-breakdown">

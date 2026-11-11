@@ -4,6 +4,7 @@ import { projectPath } from './files.js';
 import { createDashboardRunner } from './dashboard-runner.js';
 import { recentRecords, dashboardData } from './dashboard-data.js';
 import { SWITCHES_PATH, loadDepartments, readSwitches, writeSwitch } from './departments.js';
+import { HEARTBEAT_DIR, isStale, recentBeats } from './heartbeat.js';
 
 const LEASE_MS = 20000, MAX_BODY = 1024;
 
@@ -32,7 +33,26 @@ export function createDashboardServer({ runner = createDashboardRunner(),
       checks: localChecks.length ? localChecks : recentRecords('research/kalshi/dryrun.jsonl'), mm,
       budget: readJson('config/scan.json', {}).budget ?? {} }) };
   },
-  now = Date.now, leaseMs = LEASE_MS, departmentsRoot = 'data/history', switchesPath = SWITCHES_PATH } = {}) {
+  now = Date.now, leaseMs = LEASE_MS, departmentsRoot = 'data/history', switchesPath = SWITCHES_PATH, heartbeatDir = HEARTBEAT_DIR } = {}) {
+  // One department's page: each agent's latest heartbeat (the live scanner reports through the runner), its part of the history
+  // test, a merged activity feed and the newest history-test trades.
+  const departmentPage = department => {
+    const row = readJson(`${departmentsRoot}/departments-report.json`, null)?.departments?.find(r => r.id === department.id) ?? null;
+    const clock = now(), activity = [];
+    const agents = department.agents.map(a => {
+      if (a.id === 'engine') {
+        const s = runner.snapshot();
+        return { ...a, state: s.running ? s.phase === 'starting' ? 'starting' : 'scanning' : 'idle', time: s.scannedAt ?? null, stale: false,
+          detail: s.running ? `${s.hitCount ?? 0} opportunities after fees in the latest scan` : 'Off until Start engine is pressed' };
+      }
+      const beats = a.built ? recentBeats(a.id, { dir: heartbeatDir }) : [], last = beats.at(-1);
+      activity.push(...beats);
+      return { ...a, state: last?.state ?? (a.built ? 'no reports yet' : 'planned'), detail: last?.detail ?? '', time: last?.time ?? null,
+        stale: isStale(last, clock), history: row?.agents?.[a.id] ?? null };
+    });
+    return { id: department.id, name: department.name, on: readSwitches(loadDepartments(), switchesPath)[department.id], row, agents,
+      activity: activity.sort((x, y) => y.time - x.time).slice(0, 40) };
+  };
   let lastContact = now();
   const sessions = new Set();
   const lease = setInterval(() => {
@@ -84,8 +104,19 @@ export function createDashboardServer({ runner = createDashboardRunner(),
       return;
     }
     if (request.url === '/api/departments') {
-      try { json(200, { report: readJson(`${departmentsRoot}/departments-report.json`, null), switches: readSwitches(loadDepartments(), switchesPath) }); }
-      catch { json(500, { error: 'Department report unavailable' }); }
+      try {
+        const list = loadDepartments();
+        json(200, { departments: list.map(d => ({ id: d.id, name: d.name })), report: readJson(`${departmentsRoot}/departments-report.json`, null),
+          switches: readSwitches(list, switchesPath) });
+      } catch { json(500, { error: 'Department report unavailable' }); }
+      return;
+    }
+    const page = /^\/api\/departments\/([A-Za-z]+)$/.exec(request.url ?? '');
+    if (page) {
+      try {
+        const department = loadDepartments().find(d => d.id === page[1]);
+        if (department) json(200, departmentPage(department)); else json(404, { error: 'Unknown department' });
+      } catch { json(500, { error: 'Department page unavailable' }); }
       return;
     }
     if (request.url === '/api/scan') {

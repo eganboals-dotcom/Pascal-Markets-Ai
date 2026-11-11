@@ -253,3 +253,12 @@ footer > span:first-child { display: flex; align-items: center; gap: 7px; }
 input.switch { width: 16px; height: 16px; margin: 0; accent-color: var(--green); cursor: pointer; vertical-align: middle; }
 input.switch:disabled { cursor: wait; }
 tbody tr.off td:not(:nth-child(2)) { opacity: .45; }
+.department-link { all: unset; cursor: pointer; display: block; border-radius: 6px; }
+.department-link:hover .market-cell, .department-link[aria-expanded="true"] .market-cell { color: var(--green); }
+.department-link:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; }
+.department-panel[hidden] { display: none; }
+.department-summary { margin: 12px 14px 0; color: var(--muted); font-size: 12px; }
+.sub-heading { margin: 14px 14px 4px; font-size: 10.5px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--dim); }
+.department-columns { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); border-top: 1px solid var(--line); margin-top: 6px; }
+.close-button { border: 1px solid var(--line2); background: var(--panel2); border-radius: 8px; padding: 4px 12px; font-size: 12px; }
+.close-button:hover { border-color: var(--muted); }

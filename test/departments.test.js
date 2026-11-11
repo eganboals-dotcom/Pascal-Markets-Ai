@@ -4,6 +4,7 @@ import { rmSync } from 'node:fs';
 import { randomUUID } from 'node:crypto';
 import { departmentOf, loadDepartments, readSwitches, scoreboard, writeSwitch } from '../src/departments.js';
 import { projectPath } from '../src/files.js';
+import { beat, isStale, recentBeats } from '../src/heartbeat.js';
 
 const departments = loadDepartments();
 const near = (a, b) => assert.ok(Math.abs(a - b) < 1e-9, `${a} != ${b}`);
@@ -37,6 +38,28 @@ test('the scoreboard splits trades by series, keeps cross-venue hedges in arbitr
   assert.equal(row('arbitrage').records, 1);
   assert.equal(row('politics').trades, 0);
   assert.equal(board[0].id, 'weather'); // ranked by settled profit
+  assert.deepEqual(row('weather').recent.map(t => t.day), ['2026-11-09', '2026-11-01']); // newest first
+});
+
+test('each department lists its agents from the catalog; the built ones are the agents with code', () => {
+  const sports = departments.find(d => d.id === 'sportsUS');
+  assert.deepEqual(sports.agents.filter(a => a.built).map(a => a.id), ['books-espn', 'books-oddsapi', 'sportsbook', 'maker', 'longshot']);
+  assert.ok(departments.every(d => d.agents.length && d.agents.every(a => a.name && ['research', 'trading'].includes(a.role))));
+});
+
+test('heartbeats append per agent, read back oldest first, and go stale only past their due time', () => {
+  const dir = `work/beats-${randomUUID()}`;
+  try {
+    beat('maker', 'waiting', 'download at Oct 1', { now: 1000, nextWithinMs: 600000, dir });
+    const done = beat('maker', 'done', 'finished', { now: 2000, dir });
+    const rows = recentBeats('maker', { dir });
+    assert.deepEqual(rows.map(r => r.state), ['waiting', 'done']);
+    assert.equal(isStale(rows[0], 601000), false);
+    assert.equal(isStale(rows[0], 601001), true);
+    assert.equal(isStale(done, 10 ** 13), false); // a finished agent has no next check-in due
+    assert.deepEqual(recentBeats('weather', { dir }), []);
+    assert.throws(() => beat('../escape', 'done', '', { dir }), /Invalid agent id/);
+  } finally { rmSync(projectPath(dir), { recursive: true, force: true }); }
 });
 
 test('switches start on, save per department and refuse unknown departments or non-boolean values', () => {
