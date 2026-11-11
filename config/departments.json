@@ -23,8 +23,7 @@
     "line-move": { "name": "Closing-line prediction (Agent B)", "role": "research", "built": false },
     "injuries": { "name": "Injuries and lineups", "role": "research", "built": false },
     "sportsbook": { "name": "Sportsbook taker (Agent A)", "role": "trading", "built": true },
-    "soccer-books": { "name": "Three-way soccer fair value", "role": "research", "built": false },
-    "soccer-taker": { "name": "Soccer sportsbook taker", "role": "trading", "built": false },
+    "soccer-books": { "name": "Live three-way soccer fair value", "role": "research", "built": false },
     "tennis-odds": { "name": "Tennis odds", "role": "research", "built": false }
   },
   "departments": [
@@ -54,7 +53,7 @@
       "^KX(EKSTRAKLASA|CZEFL|CZEFNL|SVK|SVNPL|HNL|HUNNB1|ROML1|BULFL|SRBSL|SLGREECE|GRECUP|SUPERLIG|TFF1LIG|ISRPL|ISRNL|LVAVIR)",
       "^KX(BRASILEIRO|COPADOBRASIL|ARGPREMDIV|ARGNACB|CONMEBOL|DIMAYOR|CHLLDP|PERLIGA1|ECULP|URYPD|APFDDH|VENFUTVE|LIGAMX|LIGAEXP|LIGAF|CONCACAFNL|USL|NWSL|USOPENCUP|CANPL)",
       "^KX(JLEAGUE|J2LEAGUE|KLEAGUE|K2LEAGUE|CHNSL|CHNL1|ALEAGUE|SAUDIPL|UAEPL|QSTARS|EGYPL|SAPSL|AFCCL|AFCON|SAFF|INDSL|IDNSL|MYSL|SGPPL|THAIL1|VLEAGUE1)"
-    ], "agents": ["books-espn", "books-oddsapi", "soccer-books", "soccer-taker", "maker", "longshot"] },
+    ], "agents": ["books-espn", "books-oddsapi", "soccer-books", "sportsbook", "maker", "longshot"] },
     { "id": "else", "name": "Everything else", "patterns": [], "agents": ["tennis-odds", "maker", "longshot"] }
   ]
 }
