@@ -2,7 +2,8 @@
 // ESPN (DraftKings) every --minutes (default 5), free. With ODDS_API_KEY set, the top books below through The Odds API, spent
 // only where it counts: a league is swept when one of its games starts within --books-lead minutes (default 60), at most once per
 // --books-spacing minutes (default 120), and never past --books-daily credits a UTC day (default 15; 15 x 30 fits the free plan's
-// 500 a month). Each market type in --books-markets costs one credit per league sweep. Never calls Kalshi, so it does not compete
+// 500 a month), of which soccer may use --books-soccer-daily (default 6). Soccer moneylines are three-way (home, away, Draw).
+// Each market type in --books-markets costs one credit per league sweep. Never calls Kalshi, so it does not compete
 // with the history download. Writes data/odds/<UTC day>.jsonl. --once runs one sweep and exits.
 import { appendFileSync, mkdirSync } from 'node:fs';
 import { setTimeout as sleep } from 'node:timers/promises';
@@ -18,7 +19,29 @@ const LEAGUES = [ // [name, ESPN path and query, Odds API sport key]
   ['nhl', 'hockey/nhl', 'icehockey_nhl'],
   ['mlb', 'baseball/mlb', 'baseball_mlb'],
   ['wnba', 'basketball/wnba', 'basketball_wnba'],
+  // Soccer, by Kalshi volume over 2026-11-04..07; three-way moneylines. null: ESPN only (no Odds API league, or not worth credits).
+  ['ucl', 'soccer/uefa.champions', 'soccer_uefa_champs_league'],
+  ['uel', 'soccer/uefa.europa', 'soccer_uefa_europa_league'],
+  ['epl', 'soccer/eng.1', 'soccer_epl'],
+  ['brasileirao', 'soccer/bra.1', 'soccer_brazil_campeonato'],
+  ['laliga', 'soccer/esp.1', 'soccer_spain_la_liga'],
+  ['argentina', 'soccer/arg.1', 'soccer_argentina_primera_division'],
+  ['ligamx', 'soccer/mex.1', 'soccer_mexico_ligamx'],
+  ['uecl', 'soccer/uefa.europa.conf', 'soccer_uefa_europa_conference_league'],
+  ['bundesliga', 'soccer/ger.1', 'soccer_germany_bundesliga'],
+  ['seriea', 'soccer/ita.1', 'soccer_italy_serie_a'],
+  ['ligue1', 'soccer/fra.1', 'soccer_france_ligue_one'],
+  ['mls', 'soccer/usa.1', 'soccer_usa_mls'],
+  ['efl', 'soccer/eng.2', null],
+  ['colombia', 'soccer/col.1', null],
+  ['paraguay', 'soccer/par.1', null],
+  ['peru', 'soccer/per.1', null],
+  ['jleague', 'soccer/jpn.1', null],
+  ['superlig', 'soccer/tur.1', null],
+  ['portugal', 'soccer/por.1', null],
+  ['eredivisie', 'soccer/ned.1', null],
 ];
+const isSoccer = league => LEAGUES.find(l => l[0] === league)[1].startsWith('soccer/');
 // Ten books count as one region in The Odds API's billing; Pinnacle is the sharpest reference line.
 const BOOKS = 'pinnacle,draftkings,fanduel,betmgm,williamhill_us,espnbet,fanatics,betrivers,bovada,betonlineag';
 const CREDIT_FLOOR = 20;
@@ -27,6 +50,8 @@ const text = (name, fallback) => process.argv.find(a => a.startsWith(`--${name}=
 const arg = (name, fallback) => Number(text(name, fallback));
 const minutes = arg('minutes', 5), once = process.argv.includes('--once');
 const lead = arg('books-lead', 60) * 60000, spacing = arg('books-spacing', 120) * 60000, dailyCap = arg('books-daily', 15);
+// Soccer kicks off in the US morning, so without its own share it could spend the whole day's credits before US evening games.
+const soccerCap = arg('books-soccer-daily', 6);
 const booksMarkets = text('books-markets', 'h2h');
 if (!/^[a-z0-9_]+(,[a-z0-9_]+)*$/.test(booksMarkets)) throw new Error('--books-markets takes a comma list such as h2h,spreads,totals');
 const cost = booksMarkets.split(',').length;
@@ -61,7 +86,7 @@ async function espnSweep() {
         for (const event of json.events ?? []) events.set(event.id, event);
       } catch (error) { warn({ source: 'espn', league, dates, error: error.message }); }
     }
-    const rows = espnRows({ events: [...events.values()] }, league, Date.now());
+    const rows = espnRows({ events: [...events.values()] }, league, Date.now(), route.startsWith('soccer/'));
     write(rows);
     count += rows.length;
     starts.set(league, [...new Set(rows.filter(r => r.state === 'pre').map(r => Date.parse(r.start)))]);
@@ -70,22 +95,25 @@ async function espnSweep() {
   checkIn('books-espn', 'waiting', `Logged ${count} DraftKings lines across ${LEAGUES.length} leagues; next sweep in ${minutes} min`);
 }
 
-let booksOn = Boolean(key), spent = { day: '', credits: 0 };
+let booksOn = Boolean(key), spent = { day: '', credits: 0, soccer: 0 };
 const lastSwept = new Map();
+const sportKey = league => LEAGUES.find(l => l[0] === league)[2];
 async function booksSweep() {
   const now = Date.now(), day = new Date(now).toISOString().slice(0, 10);
-  if (spent.day !== day) spent = { day, credits: 0 };
-  const due = dueLeagues(starts, lastSwept, now, lead, spacing);
+  if (spent.day !== day) spent = { day, credits: 0, soccer: 0 };
+  const due = dueLeagues(starts, lastSwept, now, lead, spacing).filter(sportKey);
   checkIn('books-oddsapi', due.length ? 'scanning' : 'waiting', due.length ? `Sweeping ${due.join(', ')}; ${spent.credits} of ${dailyCap} credits used today`
     : `No game starts within ${lead / 60000} min; ${spent.credits} of ${dailyCap} credits used today`);
   for (const league of due) {
     if (spent.credits + cost > dailyCap) { say({ source: 'the-odds-api', skipped: league, reason: `daily cap of ${dailyCap} credits reached` }); continue; }
-    const sport = LEAGUES.find(l => l[0] === league)[2];
+    const soccer = isSoccer(league);
+    if (soccer && spent.soccer + cost > soccerCap) { say({ source: 'the-odds-api', skipped: league, reason: `soccer share of ${soccerCap} credits reached` }); continue; }
+    const sport = sportKey(league);
     lastSwept.set(league, now);
     try {
       const { json, headers } = await fetchJson(`https://api.the-odds-api.com/v4/sports/${sport}/odds/?apiKey=${encodeURIComponent(key)}` +
         `&bookmakers=${BOOKS}&markets=${booksMarkets}&oddsFormat=american&dateFormat=iso`, `Odds API ${league}`);
-      spent = { ...spent, credits: spent.credits + cost };
+      spent = { ...spent, credits: spent.credits + cost, soccer: spent.soccer + (soccer ? cost : 0) };
       const rows = oddsApiRows(json, league, Date.now()), remaining = Number(headers.get('x-requests-remaining'));
       write(rows);
       say({ source: 'the-odds-api', league, rows: rows.length, games: json.length, creditsToday: spent.credits, creditsLeft: remaining });
@@ -95,7 +123,7 @@ async function booksSweep() {
   if (due.length) checkIn('books-oddsapi', 'waiting', `Swept ${due.join(', ')}; ${spent.credits} of ${dailyCap} credits used today`);
 }
 
-say({ started: true, espnMinutes: minutes, books: booksOn ? BOOKS : 'off (no ODDS_API_KEY)', booksMarkets, leadMinutes: lead / 60000, dailyCap });
+say({ started: true, espnMinutes: minutes, leagues: LEAGUES.length, books: booksOn ? BOOKS : 'off (no ODDS_API_KEY)', booksMarkets, leadMinutes: lead / 60000, dailyCap, soccerCap });
 for (;;) {
   await espnSweep();
   if (booksOn) await booksSweep();

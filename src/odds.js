@@ -3,7 +3,8 @@
 const american = v => v == null || v === '' ? null : /^even$/i.test(String(v)) ? 100 : Number(v);
 const line = v => v == null || v === '' ? null : Number(String(v).replace(/^[ou]/i, ''));
 
-export function espnRows(scoreboard, league, time) {
+// threeWay (soccer): the moneyline is home, away and Draw, and a game whose draw price is missing logs no moneyline at all.
+export function espnRows(scoreboard, league, time, threeWay = false) {
   const rows = [];
   for (const event of scoreboard?.events ?? []) {
     const competition = event.competitions?.[0], odds = competition?.odds?.[0], state = event.status?.type?.state;
@@ -16,7 +17,7 @@ export function espnRows(scoreboard, league, time) {
       const outcomes = sides.map(([name, quote]) => ({ name, price: american(quote?.close?.odds), point: line(quote?.close?.line) }));
       if (outcomes.every(o => Number.isFinite(o.price))) rows.push({ ...base, market, outcomes });
     };
-    add('h2h', [[home.displayName, odds.moneyline?.home], [away.displayName, odds.moneyline?.away]]);
+    add('h2h', [[home.displayName, odds.moneyline?.home], [away.displayName, odds.moneyline?.away], ...(threeWay ? [['Draw', odds.moneyline?.draw]] : [])]);
     add('spreads', [[home.displayName, odds.pointSpread?.home], [away.displayName, odds.pointSpread?.away]]);
     add('totals', [['Over', odds.total?.over], ['Under', odds.total?.under]]);
   }

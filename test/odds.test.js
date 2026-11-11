@@ -29,6 +29,13 @@ test('espnRows reads current DraftKings lines, keeps EVEN odds, and skips finish
   assert.deepEqual(espnRows({}, 'nba', 5), []);
 });
 
+test('espnRows logs a soccer moneyline with its draw, and never as a two-way line when the draw price is missing', () => {
+  const soccer = draw => [{ provider: { name: 'DraftKings' }, moneyline: { home: quote('-240'), away: quote('+500'), draw } }];
+  const [row] = espnRows({ events: [espnEvent('1', 'pre', soccer(quote('+390')))] }, 'epl', 5, true);
+  assert.deepEqual(row.outcomes.map(o => [o.name, o.price]), [['New York Knicks', -240], ['Milwaukee Bucks', 500], ['Draw', 390]]);
+  assert.deepEqual(espnRows({ events: [espnEvent('1', 'pre', soccer(undefined))] }, 'epl', 5, true), []);
+});
+
 test('oddsApiRows gives one row per book and market, with live games marked in play', () => {
   const events = [{ id: 'e1', commence_time: '2026-11-11T00:30:00Z', home_team: 'New York Knicks', away_team: 'Milwaukee Bucks',
     bookmakers: [{ key: 'pinnacle', markets: [
