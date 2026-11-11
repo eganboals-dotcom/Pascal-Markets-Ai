@@ -1,4 +1,5 @@
-// Agent A (plan Phase 1S) on the downloaded history: Kalshi game markets against DraftKings' closing moneyline, margin removed.
+// Agent A (plan Phase 1S) on the downloaded history: Kalshi game markets, US sports and 20 soccer leagues (home, away and tie),
+// against DraftKings' closing moneyline, margin removed.
 // Research only; no orders. ESPN's closing lines for every game in the history's dates are fetched once into data/odds (ESPN only,
 // never Kalshi, so it can run while the history downloads; --fetch-only stops there). Each matched market is read at the game's
 // start, when the closing line is set: the side the books favor is bought when its edge after the taker fee beats --margin (1¢),
@@ -60,12 +61,14 @@ for await (const g of jsonLines(CACHE)) games.push(g);
 const index = gameIndex([...new Map(games.map(g => [`${g.league}|${g.eventId}`, g])).values()]);
 const trades = [], forecasts = [], coverage = {};
 for (const day of days) {
-  const wanted = new Map();
-  for await (const m of jsonLines(`${root}/${day}/markets.jsonl`)) {
+  const wanted = new Map(), markets = [], siblings = new Map(); // event ticker -> its markets' outcome codes (a soccer TIE needs them)
+  for await (const m of jsonLines(`${root}/${day}/markets.jsonl`)) if (leagueOfSeries(m.series)) markets.push(m);
+  for (const { ticker } of markets) { const at = ticker.lastIndexOf('-'), event = ticker.slice(0, at); siblings.set(event, [...(siblings.get(event) ?? []), ticker.slice(at + 1)]); }
+  for (const m of markets) {
     const league = leagueOfSeries(m.series), value = settlementValue(m);
     if (!league || value === null || !parseGameTicker(m.ticker) || !(m.books > 0)) continue; // no books: nothing to trade
     const c = coverage[league] ?? { markets: 0, matched: 0, withBook: 0 };
-    const match = matchMarket(m.ticker, index);
+    const match = matchMarket(m.ticker, index, siblings.get(m.ticker.slice(0, m.ticker.lastIndexOf('-'))));
     coverage[league] = { ...c, markets: c.markets + 1, matched: c.matched + (match ? 1 : 0) };
     if (match) wanted.set(m.ticker, { ...match, settle: value, start: Date.parse(match.game.start), book: null });
   }
@@ -89,7 +92,7 @@ const money = x => (x < 0 ? '−$' : '$') + Math.abs(x).toFixed(2), cents = x =>
 const range = r => `${money(r.total)} (${money(r.low)} to ${money(r.high)})`, a = summary.accuracy;
 writeProjectFile(`${root}/agents/sportsbook-report.json`, JSON.stringify({ generatedAt: Date.now(), margin, summary, trades }, null, 2) + '\n');
 writeProjectFile(`${root}/agents/sportsbook-report.md`, ['# Agent A: sportsbook closing line against Kalshi, history test', '',
-  'Research only. Each Kalshi game market is matched exactly to an ESPN game (Eastern date, away and home codes) and read at the game start, beside the DraftKings closing moneyline with its margin removed. The side the books favor is bought when its edge after the taker fee beats the margin; one contract, held to settlement.', '',
+  'Research only. Each Kalshi game market is matched exactly to an ESPN game (Eastern date, away and home codes; for soccer, home first, codes or team names, and the TIE market priced from the draw) and read at the game start, beside the DraftKings closing moneyline (three-way for soccer) with its margin removed. The side the books favor is bought when its edge after the taker fee beats the margin; one contract, held to settlement.', '',
   `Ranges are 97.5%, resampling whole games. Margin ${cents(margin)}. ${locked.length ? (final ? `The locked final exam (${locked[0]} to ${locked.at(-1)}) is included.` : `Locked final exam, not run: ${locked[0]} to ${locked.at(-1)}.`) : `No locked exam yet: fewer than ${minDaysToLock} days downloaded.`}`, '',
   '## Coverage', '', markdownTable(['League', 'Kalshi markets with books', 'Matched to a game with lines', 'With a Kalshi book at the start'],
     Object.entries(coverage).map(([l, c]) => [l, c.markets, c.matched, c.withBook])), '',

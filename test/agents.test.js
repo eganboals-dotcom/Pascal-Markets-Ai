@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { americanProb, bookAt, brierComparison, noVig, settle, summarize, take } from '../src/takers.js';
 import { bucketOf, longshotRules } from '../src/agents/longshot.js';
-import { closingRow, gameIndex, matchGame, matchMarket, parseGameTicker, tickerDate } from '../src/agents/fair-odds.js';
+import { closingRow, gameIndex, matchGame, matchMarket, parseGameTicker, soccerTeamScore, tickerDate } from '../src/agents/fair-odds.js';
 import { dailyExtremes, errorModel, paysYes, stationOf, strikeProbability } from '../src/agents/fair-weather.js';
 import { hedge, polyGame, polyUsFee } from '../src/agents/cross-venue.js';
 
@@ -119,4 +119,35 @@ test('cross-venue hedges buy one team on each venue and count both taker fees', 
   // Seen from the Pistons' market (X is the second team): Kalshi Pistons Yes at 57 plus Polymarket 76ers at 41 is the cheaper hedge.
   assert.equal(hedge({ yesBid: 0.56, yesAsk: 0.57, fee_multiplier: 1 }, { longPrice: 0.41, shortPrice: 0.60 }, false).kalshi, 'yes');
   assert.equal(hedge({ yesBid: 0, yesAsk: 1 }, { longPrice: 0, shortPrice: 1 }, true), null);
+});
+
+test('soccer markets match home first, by ESPN codes or team names, and price home, away and TIE from the three-way line', () => {
+  assert.equal(soccerTeamScore('BRE', 'BRE', 'Brentford'), 3);
+  assert.equal(soccerTeamScore('BRI', 'BHA', 'Brighton & Hove Albion'), 2); // the name starts with the code
+  assert.equal(soccerTeamScore('VDG', 'VAS', 'Vasco da Gama'), 2); // initials
+  assert.equal(soccerTeamScore('GPA', 'GRE', 'Grêmio'), 1); // only the first letter agrees
+  assert.equal(soccerTeamScore('LFC', 'BHA', 'Brighton & Hove Albion'), 0);
+  const event = { id: '7', date: '2026-11-08T14:00Z', competitions: [{ competitors: [
+    { homeAway: 'home', team: { abbreviation: 'BHA', displayName: 'Brighton & Hove Albion' } }, { homeAway: 'away', team: { abbreviation: 'BRE', displayName: 'Brentford' } }] }] };
+  const odds = [{ provider: { id: '100', name: 'DraftKings' }, drawOdds: { moneyLine: 290 },
+    homeTeamOdds: { close: { moneyLine: { american: '-125' } }, open: { moneyLine: { american: '+100' } } },
+    awayTeamOdds: { close: { moneyLine: { american: '+320' } }, open: { moneyLine: { american: '+240' } } } }];
+  const row = closingRow('epl', event, odds);
+  assert.deepEqual(row.close, { away: 320, home: -125, draw: 290 });
+  const game = (homeCode, home, awayCode, away, eventId, date = '2026-11-08') => ({ league: 'epl', eventId, date, homeCode, home, awayCode, away, close: { home: -110, away: 250, draw: 260 } });
+  const index = gameIndex([row, game('CRY', 'Crystal Palace', 'LIV', 'Liverpool', '8'), game('MAN', 'Manchester United', 'AVL', 'Aston Villa', '9')]);
+  const [home, away, tie] = ['BRI', 'BRE', 'TIE'].map(o => matchMarket(`KXEPLGAME-26NOV08BRIBRE-${o}`, index, ['BRI', 'BRE', 'TIE']));
+  assert.ok([home, away, tie].every(m => m.game.eventId === '7'));
+  assert.ok(Math.abs(home.fair + away.fair + tie.fair - 1) < 1e-12 && home.fair > tie.fair && tie.fair > away.fair);
+  assert.equal(matchMarket('KXEPLGAME-26NOV08CRYLFC-LFC', index).game.eventId, '8'); // CRY by name, LFC by its first letter
+  assert.equal(matchMarket('KXEPLGAME-26NOV08MUNAVL-MUN', index).game.eventId, '9');
+  assert.equal(matchMarket('KXEPLGAME-26NOV07MUNAVL-TIE', index, ['MUN', 'AVL', 'TIE']).game.eventId, '9'); // a day off still matches
+  assert.equal(matchMarket('KXEPLGAME-26NOV08BRIBRE-TIE', index), null); // a TIE needs a sibling market to split the teams
+  assert.equal(matchMarket('KXEPLGAME-26NOV08BREBRI-BRI', index), null); // Kalshi lists home first; the reverse is another game
+  const twins = gameIndex([game('CRY', 'Crystal Palace', 'LIV', 'Liverpool', '1'), game('CRY', 'Crystal Palace', 'LIV', 'Liverpool', '2')]);
+  assert.equal(matchMarket('KXEPLGAME-26NOV08CRYLIV-TIE', twins, ['CRY', 'LIV']), null); // two equal games: skipped, never guessed
+  assert.equal(matchMarket('KXEPLGAME-26NOV08BRIBRE-TIE', gameIndex([{ ...row, close: { ...row.close, draw: null } }]), ['BRI']), null); // no draw price
+  const turkey = gameIndex([{ ...game('GAL', 'Galatasaray', 'AME', 'Amed SFK', '3'), league: 'superlig', date: '2026-11-07' }]);
+  assert.equal(matchMarket('KXSUPERLIGGAME-26NOV07GOZBAS-TIE', turkey, ['GOZ', 'BAS', 'TIE']), null); // once matched through "AS"
+  assert.equal(matchGame('KXEPLGAME-26NOV08BRIBRE-BRI', index), null); // the US matcher never reads soccer away-first
 });

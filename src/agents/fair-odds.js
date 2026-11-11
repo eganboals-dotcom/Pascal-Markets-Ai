@@ -11,6 +11,17 @@ export const LEAGUES = { // league -> Kalshi game series, ESPN API paths and sco
   mlb: { series: 'KXMLBGAME', site: 'baseball/mlb', core: 'baseball/leagues/mlb' },
   wnba: { series: 'KXWNBAGAME', site: 'basketball/wnba', core: 'basketball/leagues/wnba' },
 };
+// Soccer: three-way (home, away, draw), and Kalshi lists the home team first.
+const soccer = (series, slug) => ({ series, site: `soccer/${slug}`, core: `soccer/leagues/${slug}`, soccer: true });
+Object.assign(LEAGUES, {
+  ucl: soccer('KXUCLGAME', 'uefa.champions'), uel: soccer('KXUELGAME', 'uefa.europa'), uecl: soccer('KXUECLGAME', 'uefa.europa.conf'),
+  epl: soccer('KXEPLGAME', 'eng.1'), efl: soccer('KXEFLCHAMPIONSHIPGAME', 'eng.2'), laliga: soccer('KXLALIGAGAME', 'esp.1'),
+  seriea: soccer('KXSERIEAGAME', 'ita.1'), bundesliga: soccer('KXBUNDESLIGAGAME', 'ger.1'), ligue1: soccer('KXLIGUE1GAME', 'fra.1'),
+  eredivisie: soccer('KXEREDIVISIEGAME', 'ned.1'), portugal: soccer('KXLIGAPORTUGALGAME', 'por.1'), superlig: soccer('KXSUPERLIGGAME', 'tur.1'),
+  brasileirao: soccer('KXBRASILEIROGAME', 'bra.1'), argentina: soccer('KXARGPREMDIVGAME', 'arg.1'), ligamx: soccer('KXLIGAMXGAME', 'mex.1'),
+  mls: soccer('KXMLSGAME', 'usa.1'), colombia: soccer('KXDIMAYORGAME', 'col.1'), paraguay: soccer('KXAPFDDHGAME', 'par.1'),
+  peru: soccer('KXPERLIGA1GAME', 'per.1'), jleague: soccer('KXJLEAGUEGAME', 'jpn.1'),
+});
 export const leagueOfSeries = series => Object.keys(LEAGUES).find(l => LEAGUES[l].series === series) ?? null;
 
 const MONTHS = { JAN: '01', FEB: '02', MAR: '03', APR: '04', MAY: '05', JUN: '06', JUL: '07', AUG: '08', SEP: '09', OCT: '10', NOV: '11', DEC: '12' };
@@ -66,7 +77,7 @@ export function gameIndex(games) {
 // `swapped` that the game lists the teams the other way round. `usable` drops games that cannot be priced.
 export function matchGame(ticker, index, usable = () => true) {
   const parsed = parseGameTicker(ticker), league = parsed && leagueOfSeries(parsed.series);
-  if (!league) return null;
+  if (!league || LEAGUES[league].soccer) return null; // soccer lists home first: matchSoccer
   const { teams, outcome } = parsed, isAway = teams.startsWith(outcome), isHome = teams.endsWith(outcome);
   if (isAway === isHome) return null;
   const away = isAway ? outcome : teams.slice(0, -outcome.length), home = isHome ? outcome : teams.slice(outcome.length);
@@ -93,11 +104,51 @@ export function matchGame(ticker, index, usable = () => true) {
 }
 
 // Fair chance that a Kalshi game market pays, from the matched game's closing moneyline with the margin removed.
-export function matchMarket(ticker, index) {
+// `siblings`: outcome codes of the other markets in the same event, needed only for a soccer TIE market.
+export function matchMarket(ticker, index, siblings = []) {
+  const parsed = parseGameTicker(ticker), soccerLeague = parsed && leagueOfSeries(parsed.series);
+  if (soccerLeague && LEAGUES[soccerLeague].soccer) return matchSoccer(parsed, soccerLeague, index, siblings);
   const match = matchGame(ticker, index, g => Number.isFinite(g.close?.away) && Number.isFinite(g.close?.home));
   if (!match) return null;
   const { league, game, isAway, swapped, exact } = match, [awayFair, homeFair] = noVig([americanProb(game.close.away), americanProb(game.close.home)]);
   return { league, game, fair: isAway !== swapped ? awayFair : homeFair, exact };
+}
+
+// Soccer codes often differ from ESPN's (BRI/BHA, VDG/VAS, LFC/LIV), so the team's name counts too: 3 = same code, 2 = the
+// name or its initials start with the code (or a close code), 1 = a loose code or only the first letter agrees, 0 = unrelated.
+const nameWords = name => String(name ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase().replace(/[^A-Z]+/g, ' ').trim().split(' ');
+export function soccerTeamScore(code, abbreviation, name) {
+  const words = nameWords(name), joined = words.join(''), similar = codeSimilarity(code, teamCode(abbreviation));
+  if (similar === 3) return 3;
+  if (similar === 2 || joined.startsWith(code) || words.map(w => w[0]).join('').startsWith(code)) return 2;
+  return similar || code[0] === joined[0] ? 1 : 0;
+}
+
+// A soccer market's game: the event's teams read home then away, each team scored by soccerTeamScore, at least one of them by
+// code or name (2+) and 3 together, on the Eastern date or one day either side with the exact date preferred. The best game must
+// beat every other one, and its line must include the draw, or the market is skipped. A TIE ticker does not say where the home
+// code ends, so `siblings` (the outcome codes of the same event's markets) must name one team: trying every split once paired
+// GOZBAS (Goztepe v Basaksehir) with Galatasaray v Amed SFK through "AS".
+function matchSoccer({ date, teams, outcome }, league, index, siblings) {
+  const tie = outcome === 'TIE', side = tie ? siblings.find(s => s !== 'TIE' && teams.startsWith(s) !== teams.endsWith(s)) : outcome;
+  if (!side) return null;
+  const isHome = teams.startsWith(side), isAway = teams.endsWith(side);
+  if (isHome === isAway) return null;
+  const splits = [isHome ? side.length : teams.length - side.length];
+  const scored = [];
+  for (const shift of [0, 1, -1]) {
+    for (const g of index.get(`${league}|${shiftDate(date, shift)}`) ?? []) {
+      if (![g.close?.home, g.close?.away, g.close?.draw].every(Number.isFinite)) continue;
+      for (const at of splits) {
+        const h = soccerTeamScore(teams.slice(0, at), g.homeCode, g.home), a = soccerTeamScore(teams.slice(at), g.awayCode, g.away);
+        if (h + a >= 3 && Math.max(h, a) >= 2) scored.push({ g, score: h + a - (shift ? 0.5 : 0), exact: h + a === 6 && !shift });
+      }
+    }
+  }
+  scored.sort((x, y) => y.score - x.score);
+  if (!scored.length || scored.some(s => s.g !== scored[0].g && s.score === scored[0].score)) return null;
+  const { g: game, exact } = scored[0], [home, away, draw] = noVig([game.close.home, game.close.away, game.close.draw].map(americanProb));
+  return { league, game, fair: tie ? draw : isHome ? home : away, exact };
 }
 
 // American odds as ESPN's core API gives them ("-305", "+245", "EVEN").
@@ -111,6 +162,8 @@ export function closingRow(league, event, oddsItems) {
   const row = { league, eventId: event.id, date: usDate(Date.parse(event.date)), start: event.date, away: team('away').displayName,
     home: team('home').displayName, awayCode: team('away').abbreviation, homeCode: team('home').abbreviation, provider: item?.provider?.name ?? null };
   if (!item) return { ...row, close: null, open: null };
-  return { ...row, close: { away: line(item.awayTeamOdds, 'close'), home: line(item.homeTeamOdds, 'close') },
+  // Soccer's draw comes as one price (the latest, which is the close for a finished game).
+  const draw = LEAGUES[league]?.soccer ? { draw: americanOdds(item.drawOdds?.moneyLine) } : {};
+  return { ...row, close: { away: line(item.awayTeamOdds, 'close'), home: line(item.homeTeamOdds, 'close'), ...draw },
     open: { away: line(item.awayTeamOdds, 'open'), home: line(item.homeTeamOdds, 'open') } };
 }
