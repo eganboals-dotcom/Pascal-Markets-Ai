@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { get } from 'node:http';
-import { rmSync } from 'node:fs';
+import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { randomUUID } from 'node:crypto';
 import { createDashboardServer } from '../src/dashboard.js';
 import { projectPath } from '../src/files.js';
@@ -51,8 +51,14 @@ test('a department page shows each agent\'s latest heartbeat, flags overdue ones
   try {
     beat('books-espn', 'waiting', 'Logged 40 lines', { now: 1000, nextWithinMs: 60000, dir });
     beat('sportsbook', 'done', 'History test finished', { now: 2000, dir });
+    mkdirSync(projectPath(`${dir}/paper`), { recursive: true });
+    const paper = [{ ticker: 'KXNBAGAME-26NOV11CHINYK-NYK', department: 'sportsUS', side: 'yes', price: 0.42 },
+      { ticker: 'KXEPLGAME-26NOV14ARSLEE-TIE', department: 'soccerIntl', side: 'no', price: 0.7 }, { ticker: 'KXNBAGAME-26NOV11BOSTOR-TOR', department: 'sportsUS', side: 'no', price: 0.6 }];
+    const lines = rows => rows.map(r => JSON.stringify(r)).join('\n') + '\n';
+    writeFileSync(projectPath(`${dir}/paper/gap-taker.jsonl`), lines(paper));
+    writeFileSync(projectPath(`${dir}/paper/gap-settled.jsonl`), lines([{ ticker: 'KXNBAGAME-26NOV11CHINYK-NYK', result: 'yes', pnl: 0.56 }]));
     let clock = 5000;
-    await withServer({ runner: fakeRunner(), now: () => clock, departmentsRoot: 'work/no-such-history', heartbeatDir: dir }, async base => {
+    await withServer({ runner: fakeRunner(), now: () => clock, departmentsRoot: 'work/no-such-history', heartbeatDir: dir, paperDir: `${dir}/paper` }, async base => {
       const page = async id => (await fetch(`${base}/api/departments/${id}`)).json();
       const sports = await page('sportsUS'), agent = id => sports.agents.find(a => a.id === id);
       assert.equal(agent('books-espn').state, 'waiting');
@@ -61,6 +67,7 @@ test('a department page shows each agent\'s latest heartbeat, flags overdue ones
       assert.equal(agent('consensus').state, 'planned');
       assert.equal(agent('maker').state, 'no reports yet');
       assert.deepEqual(sports.activity.map(r => r.agent), ['sportsbook', 'books-espn']); // newest first
+      assert.deepEqual(sports.paper.map(t => [t.ticker.slice(-3), t.pnl]), [['TOR', null], ['NYK', 0.56]]); // this department's, newest first, settled P&L attached
       clock = 61001;
       assert.equal((await page('sportsUS')).agents.find(a => a.id === 'books-espn').stale, true);
       assert.equal((await page('arbitrage')).agents.find(a => a.id === 'engine').state, 'idle');
