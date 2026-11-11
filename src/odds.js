@@ -32,6 +32,13 @@ export function oddsApiRows(events, league, time) {
   }))));
 }
 
+// Leagues worth spending paid credits on now: a game starts within leadMs, and the league was not swept in the last spacingMs.
+// Closing lines (just before the start) are the sharpest and are when Kalshi trades most before the game.
+export function dueLeagues(starts, lastSwept, now, leadMs, spacingMs) {
+  return [...starts].filter(([league, times]) => times.some(t => t > now && t - now <= leadMs)
+    && now - (lastSwept.get(league) ?? -Infinity) >= spacingMs).map(([league]) => league);
+}
+
 // Errors carry only the label and status: Odds API URLs hold the key.
 export async function fetchJson(url, label) {
   const response = await fetch(url, { signal: AbortSignal.timeout(20000) });

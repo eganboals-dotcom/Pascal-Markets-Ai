@@ -1,6 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { espnRows, oddsApiRows } from '../src/odds.js';
+import { dueLeagues, espnRows, oddsApiRows } from '../src/odds.js';
+
+test('dueLeagues spends credits only on leagues with a game starting soon, once per spacing', () => {
+  const h = 3600000, now = 100 * h;
+  const starts = new Map([['nba', [now + 0.5 * h]], ['nhl', [now + 3 * h]], ['nfl', [now - h, now + 0.9 * h]], ['ncaab', [now + 0.2 * h]], ['mlb', []]]);
+  const swept = new Map([['ncaab', now - h], ['nfl', now - 2 * h]]);
+  assert.deepEqual(dueLeagues(starts, swept, now, h, 2 * h), ['nba', 'nfl']); // nhl too far off, ncaab swept an hour ago, mlb idle
+  assert.deepEqual(dueLeagues(new Map([['nba', [now]]]), new Map(), now, h, 2 * h), []); // already started
+});
 
 const team = (homeAway, abbreviation, displayName) => ({ homeAway, team: { abbreviation, displayName } });
 const quote = (odds, line) => ({ close: { odds, line }, open: { odds: '-110', line } });
