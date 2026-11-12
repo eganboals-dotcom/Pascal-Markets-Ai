@@ -9,7 +9,7 @@
     "longshot": { "name": "Favorite-longshot fade (Agent C)", "role": "trading", "built": true },
     "weather": { "name": "Forecast taker (Agent D)", "role": "trading", "built": true },
     "station-watch": { "name": "Station readings so far today, paper (decided ranges)", "role": "research", "built": true },
-    "weather-maker": { "name": "Bracket quoting around the forecast", "role": "trading", "built": false },
+    "weather-maker": { "name": "Bracket quoting around the Monte Carlo day model", "role": "trading", "built": true },
     "spot-feed": { "name": "Live crypto, metal and oil prices", "role": "research", "built": false },
     "vol-model": { "name": "Chance of finishing up, from volatility", "role": "research", "built": false },
     "fair-econ": { "name": "Fed, CPI and jobs calibration (Agent E)", "role": "research", "built": false },
