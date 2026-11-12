@@ -28,8 +28,13 @@ const feeRate = readResearch('config/scan.json', {}).feeRate ?? 0.07;
 // by default a reading is used 30 minutes after its time; --lag-minutes changes that. On Sept 21 to Oct 31 Kalshi priced a decided
 // range out 15 to 20 minutes after the reading: 358 trades (+$45) at 5 minutes, 135 (+$20) at 15, 4 (+$0.08) at 20.
 const lagMinutes = Number(process.argv.find(a => a.startsWith('--lag-minutes='))?.split('=')[1] ?? 30);
+// The hourly and special METARs (off the 5-minute grid) reach aviationweather.gov about 3.5 minutes after their time (median, 90%
+// within 4.6; Nov 12), and the live station-watch reads that feed every minute, so they count from --metar-lag-minutes (5). On the
+// downloaded days that made 285 trades (+$35.85, range +$27.57 to +$44.70, no wrong calls) against 227 (+$28.19) with every reading
+// at 30 minutes; the twelve stations outside Kalshi's index went from 3 trades to 48.
+const metarLagMinutes = Number(process.argv.find(a => a.startsWith('--metar-lag-minutes='))?.split('=')[1] ?? 5);
 const useIndex = !process.argv.includes('--no-index') && (process.argv.includes('--index') || !downloadBusy());
-const LAG_MS = lagMinutes * 60000, EDGE_MS = 2 * 3600000, PAUSE_MS = 5000, RETRY_MS = 60000, DAY_MS = 86400000;
+const LAG_MS = lagMinutes * 60000, METAR_LAG_MS = metarLagMinutes * 60000, EDGE_MS = 2 * 3600000, PAUSE_MS = 5000, RETRY_MS = 60000, DAY_MS = 86400000;
 const shift = (date, days) => new Date(Date.parse(date) + days * DAY_MS).toISOString().slice(0, 10);
 const readJson = path => JSON.parse(readFileSync(projectPath(path), 'utf8'));
 
@@ -39,6 +44,7 @@ const { days, locked, minDaysToLock } = historyDays(root, final);
 const first = shift(days[0] ?? '2000-01-01', -2), last = shift(days.at(-1) ?? '2000-01-01', 1);
 
 const stations = new Map();
+const isMetar = r => new Date(r.time).getUTCMinutes() % 5 !== 0; // 5-minute reports land on :00, :05, ...; hourly ones at :51 to :56
 async function station(code) {
   if (stations.has(code)) return stations.get(code);
   let value = null;
@@ -58,7 +64,7 @@ async function station(code) {
         readings = asosReadings(await response.text());
         writeProjectFile(path, JSON.stringify(readings) + '\n');
       }
-      value = { offset: standardOffsetMs(site.tz), readings: readings.map(r => ({ ...r, arrived: r.time + LAG_MS })) };
+      value = { offset: standardOffsetMs(site.tz), readings: readings.map(r => ({ ...r, arrived: r.time + (isMetar(r) ? METAR_LAG_MS : LAG_MS) })) };
     }
   } catch (error) { console.error(JSON.stringify({ station: code, error: error.message })); }
   stations.set(code, value);
@@ -142,7 +148,7 @@ writeProjectFile(`${root}/agents/station-watch-report.json`, JSON.stringify({ ge
 writeProjectFile(`${root}/agents/station-watch-grid.json`, JSON.stringify({ generatedAt: Date.now(), agent: 'station-watch', setting: 'margin', settings: MARGINS, trades: grid }) + '\n');
 writeProjectFile(`${root}/agents/station-watch-report.md`, ['# Station-watch: readings so far against Kalshi, history test', '',
   `Research only. A range counts as decided once the station's readings so far (5-minute and hourly, and Kalshi's 1-minute ones where it has them), as they had arrived, settle it whatever the rest of the climate day does (cushion ${CUSHION.high}° on highs, ${CUSHION.low}° on lows). The decided side is bought at the first book where its edge after the taker fee beats ${cents(margin)}; one contract, held to settlement. Ranges are 97.5%, resampling whole dates. ${locked.length ? (final ? `The locked final exam (${locked[0]} to ${locked.at(-1)}) is included.` : `Locked final exam, not run: ${locked[0]} to ${locked.at(-1)}.`) : `No locked exam yet: fewer than ${minDaysToLock} days downloaded.`}`, '',
-  `Mesonet readings count ${lagMinutes} minutes after their time; Kalshi's 1-minute readings count from when Kalshi received them${useIndex ? '' : ' (not read this run: the history download was running, or --no-index)'}. ${trades.filter(t => t.feed === 'kalshi').length} of ${trades.length} trades came on stations with Kalshi's feed.`, '',
+  `Mesonet 5-minute readings count ${lagMinutes} minutes after their time, hourly and special METARs ${metarLagMinutes} (aviationweather.gov's delay); Kalshi's 1-minute readings count from when Kalshi received them${useIndex ? '' : ' (not read this run: the history download was running, or --no-index)'}. ${trades.filter(t => t.feed === 'kalshi').length} of ${trades.length} trades came on stations with Kalshi's feed.`, '',
   `Of ${totals.tested} markets with readings and books, ${totals.decided} were decided before they closed and ${totals.wrong} of those settled the other way.`, '',
   markdownTable(['Series', 'Markets', 'Tested', 'Decided', 'Wrong calls', 'Trades'], Object.entries(coverage).sort().map(([s, c]) => [s, c.markets, c.tested, c.decided, c.wrong, c.trades])), '',
   '## Trades', '',

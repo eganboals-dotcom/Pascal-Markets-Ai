@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, rmSync } from 'node:fs';
 import { randomUUID } from 'node:crypto';
-import { asosReadings, clean, climateDate, climateDayStart, decided, indexReadings, soFar, standardOffsetMs } from '../src/agents/station-watch.js';
+import { asosReadings, clean, climateDate, climateDayStart, decided, indexReadings, metarReadings, metarUrl, soFar, standardOffsetMs } from '../src/agents/station-watch.js';
 import { eventOf, openLedger } from '../src/paper.js';
 import { projectPath } from '../src/files.js';
 
@@ -110,4 +110,18 @@ test('an early exit counts as settled, and the breaker pauses losing groups and 
     assert.equal(ledger.breaker(groupOf, { now: 30 * hour }).paused.size, 0); // the pause ends after a day
     assert.equal(openLedger('game-watch', { dir }).open().length, 0); // reloads with the exit counted
   } finally { rmSync(projectPath(dir), { recursive: true, force: true }); }
+});
+
+test('aviationweather METARs become readings in °F from the T group, counted from when the feed received them', () => {
+  const obs = Date.parse('2026-11-12T20:51:00Z') / 1000;
+  const got = metarReadings([
+    { icaoId: 'KAUS', obsTime: obs, receiptTime: '2026-11-12T20:54:30.000Z', temp: 25.6, rawOb: 'KAUS 122051Z 18010KT 10SM CLR 26/18 A2990 RMK AO2 T02560178' },
+    { icaoId: 'KNYC', obsTime: obs, receiptTime: 'bad', temp: -1, rawOb: 'KNYC 122051Z AUTO 31008KT M01/M05 A3010' },
+    { icaoId: 'KDEN', obsTime: obs, temp: null, rawOb: 'KDEN 122053Z 00000KT 10SM' },
+  ]);
+  assert.deepEqual(got.get('AUS'), [{ time: obs * 1000, temp: 78.08, arrived: Date.parse('2026-11-12T20:54:30Z') }]);
+  assert.deepEqual(got.get('NYC'), [{ time: obs * 1000, temp: 30.2, arrived: obs * 1000 }]); // no T group: whole °C; no receipt: its own time
+  assert.equal(got.has('DEN'), false);
+  assert.equal(metarReadings({ error: 'x' }).size, 0);
+  assert.equal(metarUrl(['AUS', 'NYC'], 2), 'https://aviationweather.gov/api/data/metar?ids=KAUS,KNYC&hours=2&format=json');
 });

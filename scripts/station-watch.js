@@ -2,7 +2,8 @@
 // on its last two climate days from the Iowa Environmental Mesonet (free, no key, no Kalshi requests) and reports on the dashboard.
 // The Mesonet read runs in the background, so it never holds up the faster feed. Once the history download is done (or with
 // --force), every --every-seconds (30) it also reads the 1-minute readings Kalshi's public city index carries for twelve of the
-// stations (about 2.4 minutes late, against 24 to 27 for the Mesonet). Kalshi's open KXHIGH/KXLOW markets are listed every 5
+// stations (about 2.4 minutes late, against 24 to 27 for the Mesonet). Every minute it reads the hourly and special METARs for all
+// stations from aviationweather.gov (about 3.5 minutes late, no key), the fastest feed for the other twelve. Kalshi's open KXHIGH/KXLOW markets are listed every 5
 // minutes; each pass reads fresh prices for just the ranges the readings have already decided (src/agents/station-watch.js), 50 to
 // a request, and buys on paper the decided side, held to settlement, when its edge after the taker fee beats the margin and
 // something is offered at that price: as many contracts as are offered, up to --contracts (25) a market and --per-day (25) across a
@@ -15,7 +16,7 @@ import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { fetchMarkets, fetchOpenEvents, getJson } from '../src/kalshi.js';
 import { kindOf, stationOf } from '../src/agents/fair-weather.js';
-import { INDEX_CITY, asosReadings, asosUrl, clean, climateDate, climateDayStart, decided, indexReadings, indexUrl, soFar, standardOffsetMs } from '../src/agents/station-watch.js';
+import { INDEX_CITY, asosReadings, asosUrl, clean, climateDate, climateDayStart, decided, indexReadings, indexUrl, metarReadings, metarUrl, soFar, standardOffsetMs } from '../src/agents/station-watch.js';
 import { tickerDate } from '../src/agents/fair-odds.js';
 import { take } from '../src/takers.js';
 import { TUNE_REPORT, pickedMargin } from '../src/tuner.js';
@@ -78,6 +79,25 @@ async function readIndex(now) {
   }
 }
 
+// aviationweather.gov's hourly and special METARs for every station in one request a minute, about 3.5 minutes after their time,
+// against 24 or more on the Mesonet: the fastest feed for the twelve stations outside Kalshi's index. Kept two days, like the index.
+const fromMetar = new Map();
+let metarAt = 0;
+async function readMetars(now) {
+  if (now - metarAt < 60000) return;
+  metarAt = now;
+  try {
+    const response = await fetch(metarUrl([...stations.keys()]), { headers: { 'User-Agent': 'research-client' }, signal: AbortSignal.timeout(20000) });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    for (const [code, list] of metarReadings(await response.json())) {
+      if (!stations.has(code)) continue;
+      const seen = fromMetar.get(code) ?? fromMetar.set(code, new Map()).get(code);
+      for (const r of list) seen.set(r.time, r);
+      for (const time of seen.keys()) if (time < now - 2 * DAY_MS) seen.delete(time);
+    }
+  } catch (error) { warn({ metar: error.message }); }
+}
+
 // Kalshi's open weather markets (strikes, no prices), listed again every LIST_MS: a day's ranges are listed once, well ahead.
 let listed = { at: 0, markets: [] };
 async function openMarkets() {
@@ -137,10 +157,11 @@ const refreshMesonet = now => mesonetJob ??= readStations(now).then(r => { meson
 async function pass() {
   const now = Date.now(), busy = !flag('force') && downloadBusy();
   if (now - mesonetAt >= minutes * 60000) { const job = refreshMesonet(now); if (!Number.isFinite(mesonetAt)) await job; }
+  await readMetars(now);
   if (!busy) await readIndex(now);
-  const readings = new Map([...stations.keys()].map(code => [code, clean([...mesonet.get(code) ?? [], ...fromIndex.get(code)?.values() ?? []])]).filter(([, r]) => r.length));
+  const readings = new Map([...stations.keys()].map(code => [code, clean([...mesonet.get(code) ?? [], ...fromMetar.get(code)?.values() ?? [], ...fromIndex.get(code)?.values() ?? []])]).filter(([, r]) => r.length));
   const newest = Math.max(...[...readings.values()].flat().map(r => r.time));
-  const read = `Read ${readings.size} of ${stations.size} stations (${fromIndex.size} on Kalshi's 1-minute feed)` + (Number.isFinite(newest) ? `, newest reading ${new Date(newest).toISOString().slice(11, 16)} UTC` : '');
+  const read = `Read ${readings.size} of ${stations.size} stations (${fromIndex.size} on Kalshi's 1-minute feed, ${fromMetar.size} on aviationweather's METARs)` + (Number.isFinite(newest) ? `, newest reading ${new Date(newest).toISOString().slice(11, 16)} UTC` : '');
   if (busy) { checkIn('waiting', `${read}. Kalshi's feed and prices wait for the history download`); say({ stations: readings.size, kalshi: 'waiting' }); return; }
   checkIn('scanning', `${read}. Checking Kalshi's open weather markets`);
   const c = await trade(readings, loadDepartments());

@@ -79,6 +79,21 @@ function nearNeighbor(r, i, all) {
 export const asosUrl = (code, start, end) => 'https://mesonet.agron.iastate.edu/cgi-bin/request/asos.py?station=' + code +
   `&data=tmpf&data=metar&tz=Etc/UTC&format=onlycomma&latlon=no&missing=empty&report_type=1&report_type=3&report_type=4&sts=${new Date(start).toISOString().slice(0, 16)}Z&ets=${new Date(end).toISOString().slice(0, 16)}Z`;
 
+// aviationweather.gov's METAR feed (public, no key) has the hourly and special reports, in tenths, about 3.5 minutes after their time
+// (median of 88; 90% within 4.6 minutes, Nov 12), but no 5-minute ones. One request covers every station.
+export const metarUrl = (codes, hours = 3) => `https://aviationweather.gov/api/data/metar?ids=${codes.map(c => `K${c}`).join(',')}&hours=${hours}&format=json`;
+// The feed's JSON into station code ('KAUS' -> 'AUS') -> readings { time, temp (°F), arrived }; the T group when present, else temp (°C).
+export function metarReadings(json) {
+  const byStation = new Map();
+  for (const m of Array.isArray(json) ? json : []) {
+    const code = String(m.icaoId ?? '').replace(/^K/, ''), time = Number(m.obsTime) * 1000, fine = tGroupF(m.rawOb), arrived = Date.parse(m.receiptTime);
+    const temp = Number.isFinite(fine) ? fine : Number.isFinite(m.temp) ? m.temp * 9 / 5 + 32 : NaN;
+    if (!code || !Number.isFinite(time) || !Number.isFinite(temp)) continue;
+    (byStation.get(code) ?? byStation.set(code, []).get(code)).push({ time, temp: Math.round(temp * 100) / 100, arrived: Number.isFinite(arrived) ? arrived : time });
+  }
+  return byStation;
+}
+
 // Kalshi's public city temperature index carries each member station's 1-minute reading (whole °C, like the 5-minute reports),
 // about 2.4 minutes after the minute (Chicago Midway, Oct 20 and Nov 11), against 24 to 27 for the Mesonet. Twelve settlement
 // stations are members (calibration timelines, Nov 11); a station that leaves its city simply falls back to the Mesonet.
