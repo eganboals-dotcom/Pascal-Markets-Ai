@@ -8,7 +8,9 @@
 // that price: as many contracts as are offered, up to --contracts (25) a market and --per-game (25) across one game's markets, since
 // a feed error can turn several of a game's markets at once. The best edges get a game's room first; the size offered is saved.
 // Each series and side runs the margin the walk-forward picker chose (data/history/agents/tune-report.json, scripts/agent-tune.js),
-// --margin where it had too few events to say, and none at all where it found no margin that pays. Trades go to data/paper/game-watch.jsonl and results to game-settled.jsonl (src/paper.js). The Sports US
+// --margin where it had too few events to say, and none at all where it found no margin that pays. A position is sold before
+// settlement only when the plays, on two passes in a row, decide the other side; a falling price alone never sells it. A series
+// and side with a loss in the last day is paused, and gross losses reaching --daily-loss ($25) in a rolling day pause new trades for 24 hours. Trades go to data/paper/game-watch.jsonl and results to game-settled.jsonl (src/paper.js). The Sports US
 // switch on the leaderboard turns the Kalshi part off. --once runs one pass. No orders.
 import { setTimeout as sleep } from 'node:timers/promises';
 import { fetchMarkets, fetchOpenEvents } from '../src/kalshi.js';
@@ -19,12 +21,12 @@ import { TUNE_REPORT, pickedMargin } from '../src/tuner.js';
 import { fetchJson } from '../src/odds.js';
 import { departmentOf, loadDepartments, readSwitches } from '../src/departments.js';
 import { beat } from '../src/heartbeat.js';
-import { downloadBusy, openLedger } from '../src/paper.js';
+import { confirmOpposite, downloadBusy, exitQuote, openLedger } from '../src/paper.js';
 import { readResearch } from '../src/report.js';
 
 const option = (name, fallback) => process.argv.find(a => a.startsWith(`--${name}=`))?.split('=')[1] ?? fallback;
 const flag = name => process.argv.includes(`--${name}`);
-const maxContracts = Number(option('contracts', 25)), perGame = Number(option('per-game', 25));
+const maxContracts = Number(option('contracts', 25)), perGame = Number(option('per-game', 25)), dailyLimit = Number(option('daily-loss', 25));
 const everyMs = Number(option('every-seconds', 10)) * 1000, margin = Number(option('margin', 0.01)), feeRate = readResearch('config/scan.json', {}).feeRate ?? 0.07;
 const AGENT = 'game-watch', ESPN = 'https://site.api.espn.com/apis/site/v2/sports', CORE = 'https://sports.core.api.espn.com/v2/sports';
 const RECENT_MS = 3600000, SETTLE_AFTER_MS = 3 * 3600000, LIST_MS = 2 * 60000, PAGE = 50, PARALLEL = 4;
@@ -56,12 +58,12 @@ async function readGame(league, e, state) {
     const summary = (await fetchJson(`${ESPN}/${LEAGUES[league].site}/summary?event=${e.id}`, `ESPN ${league} ${e.id}`)).json;
     const newer = state === 'in' ? await newerPlays(league, e.id, summaryPlays(summary)) : [];
     return { row: { league, date: usDate(Date.parse(e.date)), awayCode: side('away'), homeCode: side('home'), eventId: e.id, start: e.date },
-      game: compactGame(summary, e.id, league, newer), live: state === 'in', name: `${league.toUpperCase()} ${side('away')} at ${side('home')}` };
+      observedAt: Date.now(), game: compactGame(summary, e.id, league, newer), live: state === 'in', name: `${league.toUpperCase()} ${side('away')} at ${side('home')}` };
   } catch (error) { warn({ league, event: e.id, error: error.message }); return null; }
 }
 
 // Games in progress, or finished within the hour (a decided market can stay cheap until it settles), with their plays.
-// A finished game's plays no longer change, so its summary is fetched once and kept while it stays in the window.
+// Finished games with open positions are re-read for corrections; others are cached within the window.
 const finished = new Map();
 async function liveGames(now) {
   const todo = [], games = [], seen = new Set();
@@ -75,7 +77,7 @@ async function liveGames(now) {
       const state = e.status?.type?.state, key = `${league}-${e.id}`;
       if (state !== 'in' && !(state === 'post' && now - Date.parse(e.date) < 4 * 3600000 + RECENT_MS)) continue;
       seen.add(key);
-      if (state === 'post' && finished.has(key)) games.push(finished.get(key));
+      if (state === 'post' && finished.has(key) && !ledger.open().some(t => t.gameId === key)) games.push(finished.get(key));
       else todo.push({ league, e, state, key });
     }
   }
@@ -101,26 +103,55 @@ async function openMarkets() {
   return markets;
 }
 
+// Passes in a row the plays must decide the other side before a position is sold: one odd read of the feed is not enough.
+const flips = new Map();
+// Open positions whose game the plays now decide the other way (the points that decided them were taken back): the only exit.
+// A falling price never triggers one: on the Nov 4 to 7 history, selling when a position's value fell to 10¢, or 50¢ below its
+// cost, sold 9 and 32 positions that all went on to win, and cost $8.51 and $24.71 of the $33.25 held to settlement.
+function grimPositions(byId) {
+  const grim = [];
+  for (const t of ledger.open()) {
+    const g = t.gameId && byId.get(t.gameId), market = g && parseMarket(t.ticker), d = market && decision(market, g.game, { current: true });
+    if (confirmOpposite(flips, t, d, g?.observedAt)) grim.push(t);
+  }
+  return grim;
+}
+
 async function trade(games, departments) {
   const switches = readSwitches(departments), index = gameIndex(games.map(g => g.row)), byId = new Map(games.map(g => [`${g.row.league}-${g.row.eventId}`, g]));
-  const counts = { checked: 0, decided: 0, take: 0 }, decided = [];
-  for (const { ticker, series } of await openMarkets()) {
+  const counts = { checked: 0, decided: 0, take: 0, exits: 0 }, decided = [], grim = grimPositions(byId);
+  // The circuit breaker: a series and side that lost in the last day is paused, and a day that lost more than --daily-loss stops
+  // new trades (exits go on).
+  const { paused, stopped } = ledger.breaker(t => `${t.league} ${t.side}`, { dailyLimit });
+  counts.stopped = stopped;
+  for (const { ticker, series } of stopped ? [] : await openMarkets()) {
     if (taken.has(ticker) || switches[departmentOf(series, departments)] === false) continue;
     const market = parseMarket(ticker), match = market ? matchEvent(market, index) : null, g = match && byId.get(`${market.league}-${match.eventId}`);
     if (!g) continue;
     counts.checked++;
-    const d = decision(market, g.game);
-    if (d) decided.push({ ticker, series, g, ...d });
+    const d = decision(market, g.game, { current: true });
+    if (d && !(market.kind === 'player' && d.side === 'no') && !paused.has(`${series} ${d.side}`)) decided.push({ ticker, series, g, ...d });
   }
   counts.decided = decided.length;
-  if (!decided.length) return counts;
+  if (!decided.length && !grim.length) return counts;
   let books;
-  try { books = new Map((await fetchMarkets(decided.map(d => d.ticker))).map(m => [m.ticker, m])); }
+  try { books = new Map((await fetchMarkets([...decided.map(d => d.ticker), ...grim.map(t => t.ticker)])).map(m => [m.ticker, m])); }
   catch (error) { warn({ books: error.message }); return counts; }
+  for (const t of grim) {
+    const quote = exitQuote(t, books.get(t.ticker), feeRate);
+    if (!quote) continue;
+    const { value, fee } = quote;
+    if (!ledger.exit(t, value, fee, Date.now(), 'the plays now decide the other side')) continue;
+    flips.delete(t.ticker); counts.exits++;
+    say({ exit: t.ticker, side: t.side, contracts: t.contracts ?? 1, value, paid: t.price });
+  }
+  const afterExits = ledger.breaker(t => t.league + ' ' + t.side, { dailyLimit });
+  counts.stopped = afterExits.stopped;
+  if (afterExits.stopped) return counts;
   const picks = [], report = readResearch(TUNE_REPORT, null);
   for (const { ticker, series, g, side, at } of decided) {
     const m = books.get(ticker), chosen = pickedMargin(report, AGENT, `${series} ${side}`, margin);
-    if (!m || chosen === null) continue;
+    if (!m || chosen === null || afterExits.paused.has(series + ' ' + side)) continue;
     const book = { yesBid: Number(m.yes_bid_dollars ?? 0), yesAsk: Number(m.yes_ask_dollars ?? 1), yesAskSize: Number(m.yes_ask_size_fp ?? 0),
       yesBidSize: Number(m.yes_bid_size_fp ?? 0), fee_multiplier: m.fee_multiplier ?? 1 };
     const fair = side === 'yes' ? 1 : 0, pick = take(fair, book, { feeRate, margin: chosen }), offered = side === 'yes' ? book.yesAskSize : book.yesBidSize; // No is bought by selling into the Yes bid
@@ -144,12 +175,12 @@ async function pass() {
   const delays = games.filter(g => g.live && g.game.plays.length).map(g => Math.round((now - g.game.plays.at(-1).t) / 1000)).sort((a, b) => a - b);
   const live = games.filter(g => g.live).length;
   const read = games.length ? `${live} NBA, NFL, NHL and college games in progress, ${games.length - live} just finished; ESPN's newest play ${delays.length ? `${delays[Math.floor(delays.length / 2)]} s old (median)` : 'not yet in'}` : 'No NBA, NFL, NHL or college game in progress';
-  try { await ledger.settleDue((t, at) => at - t.time > SETTLE_AFTER_MS); } catch (error) { warn({ settle: error.message }); }
+  try { if (!busy) await ledger.settleDue((t, at) => at - t.time > SETTLE_AFTER_MS); } catch (error) { warn({ settle: error.message }); }
   const tally = `${ledger.trades.length} paper trades so far, ${ledger.settled.size} settled, ${money(ledger.pnl())}`;
-  if (!games.length) { checkIn('idle', `${read}. ${tally}`, IDLE_MS + NEXT_MS); say({ games: 0 }); return IDLE_MS; }
+  if (!games.length) { flips.clear(); checkIn('idle', `${read}. ${tally}`, IDLE_MS + NEXT_MS); say({ games: 0 }); return IDLE_MS; }
   if (busy) { checkIn('waiting', `${read}. Kalshi's prices wait for the history download. ${tally}`); say({ games: games.length, delays, kalshi: 'waiting', ms: Date.now() - now }); return everyMs; }
   const c = await trade(games, loadDepartments());
-  checkIn('waiting', `${read}. ${c.checked} markets checked, ${c.decided} already decided, ${c.take} new paper trades; ${tally}`);
+  checkIn('waiting', `${read}. ${c.checked} markets checked, ${c.decided} already decided, ${c.take} new paper trades, ${c.exits} sold early${c.stopped ? ', new trades stopped by the daily loss limit' : ''}; ${tally}`);
   say({ games: games.length, delays, ...c, trades: ledger.trades.length, settled: ledger.settled.size, pnl: ledger.pnl(), ms: Date.now() - now });
   return everyMs;
 }

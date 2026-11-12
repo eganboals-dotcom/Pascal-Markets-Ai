@@ -7,7 +7,9 @@
 // a request, and buys on paper the decided side, held to settlement, when its edge after the taker fee beats the margin and
 // something is offered at that price: as many contracts as are offered, up to --contracts (25) a market and --per-day (25) across a
 // series' day. The margin per series is the walk-forward picker's (scripts/agent-tune.js), --margin (1¢) where the history had too
-// few events to say; a series it found no paying margin for is not traded. The weather switch on the leaderboard
+// few events to say; a series it found no paying margin for is not traded. A loss pauses its series for 24 hours;
+// gross losses reaching --daily-loss ($25) in a rolling day pause the agent for 24 hours. Intraday readings cannot
+// prove the opposite outcome, so there is no weather price stop. The weather switch on the leaderboard
 // turns the Kalshi part off. Stations and series come from Agent D's caches in data/weather/. --once runs one pass. No orders.
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { setTimeout as sleep } from 'node:timers/promises';
@@ -25,7 +27,7 @@ import { readResearch } from '../src/report.js';
 
 const option = (name, fallback) => process.argv.find(a => a.startsWith(`--${name}=`))?.split('=')[1] ?? fallback;
 const flag = name => process.argv.includes(`--${name}`);
-const minutes = Number(option('minutes', 10)), everyMs = Number(option('every-seconds', 30)) * 1000, margin = Number(option('margin', 0.01)), maxContracts = Number(option('contracts', 25)), perDay = Number(option('per-day', 25)), feeRate = readResearch('config/scan.json', {}).feeRate ?? 0.07;
+const minutes = Number(option('minutes', 10)), everyMs = Number(option('every-seconds', 30)) * 1000, margin = Number(option('margin', 0.01)), maxContracts = Number(option('contracts', 25)), perDay = Number(option('per-day', 25)), dailyLimit = Number(option('daily-loss', 25)), feeRate = readResearch('config/scan.json', {}).feeRate ?? 0.07;
 const AGENT = 'station-watch', PAUSE_MS = 3000, DAY_MS = 86400000, SETTLE_AFTER_MS = 6 * 3600000, NEXT_MS = 2 * minutes * 60000 + 5 * 60000, OVERLAP_MS = 15 * 60000, LIST_MS = 5 * 60000;
 const say = fields => console.log(JSON.stringify({ time: new Date().toISOString(), ...fields }));
 const warn = fields => console.error(JSON.stringify({ time: new Date().toISOString(), ...fields }));
@@ -92,9 +94,14 @@ async function openMarkets() {
 
 async function trade(readings, departments) {
   const switches = readSwitches(departments), counts = { checked: 0, decided: 0, take: 0 }, calls = [];
+  try { await ledger.settleDue((t, now) => now - t.time > SETTLE_AFTER_MS); } catch (error) { warn({ settle: error.message }); }
+  // The circuit breaker: a series that lost in the last day is paused; a day that lost more than --daily-loss stops new trades.
+  const { paused, stopped } = ledger.breaker(t => t.league, { dailyLimit });
+  counts.stopped = stopped;
   for (const { series, m } of await openMarkets()) {
     const { code, offset } = watch.get(series), date = tickerDate(m.ticker.split('-')[1]), kind = kindOf(series);
-    if (switches[departmentOf(series, departments)] === false || !readings.has(code) || !date || taken.has(m.ticker)) continue;
+    if (!readings.has(code) || !date) continue;
+    if (stopped || paused.has(series) || switches[departmentOf(series, departments)] === false || taken.has(m.ticker)) continue;
     counts.checked++;
     const bound = soFar(readings.get(code), date, offset), call = decided(m, kind, bound);
     if (call) calls.push({ series, code, kind, bound, call, ticker: m.ticker });
@@ -120,7 +127,6 @@ async function trade(readings, departments) {
     ledger.record(row); taken.add(m.ticker); held.set(day, (held.get(day) ?? 0) + contracts); counts.take++;
     say({ take: m.ticker, side: pick.side, contracts, price: pick.price, edge: Number(pick.edge.toFixed(4)), offered: row.offered });
   }
-  try { await ledger.settleDue((t, now) => now - t.time > SETTLE_AFTER_MS); } catch (error) { warn({ settle: error.message }); }
   return counts;
 }
 
@@ -138,7 +144,7 @@ async function pass() {
   if (busy) { checkIn('waiting', `${read}. Kalshi's feed and prices wait for the history download`); say({ stations: readings.size, kalshi: 'waiting' }); return; }
   checkIn('scanning', `${read}. Checking Kalshi's open weather markets`);
   const c = await trade(readings, loadDepartments());
-  checkIn('waiting', `${read}. ${c.checked} markets checked, ${c.decided} already decided, ${c.take} new paper trades; `
+  checkIn('waiting', `${read}. ${c.checked} markets checked, ${c.decided} already decided, ${c.take} new paper trades${c.stopped ? ', new trades stopped by the daily loss limit' : ''}; `
     + `${ledger.trades.length} so far, ${ledger.settled.size} settled, ${money(ledger.pnl())}`);
   say({ stations: readings.size, ...c, trades: ledger.trades.length, settled: ledger.settled.size, pnl: ledger.pnl(), ms: Date.now() - now });
 }

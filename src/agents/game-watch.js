@@ -167,9 +167,18 @@ function playerSeries(game, id, stat) {
 // a total counts the shootout goal is not checked.
 // Known risk: ESPN's log can show points that never happened (Buffalo at Miami (OH), Nov 3, on a run and a timeout), and a market
 // bought on them settles No. Football scores often appear a row before their scoring play, so every row counts.
-export function decision(market, game) {
+export function decision(market, game, { current = false } = {}) {
   if (market.kind === 'player') {
-    const id = findPlayer(market.player, game.roster), t = id && playerSeries(game, id, market.stat)?.find(s => s.value >= market.threshold)?.t;
+    const id = findPlayer(market.player, game.roster), values = id && playerSeries(game, id, market.stat);
+    if (!values?.length) return null;
+    if (current) {
+      if (game.shootout) return null;
+      const last = values.at(-1), end = game.plays.find(p => p.end);
+      if (last.value >= market.threshold) return { side: 'yes', at: last.t };
+      const checked = game.plays[(game.checkedPlays ?? game.plays.length) - 1];
+      return end && checked?.away === game.away.score && checked?.home === game.home.score && end.away === game.away.score && end.home === game.home.score ? { side: 'no', at: end.t } : null;
+    }
+    const t = values.find(s => s.value >= market.threshold)?.t;
     return t ? { side: 'yes', at: t } : null;
   }
   const side = market.kind === 'total' ? null : teamSide(market, game);
@@ -189,8 +198,9 @@ export function decision(market, game) {
     const gain = side ? p[side] - prev[side] : p.away + p.home - prev.away - prev.home;
     if (!market.periods || market.periods.includes(p.period)) count += gain; // a correction (overturned basket) takes points back
     prev = p;
-    if (count >= market.threshold) return { side: 'yes', at: p.t };
+    if (!current && count >= market.threshold) return { side: 'yes', at: p.t };
   }
+  if (current && count >= market.threshold) return { side: 'yes', at: game.plays.at(-1).t };
   if (!market.periods) return end ? { side: 'no', at: end.t } : null;
   return closed && lastPeriod < LAST_PERIOD[market.league] ? { side: 'no', at: closed.t } : null;
 }

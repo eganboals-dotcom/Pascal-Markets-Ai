@@ -157,3 +157,20 @@ test('a core-API play with an empty participant keeps the others', () => {
   const p = corePlay({ participants: [null, { order: 1, athlete: { $ref: 'http://x/athletes/7?lang=en' } }] }, 'ncaab');
   assert.deepEqual(p.participants, [{ athlete: { id: '7' } }]);
 });
+
+test('current decisions wait through a recovered score and reject historical crossings after a correction', () => {
+  const game = compactGame(summary, '9');
+  const total = parseMarket('KXNBATOTAL-26NOV05MIAGSW-5');
+  const corrected = { ...game, home: { ...game.home, score: 0 }, plays: [...game.plays, { ...game.plays.at(-1), t: t0 + 50000, home: 0 }] };
+  corrected.checkedPlays = corrected.plays.length;
+  assert.equal(decision(total, corrected).side, 'yes'); // historical first crossing kept for the replay
+  assert.equal(decision(total, corrected, { current: true }), null); // time left to recover
+  const end = { ...corrected.plays.at(-1), end: true, t: t0 + 60000 };
+  const final = { ...corrected, plays: [...corrected.plays, end], checkedPlays: corrected.plays.length + 1 };
+  assert.equal(decision(total, final, { current: true }).side, 'no');
+  assert.equal(decision(total, { ...final, home: { ...final.home, score: 2 } }, { current: true }), null);
+  const prop = parseMarket('KXNBAPTS-26NOV05MIAGSW-MIAWCARTER34-4');
+  assert.equal(decision(prop, game, { current: true }), null);
+  const ended = { ...game, plays: [...game.plays, { ...game.plays.at(-1), end: true, scorer: null, assisters: [], rebounder: null, value: 0, t: t0 + 60000 }], checkedPlays: game.plays.length + 1 };
+  assert.equal(decision(prop, ended, { current: true }).side, 'no');
+});

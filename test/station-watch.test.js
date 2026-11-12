@@ -88,3 +88,26 @@ test('a paper ledger records trades, settles only those Kalshi has settled, and 
     assert.equal(eventOf('KXNBAGAME-26NOV11CHINYK-NYK'), 'KXNBAGAME-26NOV11CHINYK');
   } finally { rmSync(projectPath(dir), { recursive: true, force: true }); }
 });
+
+test('an early exit counts as settled, and the breaker pauses losing groups and stops a bad day', async () => {
+  const dir = `work/paper-${randomUUID()}`, hour = 3600000;
+  try {
+    const ledger = openLedger('game-watch', { dir, load: async () => [{ ticker: 'KXNBAREB-26NOV04A-P1-5', result: 'yes' }] });
+    const win = { time: 0, ticker: 'KXNBAREB-26NOV04A-P1-5', league: 'KXNBAREB', side: 'yes', price: 0.97, fee: 0.01, contracts: 10 };
+    const bad = { time: 0, ticker: 'KXNBATOTAL-26NOV04A-220', league: 'KXNBATOTAL', side: 'yes', price: 0.97, fee: 0.01, contracts: 25 };
+    ledger.record(win); ledger.record(bad);
+    assert.equal(ledger.open().length, 2);
+    ledger.exit(bad, 0.6, 0.02, 5 * hour, 'the plays now decide the other side');
+    assert.equal(ledger.open().length, 1); // an exited position is not settled again
+    assert.ok(Math.abs(ledger.settled.get(bad.ticker) - (0.6 - 0.02 - 0.98) * 25) < 1e-9); // −$10.00, not the −$24.50 of holding
+    await ledger.settleDue(() => true, 6 * hour);
+    assert.ok(Math.abs(ledger.settled.get(win.ticker) - 0.2) < 1e-9);
+    const groupOf = t => `${t.league} ${t.side}`;
+    const now = ledger.breaker(groupOf, { dailyLimit: 25, now: 7 * hour });
+    assert.deepEqual([...now.paused], ['KXNBATOTAL yes']);
+    assert.equal(now.stopped, false); // −$9.80 on the day
+    assert.equal(ledger.breaker(groupOf, { dailyLimit: 5, now: 7 * hour }).stopped, true);
+    assert.equal(ledger.breaker(groupOf, { now: 30 * hour }).paused.size, 0); // the pause ends after a day
+    assert.equal(openLedger('game-watch', { dir }).open().length, 0); // reloads with the exit counted
+  } finally { rmSync(projectPath(dir), { recursive: true, force: true }); }
+});
