@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { compactScore, held, soccerDecision, soccerKind, soccerState, tennisDecision, tennisKind, tennisState, TENNIS_TYPE } from '../src/agents/score-watch.js';
+import { compactScore, esportsDecision, esportsKind, esportsState, held, soccerDecision, soccerKind, soccerState, SPORTS, tableTennisDecision, tableTennisState,
+  tennisDecision, tennisKind, tennisState, ESPORTS_TYPE, TABLE_TENNIS_TYPE, TENNIS_TYPE } from '../src/agents/score-watch.js';
 
 const A = 'a-id', B = 'b-id';
 const round = (outcome, score) => ({ outcome, score });
@@ -96,4 +97,63 @@ test('a decision counts only after it has held, and a score log keeps only the s
   assert.equal(held(seen, 'X', 'yes', 62000, 60000), false); // and the wait starts again
   assert.equal(held(new Map(), 'Y', 'no', 0, 0), true);
   assert.deepEqual(compactScore(TENNIS_TYPE, live([round('winner', 6)], [round('loser', 2)])), { status: 'started', winner: null, sets: [[6, 2, 'winner']] });
+});
+
+const HC = 'home-c', AC = 'away-c', MS = { home_competitor_id: HC, away_competitor_id: AC, num_periods: 3 };
+const mapStat = w => ({ stats: { winner: w, map_forfeit: 0, map_duration_seconds: 2000 } });
+const cs2 = (maps, extra = {}) => ({ score_format: 'series', period_unit: 'map', status: 'live', home_score: maps.filter(w => w === 1).length, away_score: maps.filter(w => w === 0).length,
+  home_stats: maps.map((w, i) => ({ period: `period_${i + 1}`, ...mapStat(w) })), away_stats: maps.map((w, i) => ({ period: `period_${i + 1}`, ...mapStat(1 - w) })), ...extra });
+const esm = (ticker, team, extra = {}) => m(ticker, { custom_strike: team ? { esports_competitor: team } : undefined, ...extra });
+
+test('esports kinds: TOTALMAPS before MAP, and every points game is GAME', () => {
+  assert.equal(esportsKind('KXCS2TOTALMAPS'), 'TOTALMAPS');
+  assert.equal(esportsKind('KXDOTA2MAP'), 'MAP');
+  assert.equal(esportsKind('KXCS2SPREAD'), 'SPREAD');
+  assert.equal(esportsKind('KXESOCCERGAME'), 'GAME');
+});
+
+test('a CS2 best of three: maps as they end, the series at two maps, totals and spreads once settled or out of reach', () => {
+  const one = esportsState(cs2([0]), MS), d = (t, team, extra) => esportsDecision(esm(t, team, extra), one);
+  assert.equal(d('KXCS2MAP-26NOV12HA-1-A', AC), 'yes');
+  assert.equal(d('KXCS2MAP-26NOV12HA-1-H', HC), 'no');
+  assert.equal(d('KXCS2MAP-26NOV12HA-2-H', HC), null);
+  assert.equal(d('KXCS2GAME-26NOV12HA-A', AC), null);
+  assert.equal(d('KXCS2SPREAD-26NOV12HA-H2', HC, { floor_strike: 1.5 }), 'no'); // the home side can win 2-1 at best
+  assert.equal(d('KXCS2SPREAD-26NOV12HA-A2', AC, { floor_strike: 1.5 }), null);
+  assert.equal(d('KXCS2TOTALMAPS-26NOV12HA-3', null, { floor_strike: 2.5 }), null);
+  const two = esportsState(cs2([0, 0]), MS), e = (t, team, extra) => esportsDecision(esm(t, team, extra), two);
+  assert.equal(e('KXCS2GAME-26NOV12HA-A', AC), 'yes'); // 2-0 decides the series before the feed says complete
+  assert.equal(e('KXCS2GAME-26NOV12HA-H', HC), 'no');
+  assert.equal(e('KXCS2TOTALMAPS-26NOV12HA-3', null, { floor_strike: 2.5 }), 'no');
+  assert.equal(e('KXCS2SPREAD-26NOV12HA-A2', AC, { floor_strike: 1.5 }), 'yes');
+  const three = esportsState(cs2([0, 1, 1]), MS);
+  assert.equal(esportsDecision(esm('KXCS2TOTALMAPS-26NOV12HA-3', null, { floor_strike: 2.5 }), three), 'yes');
+  assert.equal(esportsDecision(esm('KXCS2SPREAD-26NOV12HA-H2', HC, { floor_strike: 1.5 }), three), 'no');
+  const forfeit = cs2([0]); forfeit.home_stats[0].stats.map_forfeit = 1;
+  assert.equal(esportsState(forfeit, MS), null);
+});
+
+test('eSoccer and eBasketball are decided only when complete; a tie decides eSoccer and nothing in eBasketball', () => {
+  const pts = (home, away, status, tie) => esportsState({ score_format: 'points', status, home_score: home, away_score: away }, { home_competitor_id: HC, away_competitor_id: AC, tie_id: tie });
+  const game = (team, s) => esportsDecision(esm('KXESOCCERGAME-26NOV12HA-X', team), s);
+  assert.equal(game(HC, pts(3, 1, 'live', 'T')), null);
+  assert.equal(game(HC, pts(3, 1, 'complete', 'T')), 'yes');
+  assert.equal(game('T', pts(3, 1, 'complete', 'T')), 'no');
+  assert.equal(game('T', pts(2, 2, 'complete', 'T')), 'yes');
+  assert.equal(game(AC, pts(2, 2, 'complete', 'T')), 'no');
+  assert.equal(game(HC, pts(80, 80, 'complete')), null);
+  assert.equal(pts(0, 0, 'cancelled'), null);
+});
+
+test('table tennis is decided at a normal finish that names the same winner', () => {
+  const P = 'p1', Q = 'p2', tt = extra => ({ best_of_sets: 5, competitor1_id: P, competitor2_id: Q, competitor1_overall_score: 3, competitor2_overall_score: 1,
+    status: 'ended', match_status: 'ended', winner_competitor_id: P, period_scores: [], ...extra });
+  const d = (player, s) => tableTennisDecision(m(`KXLIGAPROMATCH-26NOV12PQ-${player}`, { custom_strike: { table_tennis_competitor: player } }), s);
+  assert.equal(d(P, tableTennisState(tt())), 'yes');
+  assert.equal(d(Q, tableTennisState(tt())), 'no');
+  assert.equal(d(P, tableTennisState(tt({ status: 'live', match_status: 'live' }))), null);
+  assert.equal(d(P, tableTennisState(tt({ competitor1_overall_score: 2 }))), null); // ended short of three sets
+  assert.equal(d(P, tableTennisState(tt({ winner_competitor_id: Q }))), null);
+  assert.equal(SPORTS[TABLE_TENNIS_TYPE].kind('KXLIGAPROMATCH'), 'MATCH');
+  assert.deepEqual(compactScore(ESPORTS_TYPE, cs2([1])), { status: 'live', home: 1, away: 0, maps: [[1, 0, 0]] });
 });

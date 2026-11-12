@@ -1,4 +1,4 @@
-// Score-watch: which tennis and soccer markets the live score has already decided, read from Kalshi's own public live data
+// Score-watch: which tennis, soccer, esports and table tennis markets the live score has already decided, read from Kalshi's own public live data
 // (GET /live_data/batch, the scores Kalshi links to each match's markets through milestones). Pure functions; the live paper agent
 // is scripts/score-watch.js. Rules checked 2026-11-12 on Kalshi's markets:
 // - Tennis: a player who retires after a ball is played loses the match market, and on a retirement every other market that play
@@ -9,6 +9,7 @@
 //   count the first half only. Own goals count for the team awarded the goal.
 
 export const TENNIS_TYPE = 'tennis_tournament_singles', SOCCER_TYPE = 'soccer_tournament_multi_leg';
+export const ESPORTS_TYPE = 'esports_match', TABLE_TENNIS_TYPE = 'table_tennis_match';
 
 // Tennis series end in the market kind: EXACTMATCH before MATCH, since MATCH also ends ATPMATCH, ITFMATCH and the rest.
 const TENNIS_KINDS = ['SETWINNER', 'GTOTAL', 'GSPREAD', 'EXACTMATCH', 'MATCH'];
@@ -112,6 +113,62 @@ export function soccerDecision(market, s) {
   }
 }
 
+// Esports (CS2 and Dota 2 series scored in maps; eSoccer and eBasketball scored in points). Rules checked 2026-11-12: a map or
+// match forfeited before play settles at a fair price, so any forfeit decides nothing; an eBasketball tie settles every market at
+// 50¢, while eSoccer has its own tie market. details is the milestone's: home and away competitor ids, tie_id, num_periods.
+const ESPORTS_KINDS = ['TOTALMAPS', 'MAP', 'SPREAD', 'GAME'];
+export const esportsKind = series => ESPORTS_KINDS.find(k => series.endsWith(k)) ?? null;
+export function esportsState(d, details = {}) {
+  const home = Number(d?.home_score), away = Number(d?.away_score);
+  if (!d || !Number.isFinite(home) || !Number.isFinite(away) || d.status === 'cancelled') return null;
+  const hs = d.home_stats ?? [], as = d.away_stats ?? [];
+  if ([...hs, ...as].some(p => Number(p.stats?.map_forfeit) > 0)) return null;
+  const homeId = details.home_competitor_id, awayId = details.away_competitor_id, series = d.score_format === 'series';
+  const maps = hs.map((p, i) => ({ winner: p.stats?.winner === 1 ? homeId : as[i]?.stats?.winner === 1 ? awayId : null }));
+  const needed = series && Number(details.num_periods) > 0 ? Math.ceil(Number(details.num_periods) / 2) : null, finished = d.status === 'complete';
+  const winner = (needed && Math.max(home, away) >= needed) || (finished && home !== away) ? (home > away ? homeId : awayId) : null;
+  return { homeId, awayId, tieId: details.tie_id, home, away, needed, maps, series, finished, winner };
+}
+
+export function esportsDecision(market, s) {
+  const kind = esportsKind(seriesOf(market.ticker)), team = market.custom_strike?.esports_competitor, line = Number(market.floor_strike);
+  if (!s || !kind) return null;
+  const side = team === s.homeId ? 0 : team === s.awayId ? 1 : null, score = [s.home, s.away];
+  if (kind === 'MAP') {
+    const map = s.maps[Number(market.event_ticker.split('-').at(-1)) - 1];
+    return map?.winner && side !== null ? (map.winner === team ? 'yes' : 'no') : null;
+  }
+  if (kind === 'GAME') {
+    if (!team || !(s.winner || s.finished)) return null;
+    if (s.home === s.away) return s.tieId ? (team === s.tieId ? 'yes' : 'no') : null;
+    return team === s.winner ? 'yes' : side !== null || team === s.tieId ? 'no' : null;
+  }
+  if (!s.series || !Number.isFinite(line)) return null;
+  if (kind === 'TOTALMAPS') return s.home + s.away > line ? 'yes' : s.winner ? 'no' : null;
+  if (kind === 'SPREAD' && side !== null) {
+    const mine = score[side], theirs = score[1 - side];
+    if (s.winner) return mine - theirs > line ? 'yes' : 'no';
+    return s.needed && s.needed - theirs <= line ? 'no' : null; // even winning out could not cover the line
+  }
+  return null;
+}
+
+// Table tennis (Liga Pro match winners only). A cancelled match settles at 50¢; the match is decided once the winner has the
+// sets needed and Kalshi's feed names the same winner.
+export const tableTennisKind = series => series.endsWith('MATCH') ? 'MATCH' : null;
+export function tableTennisState(d) {
+  if (!d?.competitor1_id || !d?.competitor2_id) return null;
+  const ids = [d.competitor1_id, d.competitor2_id], sets = [Number(d.competitor1_overall_score), Number(d.competitor2_overall_score)];
+  const needed = Math.ceil((Number(d.best_of_sets) || 5) / 2), i = sets.findIndex(n => n >= needed), winner = i >= 0 ? ids[i] : null;
+  const ended = d.status === 'ended' || d.match_status === 'ended';
+  return { ids, sets, needed, winner, finished: ended && Boolean(winner) && d.winner_competitor_id === winner };
+}
+export function tableTennisDecision(market, s) {
+  const player = market.custom_strike?.table_tennis_competitor;
+  if (!s?.finished || tableTennisKind(seriesOf(market.ticker)) !== 'MATCH' || !s.ids.includes(player)) return null;
+  return player === s.winner ? 'yes' : 'no';
+}
+
 // A decision counts once it has held for holdMs: a goal can be taken back by a video review, so soccer decisions wait.
 export function held(seen, ticker, side, now, holdMs) {
   const prior = seen.get(ticker);
@@ -124,6 +181,18 @@ export function held(seen, ticker, side, now, holdMs) {
 export function compactScore(type, d) {
   if (!d) return null;
   if (type === TENNIS_TYPE) return { status: d.status, winner: d.winner || null, sets: (d.competitor1_round_scores ?? []).map((s, i) => [s.score, d.competitor2_round_scores?.[i]?.score, s.outcome]) };
+  if (type === ESPORTS_TYPE) return { status: d.status, home: d.home_score, away: d.away_score, maps: (d.home_stats ?? []).map((p, i) => [p.stats?.winner, d.away_stats?.[i]?.stats?.winner, p.stats?.map_forfeit]) };
+  if (type === TABLE_TENNIS_TYPE) return { status: d.status, winner: d.winner_competitor_id ?? null, sets: [d.competitor1_overall_score, d.competitor2_overall_score],
+    points: (d.period_scores ?? []).map(p => [p.competitor1_score, p.competitor2_score]) };
   return { status: d.status, half: d.half, home: d.home_same_game_score, away: d.away_same_game_score, homeReg: d.home_regulation_score ?? null,
     awayReg: d.away_regulation_score ?? null, periods: (d.period_scores ?? []).map(p => [p.number, p.home_score, p.away_score]) };
 }
+
+// Per milestone type: the market kind of a series, the state from a milestone and its live details, the decision, and whether a
+// decision must hold first (soccer only).
+export const SPORTS = {
+  [TENNIS_TYPE]: { kind: tennisKind, state: (m, d) => tennisState(d, m.details?.best_of ?? 3), decide: tennisDecision },
+  [SOCCER_TYPE]: { kind: soccerKind, state: (m, d) => soccerState(d, m.details?.home_team_id, m.details?.away_team_id, m.details?.tie_id), decide: soccerDecision, holds: true },
+  [ESPORTS_TYPE]: { kind: esportsKind, state: (m, d) => esportsState(d, m.details), decide: esportsDecision },
+  [TABLE_TENNIS_TYPE]: { kind: tableTennisKind, state: (m, d) => tableTennisState(d), decide: tableTennisDecision }
+};

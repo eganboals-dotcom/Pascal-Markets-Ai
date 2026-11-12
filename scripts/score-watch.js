@@ -1,6 +1,6 @@
-// Score-watch, live (tennis in everything else, soccer in its own department): paper trades on tennis and soccer markets the live
-// score has already decided (src/agents/score-watch.js), read from Kalshi's own public live data. Every 2 minutes it lists the
-// singles tennis and soccer milestones that started in the last 8 hours (Kalshi's links from a match to its events), and every
+// Score-watch, live (soccer in its own department; tennis, esports and table tennis in everything else): paper trades on markets the
+// live score has already decided (src/agents/score-watch.js), read from Kalshi's own public live data. Every 2 minutes it lists the
+// singles tennis, soccer, esports and table tennis milestones that started in the last 8 hours (Kalshi's links from a match to its events), and every
 // --every-seconds (10) it reads the scores of those under way, or finished within the hour, 100 to a request. Each match's
 // markets are listed once from its events, a few events a pass. A decided market is bought on paper, held to settlement, when its
 // edge after the taker fee beats --margin (1¢) and something is offered at that price: as many contracts as are offered, up to
@@ -12,7 +12,7 @@
 import { appendFileSync, mkdirSync } from 'node:fs';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { fetchEvent, fetchMarkets, getJson } from '../src/kalshi.js';
-import { SOCCER_TYPE, TENNIS_TYPE, compactScore, held, seriesOf, soccerDecision, soccerKind, soccerState, tennisDecision, tennisKind, tennisState } from '../src/agents/score-watch.js';
+import { SPORTS, compactScore, held, seriesOf } from '../src/agents/score-watch.js';
 import { take } from '../src/takers.js';
 import { departmentOf, loadDepartments, readSwitches } from '../src/departments.js';
 import { beat } from '../src/heartbeat.js';
@@ -33,13 +33,13 @@ const warn = fields => console.error(JSON.stringify({ time: new Date().toISOStri
 const checkIn = (state, detail, next = NEXT_MS) => { try { beat(AGENT, state, detail, { nextWithinMs: next }); } catch (error) { warn({ heartbeat: error.message }); } };
 const money = x => (x < 0 ? '−$' : '$') + Math.abs(x).toFixed(2);
 const ledger = openLedger(AGENT), taken = new Set(ledger.trades.map(t => t.ticker)), seen = new Map();
-const kindOf = (type, series) => type === TENNIS_TYPE ? tennisKind(series) : soccerKind(series);
+const kindOf = (type, series) => SPORTS[type]?.kind(series) ?? null;
 
 // Milestones that started in the lookback window, listed again every LIST_MS.
 let milestones = new Map(), listedAt = 0;
 async function listMilestones(now) {
   const next = new Map();
-  for (const type of [TENNIS_TYPE, SOCCER_TYPE]) {
+  for (const type of Object.keys(SPORTS)) {
     let cursor = '';
     for (let page = 0; page < 10; page++) {
       const body = await getJson(`${BASE}/milestones?limit=200&type=${type}&minimum_start_date=${new Date(now - LOOKBACK_MS).toISOString()}${cursor ? `&cursor=${cursor}` : ''}`);
@@ -80,11 +80,8 @@ function logScore(m, details, now) {
 
 const finishedAt = new Map(); // milestone id -> when its match was first seen over
 const holding = m => ledger.open().some(t => m.related_event_tickers?.includes(t.event));
-function stateOf(m, d) {
-  if (m.type === TENNIS_TYPE) return tennisState(d, m.details?.best_of ?? 3);
-  return soccerState(d, m.details?.home_team_id, m.details?.away_team_id, m.details?.tie_id);
-}
-const isOver = (m, d) => d?.status === 'closed' || d?.match_status === 'ended' || Boolean(d?.winner && m.type === TENNIS_TYPE);
+const stateOf = (m, d) => SPORTS[m.type]?.state(m, d) ?? null;
+const isOver = d => ['closed', 'complete', 'ended', 'cancelled'].includes(d?.status) || d?.match_status === 'ended' || Boolean(d?.winner);
 
 async function liveScores(now) {
   const active = [...milestones.values()].filter(m => Date.parse(m.start_date) <= now && !(now - (finishedAt.get(m.id) ?? now) > DONE_KEEP_MS && !holding(m)));
@@ -98,7 +95,7 @@ async function liveScores(now) {
     const d = scores.get(m.id), firstRead = !lastScore.has(m.id);
     logScore(m, d, now);
     // A match already over when first read ended about when its milestone last changed.
-    if (isOver(m, d) && !finishedAt.has(m.id)) finishedAt.set(m.id, firstRead ? Math.min(now, Date.parse(m.last_updated_ts) || now) : now);
+    if (isOver(d) && !finishedAt.has(m.id)) finishedAt.set(m.id, firstRead ? Math.min(now, Date.parse(m.last_updated_ts) || now) : now);
   }
   return { running: running.sort((a, b) => finishedAt.has(a.id) - finishedAt.has(b.id)), scores }; // matches under way list their markets first
 }
@@ -109,14 +106,14 @@ async function trade(running, scores, departments, now) {
   counts.stopped = stopped;
   if (stopped) return counts;
   for (const m of running) {
-    const s = stateOf(m, scores.get(m.id)), decide = m.type === TENNIS_TYPE ? tennisDecision : soccerDecision;
+    const s = stateOf(m, scores.get(m.id)), sport = SPORTS[m.type];
     if (!s) continue;
     for (const e of m.related_event_tickers ?? []) for (const market of events.get(e) ?? []) {
       const series = seriesOf(market.ticker);
       if (taken.has(market.ticker) || switches[departmentOf(series, departments)] === false) continue;
       counts.checked++;
-      const side = decide(market, s);
-      if (held(seen, market.ticker, side, now, m.type === SOCCER_TYPE ? holdMs : 0) && !paused.has(`${series} ${side}`)) decided.push({ market, series, side, m });
+      const side = sport.decide(market, s);
+      if (held(seen, market.ticker, side, now, sport.holds ? holdMs : 0) && !paused.has(`${series} ${side}`)) decided.push({ market, series, side, m });
     }
   }
   counts.decided = decided.length;
@@ -152,11 +149,12 @@ async function pass() {
   if (busy) { checkIn('waiting', `Kalshi's live scores wait for the history download. ${tally}`); say({ kalshi: 'waiting' }); return everyMs; }
   if (now - listedAt > LIST_MS) await listMilestones(now);
   const { running, scores } = await liveScores(now);
-  const live = running.filter(m => !finishedAt.has(m.id)), tennis = live.filter(m => m.type === TENNIS_TYPE).length;
-  if (!running.length) { checkIn('idle', `No tennis or soccer match under way on Kalshi. ${tally}`, IDLE_MS + NEXT_MS); say({ matches: 0 }); return IDLE_MS; }
+  const live = running.filter(m => !finishedAt.has(m.id)), byType = {};
+  for (const m of live) { const name = m.type.split('_')[0]; byType[name] = (byType[name] ?? 0) + 1; }
+  if (!running.length) { checkIn('idle', `No tennis, soccer, esports or table tennis match under way on Kalshi. ${tally}`, IDLE_MS + NEXT_MS); say({ matches: 0 }); return IDLE_MS; }
   const listed = await listEvents(running), c = await trade(running, scores, loadDepartments(), now);
-  checkIn('waiting', `${tennis} tennis and ${live.length - tennis} soccer matches under way, ${running.length - live.length} just finished; ${c.checked} markets checked, ${c.decided} already decided, ${c.take} new paper trades${c.stopped ? ', new trades stopped by the daily loss limit' : ''}; ${tally}`);
-  say({ tennis, soccer: live.length - tennis, finished: running.length - live.length, eventsListed: listed, ...c, trades: ledger.trades.length, settled: ledger.settled.size, pnl: ledger.pnl(), ms: Date.now() - now });
+  checkIn('waiting', `Under way: ${Object.entries(byType).map(([k, n]) => `${n} ${k.replace('table', 'table tennis')}`).join(', ') || 'none'}; ${running.length - live.length} just finished; ${c.checked} markets checked, ${c.decided} already decided, ${c.take} new paper trades${c.stopped ? ', new trades stopped by the daily loss limit' : ''}; ${tally}`);
+  say({ ...byType, finished: running.length - live.length, eventsListed: listed, ...c, trades: ledger.trades.length, settled: ledger.settled.size, pnl: ledger.pnl(), ms: Date.now() - now });
   return everyMs;
 }
 
