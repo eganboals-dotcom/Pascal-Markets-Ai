@@ -68,6 +68,28 @@ export async function fetchMarkets(tickers, load = getJson) {
   return markets;
 }
 
+// The full public book for one market: { orderbook_fp: { yes_dollars, no_dollars } }, each a list of [price, size] bids.
+export async function fetchOrderbook(ticker, load = getJson) {
+  if (!/^[A-Z0-9._-]{1,120}$/i.test(ticker ?? '')) throw new Error('Invalid Kalshi ticker');
+  const body = await load(`${BASE}/markets/${encodeURIComponent(ticker)}/orderbook`);
+  if (!body?.orderbook_fp) throw new Error('Invalid Kalshi orderbook response');
+  return body;
+}
+
+// Incentive programs (GET /incentive_programs, public): one row per market and reward period.
+export async function fetchIncentivePrograms({ status = 'active', type = 'liquidity', load = getJson, maxPages = 50 } = {}) {
+  const programs = [];
+  let cursor = '';
+  for (let page = 0; page < maxPages; page++) {
+    const body = await load(`${BASE}/incentive_programs?status=${encodeURIComponent(status)}&type=${encodeURIComponent(type)}&limit=1000${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`);
+    if (!Array.isArray(body.incentive_programs)) throw new Error('Invalid Kalshi incentive programs response');
+    programs.push(...body.incentive_programs);
+    if (!body.next_cursor) return programs;
+    cursor = body.next_cursor;
+  }
+  throw new Error(`Kalshi incentive programs exceeded ${maxPages} pages`);
+}
+
 // Public trade prints for one market (or, with ticker null, the whole exchange's tape) since sinceMs; min_ts is whole seconds,
 // so callers drop repeats by trade id.
 // shortcut: at most maxPages x 1000 prints per call, newest first; a busier market loses its oldest prints, raise maxPages or poll faster for it.

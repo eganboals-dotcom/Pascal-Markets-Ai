@@ -7,6 +7,7 @@
     "poly-us-basket": { "name": "Baskets inside Polymarket US", "role": "trading", "built": false },
     "maker": { "name": "Quoting engine, fixed rules (Agent G)", "role": "trading", "built": true },
     "longshot": { "name": "Favorite-longshot fade (Agent C)", "role": "trading", "built": true },
+    "reward-maker": { "name": "Liquidity-reward maker, paper", "role": "trading", "built": true },
     "weather": { "name": "Forecast taker (Agent D)", "role": "trading", "built": true },
     "station-watch": { "name": "Station readings so far today, paper (decided ranges)", "role": "research", "built": true },
     "weather-maker": { "name": "Bracket quoting around the Monte Carlo day model", "role": "trading", "built": true },
@@ -31,7 +32,7 @@
   "departments": [
     { "id": "arbitrage", "name": "Arbitrage between markets", "patterns": [], "agents": ["engine", "crossvenue", "rules-check", "poly-us-basket"] },
     { "id": "weather", "name": "Weather", "patterns": ["^KX(HIGH|LOW|TEMP|NAMEDSTORM|RAIN|SNOW|HURRICANE|TORNADO)"],
-      "agents": ["station-watch", "weather", "weather-maker", "maker", "longshot"] },
+      "agents": ["station-watch", "weather", "weather-maker", "maker", "longshot", "reward-maker"] },
     { "id": "updown", "name": "Economics and Up/Down", "patterns": [
       "15M$",
       "^KX(BTC|ETH|SOL|XRP|DOGE|CRYPTO|BNB|SHIBA|HYPE|ZEC)",
@@ -40,22 +41,22 @@
       "^KX(UST|TNOTE|SOFR|30YMORT|MORTGAGE|[0-9]+YRDIR|FED|CBDECISION)",
       "^KX(PAYROLL|U3|JOBLESS|ADP|CPI|PCE|GDP|USISM|ISM|TSA|AAAGAS|DIESEL|EIA|KPOW|TXERCOT)",
       "^KX(TSLA|RIVN|HOOD|RBLX|FSLR|VZ|BA|LUV|DPZ|UE)$"
-    ], "agents": ["spot-feed", "vol-model", "fair-econ", "updown-maker", "maker", "longshot"] },
+    ], "agents": ["spot-feed", "vol-model", "fair-econ", "updown-maker", "maker", "longshot", "reward-maker"] },
     { "id": "politics", "name": "Politics", "patterns": [
       "^(SENATE|GOVPARTY|CONTROL|HOUSE|GOV|PRES)",
       "^KX(SENATE|GOV|HOUSE|CONGRESS|SPEAKER|PRES|APRPOTUS|TRUMP|CABINET|SCOTUS|SHUTDOWN|APPROVAL|POLL)",
       "^KX(DEM|GOP|PARTY|ELECTION|MIDTERM|GENERALMOV|LAPRIMARY|FIVESTATESEN|FOURSTATESEN|STATELEG|STATEBALLOT|REDISTRICT|FUNDRAISING|ACTBLUE)",
       "^KX(APCALL|ATTYGEN|SECSTATE|MAYOR|VOTE|PRIME|BRPRES|HOLBORNVOTE)"
-    ], "agents": ["poll-watch", "news", "top-trader-watch", "maker", "longshot"] },
+    ], "agents": ["poll-watch", "news", "top-trader-watch", "maker", "longshot", "reward-maker"] },
     { "id": "sportsUS", "name": "Sports US", "patterns": ["^KX(NFL|NBA|MLB|NHL|MLS|WNBA|NCAA)"],
-      "agents": ["books-espn", "books-oddsapi", "consensus", "line-move", "injuries", "sportsbook", "game-watch", "gap-taker", "maker", "longshot"] },
+      "agents": ["books-espn", "books-oddsapi", "consensus", "line-move", "injuries", "sportsbook", "game-watch", "gap-taker", "maker", "longshot", "reward-maker"] },
     { "id": "soccerIntl", "name": "Sports international (soccer)", "patterns": [
       "^KX(EPL|EFL|ENGNL|LALIGA|COPADELREY|SERIE|BUNDESLIGA|DFBPOKAL|GER3L|LIGUE|FROPL|FRAPLW|EREDIVISIE|EERSTEDIV|TWEEDEDIV|KNVBCUP|LIGAPORTUGAL|TACAPORT)",
       "^KX(UCL|UEL|UECL|UEFA|FIFA|INTLFRIENDLY|CLUBF|SCOTTISHPREM|SCOCUP|BELGIANPL|SWISSLEAGUE|AUTBUNDES|DENSUPERLIGA|ALLSVENSKAN|ETTAN|ELITESERIEN|FINYL)",
       "^KX(EKSTRAKLASA|CZEFL|CZEFNL|SVK|SVNPL|HNL|HUNNB1|ROML1|BULFL|SRBSL|SLGREECE|GRECUP|SUPERLIG|TFF1LIG|ISRPL|ISRNL|LVAVIR)",
       "^KX(BRASILEIRO|COPADOBRASIL|ARGPREMDIV|ARGNACB|CONMEBOL|DIMAYOR|CHLLDP|PERLIGA1|ECULP|URYPD|APFDDH|VENFUTVE|LIGAMX|LIGAEXP|LIGAF|CONCACAFNL|USL|NWSL|USOPENCUP|CANPL)",
       "^KX(JLEAGUE|J2LEAGUE|KLEAGUE|K2LEAGUE|CHNSL|CHNL1|ALEAGUE|SAUDIPL|UAEPL|QSTARS|EGYPL|SAPSL|AFCCL|AFCON|SAFF|INDSL|IDNSL|MYSL|SGPPL|THAIL1|VLEAGUE1)"
-    ], "agents": ["books-espn", "books-oddsapi", "soccer-books", "sportsbook", "gap-taker", "maker", "longshot"] },
-    { "id": "else", "name": "Everything else", "patterns": [], "agents": ["tennis-odds", "maker", "longshot"] }
+    ], "agents": ["books-espn", "books-oddsapi", "soccer-books", "sportsbook", "gap-taker", "maker", "longshot", "reward-maker"] },
+    { "id": "else", "name": "Everything else", "patterns": [], "agents": ["tennis-odds", "maker", "longshot", "reward-maker"] }
   ]
 }

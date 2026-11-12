@@ -43,7 +43,7 @@ test('the scoreboard splits trades by series, keeps cross-venue hedges in arbitr
 
 test('each department lists its agents from the catalog; the built ones are the agents with code', () => {
   const sports = departments.find(d => d.id === 'sportsUS');
-  assert.deepEqual(sports.agents.filter(a => a.built).map(a => a.id), ['books-espn', 'books-oddsapi', 'sportsbook', 'game-watch', 'gap-taker', 'maker', 'longshot']);
+  assert.deepEqual(sports.agents.filter(a => a.built).map(a => a.id), ['books-espn', 'books-oddsapi', 'sportsbook', 'game-watch', 'gap-taker', 'maker', 'longshot', 'reward-maker']);
   assert.ok(departments.every(d => d.agents.length && d.agents.every(a => a.name && ['research', 'trading'].includes(a.role))));
 });
 
