@@ -26,6 +26,7 @@
     "sportsbook": { "name": "Sportsbook taker (Agent A)", "role": "trading", "built": true },
     "gap-taker": { "name": "Live gap-taker, paper (Agent A live)", "role": "trading", "built": true },
     "game-watch": { "name": "NBA, NFL, NHL and college winners, spreads, totals and props the score already decided", "role": "trading", "built": true },
+    "score-watch": { "name": "Tennis and soccer markets the live score already decided", "role": "trading", "built": true },
     "soccer-books": { "name": "Live three-way soccer fair value", "role": "research", "built": false },
     "tennis-odds": { "name": "Tennis odds", "role": "research", "built": false }
   },
@@ -56,7 +57,7 @@
       "^KX(EKSTRAKLASA|CZEFL|CZEFNL|SVK|SVNPL|HNL|HUNNB1|ROML1|BULFL|SRBSL|SLGREECE|GRECUP|SUPERLIG|TFF1LIG|ISRPL|ISRNL|LVAVIR)",
       "^KX(BRASILEIRO|COPADOBRASIL|ARGPREMDIV|ARGNACB|CONMEBOL|DIMAYOR|CHLLDP|PERLIGA1|ECULP|URYPD|APFDDH|VENFUTVE|LIGAMX|LIGAEXP|LIGAF|CONCACAFNL|USL|NWSL|USOPENCUP|CANPL)",
       "^KX(JLEAGUE|J2LEAGUE|KLEAGUE|K2LEAGUE|CHNSL|CHNL1|ALEAGUE|SAUDIPL|UAEPL|QSTARS|EGYPL|SAPSL|AFCCL|AFCON|SAFF|INDSL|IDNSL|MYSL|SGPPL|THAIL1|VLEAGUE1)"
-    ], "agents": ["books-espn", "books-oddsapi", "soccer-books", "sportsbook", "gap-taker", "maker", "longshot", "reward-maker"] },
-    { "id": "else", "name": "Everything else", "patterns": [], "agents": ["tennis-odds", "maker", "longshot", "reward-maker"] }
+    ], "agents": ["books-espn", "books-oddsapi", "soccer-books", "sportsbook", "gap-taker", "score-watch", "maker", "longshot", "reward-maker"] },
+    { "id": "else", "name": "Everything else", "patterns": [], "agents": ["tennis-odds", "score-watch", "maker", "longshot", "reward-maker"] }
   ]
 }
