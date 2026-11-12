@@ -1,6 +1,6 @@
 // Game-watch (sports department): the moment a live game decides a Kalshi "N or more" market. A game total, team total or player
 // prop can only go up, so once ESPN's play-by-play shows it at the threshold, Yes has won. Research only; no orders.
-import { codeSimilarity, teamCode } from './fair-odds.js';
+import { codeSimilarity, matchGame, teamCode } from './fair-odds.js';
 
 // Series -> what they count. Totals and team totals are points, over the whole game or the listed periods (overtime counts only
 // for whole-game markets); props are a player's game stat. "N" in the ticker means N or more (219 paid on 220 points, 221 did not).
@@ -21,6 +21,16 @@ export function parseMarket(ticker) {
   if (spec.kind === 'total') return /^\d+$/.test(a ?? '') && b === undefined ? { ...base, threshold: Number(a) } : null;
   if (spec.kind === 'team') { const t = /^([A-Z]+)(\d+)$/.exec(a ?? ''); return t && b === undefined ? { ...base, team: t[1], threshold: Number(t[2]) } : null; }
   return /^[A-Z]+\d+$/.test(a ?? '') && /^\d+$/.test(b ?? '') ? { ...base, player: a, threshold: Number(b) } : null;
+}
+
+// The ESPN game (from a gameIndex of { league, date, awayCode, homeCode, eventId } rows) of a parsed market's event code such as
+// 26NOV05MIAGSW: the away code is its first 2 to 4 letters, so each split is tried; null unless one matches.
+export function matchEvent(market, index) {
+  for (const k of [3, 2, 4]) {
+    const match = matchGame(`KXNBAGAME-${market.dateCode}${market.teams}-${market.teams.slice(0, k)}`, index);
+    if (match?.league === 'nba' && match.isAway) return match.game;
+  }
+  return null;
 }
 
 const SUFFIX = /^(JR|SR|II|III|IV|V)$/;

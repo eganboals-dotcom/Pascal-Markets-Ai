@@ -1,4 +1,4 @@
-// Shared by the live paper agents (gap-taker, station-watch): a ledger of one-contract paper trades held to settlement, and the
+// Shared by the live paper agents (gap-taker, station-watch, game-watch): a ledger of one-contract paper trades held to settlement, and the
 // check that the history download is not using Kalshi's request limit. Paper only; nothing here places an order.
 import { appendFileSync, existsSync, mkdirSync, readFileSync, statSync } from 'node:fs';
 import { fetchMarkets } from './kalshi.js';
@@ -10,7 +10,8 @@ import { projectPath } from './files.js';
 export const PAPER_DIR = 'data/paper';
 // Each paper agent's trades file and the file its settled results go to; the dashboard lists them all on department pages.
 export const LEDGERS = [{ agent: 'gap-taker', trades: 'gap-taker.jsonl', settled: 'gap-settled.jsonl' },
-  { agent: 'station-watch', trades: 'station-watch.jsonl', settled: 'station-settled.jsonl' }];
+  { agent: 'station-watch', trades: 'station-watch.jsonl', settled: 'station-settled.jsonl' },
+  { agent: 'game-watch', trades: 'game-watch.jsonl', settled: 'game-settled.jsonl' }];
 
 // Kalshi allows about 10 requests a second and the download uses all of it, so live agents wait while the download runs or while
 // the model run's waiter is still in its waiting or retry phase (its maker heartbeat says 'waiting').

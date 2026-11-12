@@ -11,8 +11,8 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { historyDays, jsonLines, settlementValue } from '../src/history.js';
-import { gameIndex, matchGame, tickerDate } from '../src/agents/fair-odds.js';
-import { compactGame, decidedAt, parseMarket } from '../src/agents/game-watch.js';
+import { gameIndex, tickerDate } from '../src/agents/fair-odds.js';
+import { compactGame, decidedAt, matchEvent, parseMarket } from '../src/agents/game-watch.js';
 import { settle, summarize, take } from '../src/takers.js';
 import { fetchJson } from '../src/odds.js';
 import { markdownTable, readResearch } from '../src/report.js';
@@ -28,14 +28,6 @@ const readJson = path => JSON.parse(readFileSync(projectPath(path), 'utf8'));
 const { days, locked, minDaysToLock } = historyDays(root, final);
 const index = gameIndex(existsSync(projectPath(CLOSING)) ? readFileSync(projectPath(CLOSING), 'utf8').trim().split('\n').filter(Boolean).map(JSON.parse) : []);
 
-// The ESPN game of an event code such as 26NOV05MIAGSW: the away code is its first 2 to 4 letters, so each split is tried.
-function espnGame(market) {
-  for (const k of [3, 2, 4]) {
-    const match = matchGame(`KXNBAGAME-${market.dateCode}${market.teams}-${market.teams.slice(0, k)}`, index);
-    if (match?.league === 'nba' && match.isAway) return match.game;
-  }
-  return null;
-}
 const games = new Map();
 async function playsOf(eventId) {
   if (games.has(eventId)) return games.get(eventId);
@@ -61,7 +53,7 @@ for (const day of days) {
     const market = parseMarket(m.ticker), value = settlementValue(m);
     if (!market || !(m.books > 0) || value === null || !tickerDate(market.dateCode)) continue;
     coverage.markets++;
-    const g = espnGame(market), game = g && await playsOf(g.eventId);
+    const g = matchEvent(market, index), game = g && await playsOf(g.eventId);
     if (!game) { coverage.noGame++; continue; }
     const at = decidedAt(market, game);
     if (at === null) { if (value === 1) coverage.unread++; else coverage.notReached++; continue; }

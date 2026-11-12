@@ -26,8 +26,8 @@ const status = () => existsSync(file('backfill.log')) ? downloadState(readFileSy
 const say = fields => console.log(JSON.stringify({ time: new Date().toISOString(), ...fields }));
 
 // Heartbeats for the department pages; a failed write is logged and never stops the model run.
-const AGENT_OF = { 'kalshi-bandit': 'maker', 'agent-sportsbook': 'sportsbook', 'agent-longshot': 'longshot', 'agent-weather': 'weather', 'agent-crossvenue': 'crossvenue', 'agent-game-watch': 'game-watch' };
-// station-watch reports through its live script (scripts/station-watch.js), so its history test runs without heartbeats here.
+const AGENT_OF = { 'kalshi-bandit': 'maker', 'agent-sportsbook': 'sportsbook', 'agent-longshot': 'longshot', 'agent-weather': 'weather', 'agent-crossvenue': 'crossvenue' };
+// station-watch and game-watch report through their live scripts (scripts/station-watch.js, scripts/game-watch.js), so their history tests run without heartbeats here.
 const WAIT_MS = 10 * 60000, RUN_MS = 12 * 3600000;
 const checkIn = (agent, state, detail, nextWithinMs = 0) => {
   try { beat(agent, state, detail, { nextWithinMs }); } catch (error) { console.error(JSON.stringify({ heartbeat: agent, error: error.message })); }
