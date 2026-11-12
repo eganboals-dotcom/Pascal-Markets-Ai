@@ -1,16 +1,25 @@
 // Game-watch (sports department): the moment a live game decides a Kalshi "N or more" market. A game total, team total or player
-// prop can only go up, so once ESPN's play-by-play shows it at the threshold, Yes has won. Research only; no orders.
-import { codeSimilarity, matchGame, teamCode } from './fair-odds.js';
+// count can only go up, so once ESPN's play-by-play shows it at the threshold, Yes has won. NBA, NFL and NHL. Research only; no orders.
+import { LEAGUES, codeSimilarity, matchGame, teamCode } from './fair-odds.js';
 
-// Series -> what they count. Totals and team totals are points, over the whole game or the listed periods (overtime counts only
-// for whole-game markets); props are a player's game stat. "N" in the ticker means N or more (219 paid on 220 points, 221 did not).
+// Series -> what they count. Totals and team totals are points (goals in hockey), over the whole game or the listed periods
+// (overtime counts only for whole-game markets); player markets are a game stat. "N" in the ticker means N or more (219 paid on 220
+// points, 221 did not). NFL player yards can fall on a lost-yardage play, so only NFL scores are watched. NHL assists (and so
+// points) are often changed after the game: on Nov 4 to 7, three assists ESPN credited settled No on Kalshi, so only goals count.
+const total = (league, periods) => ({ league, kind: 'total', ...(periods ? { periods } : {}) });
+const team = (league, periods) => ({ league, kind: 'team', ...(periods ? { periods } : {}) });
+const player = (league, stat) => ({ league, kind: 'player', stat });
 export const SERIES = {
-  KXNBATOTAL: { kind: 'total' }, KXNBA1HTOTAL: { kind: 'total', periods: [1, 2] },
-  KXNBA1QTOTAL: { kind: 'total', periods: [1] }, KXNBA2QTOTAL: { kind: 'total', periods: [2] }, KXNBA3QTOTAL: { kind: 'total', periods: [3] },
-  KXNBATEAMTOTAL: { kind: 'team' }, KXNBA1HTEAMTOTAL: { kind: 'team', periods: [1, 2] },
-  KXNBAPTS: { kind: 'player', stat: 'pts' }, KXNBAREB: { kind: 'player', stat: 'reb' }, KXNBAAST: { kind: 'player', stat: 'ast' },
-  KXNBA3PT: { kind: 'player', stat: 'threes' }, KXNBAPRA: { kind: 'player', stat: 'pra' },
+  KXNBATOTAL: total('nba'), KXNBA1HTOTAL: total('nba', [1, 2]), KXNBA1QTOTAL: total('nba', [1]), KXNBA2QTOTAL: total('nba', [2]),
+  KXNBA3QTOTAL: total('nba', [3]), KXNBATEAMTOTAL: team('nba'), KXNBA1HTEAMTOTAL: team('nba', [1, 2]),
+  KXNBAPTS: player('nba', 'pts'), KXNBAREB: player('nba', 'reb'), KXNBAAST: player('nba', 'ast'), KXNBA3PT: player('nba', 'threes'), KXNBAPRA: player('nba', 'pra'),
+  KXNFLTOTAL: total('nfl'), KXNFL1HTOTAL: total('nfl', [1, 2]), KXNFL1QTOTAL: total('nfl', [1]), KXNFL2QTOTAL: total('nfl', [2]),
+  KXNFL3QTOTAL: total('nfl', [3]), KXNFLTEAMTOTAL: team('nfl'), KXNFL1HTEAMTOTAL: team('nfl', [1, 2]),
+  KXNHLTOTAL: total('nhl'), KXNHL1PTOTAL: total('nhl', [1]), KXNHL2PTOTAL: total('nhl', [2]), KXNHL3PTOTAL: total('nhl', [3]),
+  KXNHLTEAMTOTAL: team('nhl'), KXNHLGOAL: player('nhl', 'goals'),
 };
+export const WATCHED_LEAGUES = [...new Set(Object.values(SERIES).map(s => s.league))];
+export const COMPACT_VERSION = 2;
 
 // KXNBATOTAL-26NOV05MIAGSW-217, KXNBATEAMTOTAL-26NOV05MIAGSW-GSW115, KXNBAPTS-26NOV05MIAGSW-GSWYLENDEBORG1-10; null otherwise.
 export function parseMarket(ticker) {
@@ -27,8 +36,8 @@ export function parseMarket(ticker) {
 // 26NOV05MIAGSW: the away code is its first 2 to 4 letters, so each split is tried; null unless one matches.
 export function matchEvent(market, index) {
   for (const k of [3, 2, 4]) {
-    const match = matchGame(`KXNBAGAME-${market.dateCode}${market.teams}-${market.teams.slice(0, k)}`, index);
-    if (match?.league === 'nba' && match.isAway) return match.game;
+    const match = matchGame(`${LEAGUES[market.league].series}-${market.dateCode}${market.teams}-${market.teams.slice(0, k)}`, index);
+    if (match?.league === market.league && match.isAway) return match.game;
   }
   return null;
 }
@@ -53,44 +62,56 @@ export function sideOf(code, game) {
   return a === h ? null : a > h ? 'away' : 'home';
 }
 
-// The parts of an ESPN NBA summary the test needs: teams, roster, box-score totals and every play with its wall-clock time.
-export function compactGame(summary, eventId) {
-  const competitors = summary.header?.competitions?.[0]?.competitors ?? [], team = side => competitors.find(c => c.homeAway === side);
-  const roster = [], box = {};
-  for (const t of summary.boxscore?.players ?? []) {
-    const s = t.statistics?.[0], col = name => s?.names?.indexOf(name) ?? -1;
-    for (const a of s?.athletes ?? []) {
-      roster.push({ id: a.athlete?.id, name: a.athlete?.displayName, jersey: a.athlete?.jersey });
-      const stat = name => Number(String(a.stats?.[col(name)] ?? '').split('-')[0]);
-      if (a.stats?.length) box[a.athlete?.id] = { pts: stat('PTS'), reb: stat('REB'), ast: stat('AST'), threes: stat('3PT') };
+// Box-score columns per league for the stats the plays are checked against.
+const BOX = { nba: { pts: 'PTS', reb: 'REB', ast: 'AST', threes: '3PT' }, nhl: { goals: 'G', ast: 'A' }, nfl: {} };
+
+// The parts of an ESPN summary the test needs: teams, roster, box-score totals and every play with its wall-clock time. NFL plays
+// sit inside drives; hockey plays name their scorer and assisters, basketball's list the shooter then the passer.
+export function compactGame(summary, eventId, league = 'nba') {
+  const competitors = summary.header?.competitions?.[0]?.competitors ?? [], side = s => competitors.find(c => c.homeAway === s);
+  const roster = [], box = {}, columns = BOX[league] ?? {};
+  for (const t of summary.boxscore?.players ?? []) for (const s of t.statistics ?? []) {
+    const names = s.names ?? s.labels ?? [], col = name => names.indexOf(name);
+    for (const a of s.athletes ?? []) {
+      const id = a.athlete?.id;
+      if (!roster.some(p => p.id === id)) roster.push({ id, name: a.athlete?.displayName, jersey: a.athlete?.jersey });
+      const stats = Object.entries(columns).filter(([, c]) => col(c) >= 0);
+      if (a.stats?.length && stats.length) box[id] = { ...box[id], ...Object.fromEntries(stats.map(([k, c]) => [k, Number(String(a.stats[col(c)]).split('-')[0])])) };
     }
   }
-  const plays = (summary.plays ?? []).map(p => {
-    const who = i => p.participants?.[i]?.athlete?.id ?? null, scoring = Boolean(p.scoringPlay);
+  const drives = summary.drives ? [...(summary.drives.previous ?? []), summary.drives.current].flatMap(d => d?.plays ?? []) : [];
+  const raw = league === 'nfl' ? [...new Map(drives.map(p => [p.id, p])).values()].sort((a, b) => Number(a.sequenceNumber) - Number(b.sequenceNumber)) : summary.plays ?? [];
+  const shootout = league === 'nhl' && raw.some(p => (p.period?.number ?? 0) >= 5);
+  const plays = raw.map(p => {
+    const scoring = Boolean(p.scoringPlay) && !(league === 'nhl' && (p.period?.number ?? 0) >= 5), people = p.participants ?? [];
+    const typed = people.some(x => x.type), id = x => x?.athlete?.id ?? null;
     return { t: Date.parse(p.wallclock), away: Number(p.awayScore), home: Number(p.homeScore), period: p.period?.number ?? 0,
-      scorer: scoring ? who(0) : null, value: scoring ? Number(p.scoreValue) || 0 : 0, assister: scoring ? who(1) : null,
-      rebounder: /rebound/i.test(p.type?.text ?? '') ? who(0) : null };
+      scorer: scoring ? id(typed ? people.find(x => x.type === 'scorer') : people[0]) : null, value: scoring ? Number(p.scoreValue) || 0 : 0,
+      assisters: scoring ? (typed ? people.filter(x => x.type === 'assister') : people.slice(1, 2)).map(id).filter(Boolean) : [],
+      rebounder: /rebound/i.test(p.type?.text ?? '') ? id(people[0]) : null };
   }).filter(p => Number.isFinite(p.t) && Number.isFinite(p.away) && Number.isFinite(p.home));
-  return { eventId, start: summary.header?.competitions?.[0]?.date ?? null,
-    away: { code: team('away')?.team?.abbreviation, score: Number(team('away')?.score) },
-    home: { code: team('home')?.team?.abbreviation, score: Number(team('home')?.score) }, roster, box, plays };
+  return { version: COMPACT_VERSION, league, eventId, start: summary.header?.competitions?.[0]?.date ?? null, shootout,
+    away: { code: side('away')?.team?.abbreviation, score: Number(side('away')?.score) },
+    home: { code: side('home')?.team?.abbreviation, score: Number(side('home')?.score) }, roster, box, plays };
 }
 
 // Player stat tallies from the plays; a player whose tallies disagree with the box score is not trusted (returns null).
 function playerSeries(game, id, stat) {
-  const tally = { pts: 0, reb: 0, ast: 0, threes: 0 }, out = [];
+  const tally = { pts: 0, reb: 0, ast: 0, threes: 0, goals: 0 }, out = [];
   for (const p of game.plays) {
-    if (p.scorer === id) { tally.pts += p.value; if (p.value === 3) tally.threes++; }
-    if (p.assister === id) tally.ast++;
+    if (p.scorer === id) { tally.pts += p.value; tally.goals++; if (p.value === 3) tally.threes++; }
+    if (p.assisters.includes(id)) tally.ast++;
     if (p.rebounder === id) tally.reb++;
-    out.push({ t: p.t, value: stat === 'pra' ? tally.pts + tally.reb + tally.ast : tally[stat] });
+    const value = stat === 'pra' ? tally.pts + tally.reb + tally.ast : tally[stat];
+    out.push({ t: p.t, value });
   }
   const b = game.box[id];
-  if (!b || ['pts', 'reb', 'ast', 'threes'].some(k => b[k] !== tally[k])) return null;
+  if (!b || !Object.keys(b).length || Object.entries(b).some(([k, v]) => v !== tally[k])) return null;
   return out;
 }
 
 // Wall-clock time of the play that took the market to its threshold, or null when it never got there (or cannot be read).
+// Hockey games settled in a shootout are skipped, since whether a total counts the shootout goal is not checked.
 export function decidedAt(market, game) {
   let series;
   if (market.kind === 'player') {
@@ -98,7 +119,7 @@ export function decidedAt(market, game) {
     series = id && playerSeries(game, id, market.stat);
   } else {
     const side = market.kind === 'team' ? sideOf(market.team, game) : null;
-    if (market.kind === 'team' && !side) return null;
+    if ((market.kind === 'team' && !side) || game.shootout) return null;
     let prev = { away: 0, home: 0 }, count = 0;
     series = game.plays.map(p => {
       const gain = (side ? p[side] - prev[side] : p.away + p.home - prev.away - prev.home);

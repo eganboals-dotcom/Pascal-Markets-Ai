@@ -1,6 +1,6 @@
-// Game-watch on the downloaded history (sports department): did Kalshi keep selling "N or more" NBA markets cheap after the game
-// had already reached N? Research only; no orders. Game totals, quarter and half totals, team totals and player points, rebounds,
-// assists, threes and points+rebounds+assists can only go up, so the play that reaches the threshold decides Yes
+// Game-watch on the downloaded history (sports department): did Kalshi keep selling "N or more" NBA, NFL and NHL markets cheap
+// after the game had already reached N? Research only; no orders. Game totals, quarter, half and period totals, team totals, NBA
+// player points, rebounds, assists, threes and points+rebounds+assists, and NHL player goals can only go up, so the play that reaches the threshold decides Yes
 // (src/agents/game-watch.js). ESPN's free play-by-play gives each play's wall-clock time; --lag-seconds (60) after it, Yes is bought,
 // one contract held to settlement, at the first 1-minute candle closing after that whose edge after the taker fee beats --margin (1¢). A decided market that
 // settled No counts as a wrong call. Players whose play-by-play tallies disagree with ESPN's box score are skipped, and so are games
@@ -11,8 +11,8 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { historyDays, jsonLines, settlementValue } from '../src/history.js';
-import { gameIndex, tickerDate } from '../src/agents/fair-odds.js';
-import { compactGame, decidedAt, matchEvent, parseMarket } from '../src/agents/game-watch.js';
+import { LEAGUES, gameIndex, tickerDate } from '../src/agents/fair-odds.js';
+import { COMPACT_VERSION, compactGame, decidedAt, matchEvent, parseMarket } from '../src/agents/game-watch.js';
 import { settle, summarize, take } from '../src/takers.js';
 import { fetchJson } from '../src/odds.js';
 import { markdownTable, readResearch } from '../src/report.js';
@@ -29,20 +29,20 @@ const { days, locked, minDaysToLock } = historyDays(root, final);
 const index = gameIndex(existsSync(projectPath(CLOSING)) ? readFileSync(projectPath(CLOSING), 'utf8').trim().split('\n').filter(Boolean).map(JSON.parse) : []);
 
 const games = new Map();
-async function playsOf(eventId) {
-  if (games.has(eventId)) return games.get(eventId);
-  const path = `data/sports/nba-${eventId}.json`;
+async function playsOf(league, eventId) {
+  const key = `${league}-${eventId}`, path = `data/sports/${key}.json`;
+  if (games.has(key)) return games.get(key);
   let game = null;
   try {
     if (existsSync(projectPath(path))) game = readJson(path);
-    else {
+    if (game?.version !== COMPACT_VERSION) {
       await sleep(PAUSE_MS);
-      const { json } = await fetchJson(`https://site.api.espn.com/apis/site/v2/sports/basketball/nba/summary?event=${eventId}`, `ESPN NBA ${eventId}`);
-      game = compactGame(json, eventId);
+      const { json } = await fetchJson(`https://site.api.espn.com/apis/site/v2/sports/${LEAGUES[league].site}/summary?event=${eventId}`, `ESPN ${league} ${eventId}`);
+      game = compactGame(json, eventId, league);
       if (json.header?.competitions?.[0]?.status?.type?.completed) writeProjectFile(path, JSON.stringify(game) + '\n');
     }
   } catch (error) { console.error(JSON.stringify({ event: eventId, error: error.message })); }
-  games.set(eventId, game);
+  games.set(key, game);
   return game;
 }
 
@@ -53,7 +53,7 @@ for (const day of days) {
     const market = parseMarket(m.ticker), value = settlementValue(m);
     if (!market || !(m.books > 0) || value === null || !tickerDate(market.dateCode)) continue;
     coverage.markets++;
-    const g = matchEvent(market, index), game = g && await playsOf(g.eventId);
+    const g = matchEvent(market, index), game = g && await playsOf(market.league, g.eventId);
     if (!game) { coverage.noGame++; continue; }
     const at = decidedAt(market, game);
     if (at === null) { if (value === 1) coverage.unread++; else coverage.notReached++; continue; }
@@ -83,9 +83,9 @@ const money = x => (x < 0 ? '−$' : '$') + Math.abs(x).toFixed(2), wrongMain = 
 writeProjectFile(`${root}/agents/game-watch-report.json`, JSON.stringify({ generatedAt: Date.now(), margin, lagSeconds,
   summary: { ...main, wrong: wrongMain, coverage, byLag: byLag.map(({ lag, trades: n, settled, wrong }) => ({ lag, trades: n, settled, wrong })) },
   trades: trades[lagSeconds] }, null, 2) + '\n');
-writeProjectFile(`${root}/agents/game-watch-report.md`, ['# Game-watch: NBA markets already decided by the score, history test', '',
+writeProjectFile(`${root}/agents/game-watch-report.md`, ['# Game-watch: NBA, NFL and NHL markets already decided by the score, history test', '',
   `Research only. The play that took a game total, team total or player stat to its line is found in ESPN's play-by-play; ${lagSeconds} seconds after that play's wall-clock time, Yes is bought at the first Kalshi book (1-minute candles, one contract) where its edge after the taker fee beats ${(margin * 100).toFixed(0)}¢, held to settlement. Ranges are 97.5%, resampling whole games. ${locked.length ? (final ? `The locked final exam (${locked[0]} to ${locked.at(-1)}) is included.` : `Locked final exam, not run: ${locked[0]} to ${locked.at(-1)}.`) : `No locked exam yet: fewer than ${minDaysToLock} days downloaded.`}`, '',
-  `Of ${coverage.markets} settled NBA total and prop markets with books, ${coverage.noGame} had no matched ESPN game, ${coverage.unread} settled Yes but could not be read from the plays (player not matched, tallies off the box score, or a play log that misses the final), ${coverage.notReached} never reached their line (or could not be read and settled No), and ${coverage.decided} were decided during the game.`, '',
+  `Of ${coverage.markets} settled NBA, NFL and NHL total and player markets with books, ${coverage.noGame} had no matched ESPN game, ${coverage.unread} settled Yes but could not be read from the plays (player not matched, tallies off the box score, a play log that misses the final, or a hockey shootout), ${coverage.notReached} never reached their line (or could not be read and settled No), and ${coverage.decided} were decided during the game.`, '',
   markdownTable(['Buy this long after the deciding play', 'Trades', 'Settled P&L (range)', 'Per trade', 'Wrong calls'],
     byLag.map(s => [s.lag < 60 ? `${s.lag} s` : `${s.lag / 60} min`, s.trades, s.trades ? `${money(s.settled.total)} (${money(s.settled.low)} to ${money(s.settled.high)})` : '', `${(s.perTrade * 100).toFixed(1)}¢`, s.wrong])), '',
   main.trades ? markdownTable(['Series', 'Trades', 'P&L'], Object.entries(main.groups).sort().map(([g, v]) => [g, v.trades, money(v.pnl)])) : '', ''].join('\n'));

@@ -20,7 +20,7 @@ const summary = {
 };
 
 test('Kalshi NBA tickers parse into what they count', () => {
-  assert.deepEqual(parseMarket('KXNBATOTAL-26NOV05MIAGSW-217'), { series: 'KXNBATOTAL', kind: 'total', event: '26NOV05MIAGSW', dateCode: '26NOV05', teams: 'MIAGSW', threshold: 217 });
+  assert.deepEqual(parseMarket('KXNBATOTAL-26NOV05MIAGSW-217'), { series: 'KXNBATOTAL', league: 'nba', kind: 'total', event: '26NOV05MIAGSW', dateCode: '26NOV05', teams: 'MIAGSW', threshold: 217 });
   assert.equal(parseMarket('KXNBA1QTOTAL-26NOV05MIAGSW-51').periods[0], 1);
   assert.equal(parseMarket('KXNBATEAMTOTAL-26NOV05MIAGSW-GSW115').team, 'GSW');
   const prop = parseMarket('KXNBAPTS-26NOV05MIAGSW-MIAWCARTER34-15');
@@ -56,4 +56,32 @@ test('a market is decided by the play that reaches its line, after corrections',
   assert.equal(decidedAt(parseMarket('KXNBAREB-26NOV05MIAGSW-GSWDGREEN23-1'), off), null);
   // A play log that does not end on the final score is not trusted.
   assert.equal(decidedAt(parseMarket('KXNBATOTAL-26NOV05MIAGSW-5'), { ...game, away: { ...game.away, score: 4 } }), null);
+});
+
+test('hockey plays name scorer and assisters, football plays come from drives, shootouts are skipped', () => {
+  const header = (away, home) => ({ competitions: [{ competitors: [{ homeAway: 'away', score: String(away), team: { abbreviation: 'SJ' } }, { homeAway: 'home', score: String(home), team: { abbreviation: 'LA' } }] }] });
+  const goal = (s, away, home, period, scorer, ...assisters) => ({ wallclock: at(s), awayScore: away, homeScore: home, period: { number: period }, scoringPlay: true, scoreValue: 1,
+    participants: [{ athlete: { id: scorer }, type: 'scorer' }, ...assisters.map(id => ({ athlete: { id }, type: 'assister' }))] });
+  const hockey = {
+    header: header(0, 2),
+    boxscore: { players: [{ statistics: [{ name: 'forwards', labels: ['G', 'A'], athletes: [{ athlete: { id: '8', displayName: 'Drew Doughty', jersey: '8' }, stats: ['2', '0'] }] },
+      { name: 'goalies', labels: ['GA', 'SA'], athletes: [{ athlete: { id: '31', displayName: 'Some Goalie', jersey: '31' }, stats: ['0', '20'] }] }] }] },
+    plays: [goal(10, 0, 1, 1, '8', '9', '10'), goal(20, 0, 2, 3, '8')],
+  };
+  const nhl = compactGame(hockey, '1', 'nhl');
+  assert.deepEqual(nhl.plays[0].assisters, ['9', '10']);
+  assert.deepEqual(nhl.box['8'], { goals: 2, ast: 0 }); // assists still check the play log against the box score
+  assert.equal(nhl.box['31'], undefined); // goalies have no goal or assist columns
+  assert.equal(decidedAt(parseMarket('KXNHLGOAL-26NOV04SJLA-LADDOUGHTY8-2'), nhl), t0 + 20000);
+  assert.equal(decidedAt(parseMarket('KXNHL1PTOTAL-26NOV04SJLA-1'), nhl), t0 + 10000);
+  assert.equal(parseMarket('KXNHLAST-26NOV04SJLA-LADDOUGHTY8-1'), null); // assists are not watched
+  const shootout = compactGame({ ...hockey, header: header(1, 3), plays: [...hockey.plays, goal(30, 1, 2, 4, '9'), goal(40, 1, 3, 5, '8')] }, '1', 'nhl');
+  assert.equal(shootout.shootout, true);
+  assert.equal(decidedAt(parseMarket('KXNHLTOTAL-26NOV04SJLA-3'), shootout), null);
+  const football = compactGame({ header: header(3, 7), drives: {
+    previous: [{ plays: [{ id: 'a', sequenceNumber: '1', wallclock: at(5), awayScore: 3, homeScore: 0, period: { number: 1 }, scoringPlay: true }] }],
+    current: { plays: [{ id: 'b', sequenceNumber: '2', wallclock: at(15), awayScore: 3, homeScore: 7, period: { number: 2 }, scoringPlay: true }] } } }, '2', 'nfl');
+  assert.equal(football.plays.length, 2);
+  assert.equal(decidedAt(parseMarket('KXNFLTOTAL-26NOV04SJLA-10'), football), t0 + 15000);
+  assert.equal(decidedAt(parseMarket('KXNFL1QTOTAL-26NOV04SJLA-4'), football), null);
 });
