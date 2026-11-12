@@ -44,6 +44,8 @@ export function openLedger(agent, { dir = PAPER_DIR, load = fetchMarkets } = {})
     trades, settled,
     record(row) { append(tradesPath, row); trades.push(row); },
     open: () => trades.filter(t => !settled.has(t.ticker)),
+    // Cash tied up in open positions, for an agent's --budget: price plus fee for every contract not yet settled or exited.
+    openCost: () => trades.reduce((a, t) => settled.has(t.ticker) ? a : a + (t.price + t.fee) * (t.contracts ?? 1), 0),
     // A position sold before settlement, at `value` a contract (the Yes bid for a Yes holder, 1 minus the Yes ask for No) less the
     // taker fee; it then counts as settled.
     exit(trade, value, fee, now = Date.now(), reason = '') {

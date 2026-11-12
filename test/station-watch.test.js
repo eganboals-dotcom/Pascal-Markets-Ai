@@ -80,6 +80,7 @@ test('a paper ledger records trades, settles only those Kalshi has settled, and 
     assert.equal(await ledger.settleDue((t, now) => now - t.time > 500, 1000), 1);
     assert.deepEqual(asked, ['KXHIGHNY-26NOV04-B67.5', 'KXHIGHNY-26NOV04-T66']); // the newest trade is not due yet
     assert.ok(Math.abs(ledger.pnl() - 0.27) < 1e-9); // 9¢ on each of 3 contracts
+    assert.ok(Math.abs(ledger.openCost() - 1.92) < 1e-9); // the two unsettled trades, 96¢ each with the fee
     const again = openLedger('station-watch', { dir, load: async () => [] });
     assert.equal(again.trades.length, 3);
     assert.deepEqual([...again.settled.keys()], ['KXHIGHNY-26NOV04-B67.5']);

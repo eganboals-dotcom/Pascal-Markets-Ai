@@ -5,7 +5,8 @@
 // winner, spread, total, team-total and player markets (src/agents/game-watch.js lists them) every 2 minutes, and each pass reads
 // fresh prices for just the markets the plays have decided (a line reached, or the end-of-game play), 50 to a request. It buys on
 // paper the decided side, held to settlement, when its edge after the taker fee beats --margin (1¢) and something is offered at
-// that price: as many contracts as are offered, up to --contracts (25) a market. --per-game caps contracts across one game's markets
+// that price: as many contracts as are offered, up to --contracts (25) a market and what --budget (dollars held in open
+// positions, off by default) leaves room for. --per-game caps contracts across one game's markets
 // (off by default: on the 60-day history a cap of 25 a game took 609 of 3,195 trades and $1,213 against $6,168 uncapped, and the
 // worst game was −$32 uncapped; scripts/replay-sizing.js). With a cap, the best edges get a game's room first; the size offered is saved.
 // Each series and side runs the margin the walk-forward picker chose (data/history/agents/tune-report.json, scripts/agent-tune.js),
@@ -27,6 +28,7 @@ import { readResearch } from '../src/report.js';
 
 const option = (name, fallback) => process.argv.find(a => a.startsWith(`--${name}=`))?.split('=')[1] ?? fallback;
 const flag = name => process.argv.includes(`--${name}`);
+const budget = option('budget', 'off') === 'off' ? Infinity : Number(option('budget')); // dollars of open positions at most
 const maxContracts = Number(option('contracts', 25)), perGame = option('per-game', 'off') === 'off' ? Infinity : Number(option('per-game')), dailyLimit = Number(option('daily-loss', 100));
 const everyMs = Number(option('every-seconds', 10)) * 1000, margin = Number(option('margin', 0.01)), feeRate = readResearch('config/scan.json', {}).feeRate ?? 0.07;
 const AGENT = 'game-watch', ESPN = 'https://site.api.espn.com/apis/site/v2/sports', CORE = 'https://sports.core.api.espn.com/v2/sports';
@@ -159,7 +161,8 @@ async function trade(games, departments) {
     if (pick && pick.side === side && offered > 0) picks.push({ ticker, series, g, side, at, fair, pick, offered });
   }
   for (const { ticker, series, g, side, at, fair, pick, offered } of picks.sort((a, b) => b.pick.edge - a.pick.edge)) {
-    const gameId = `${g.row.league}-${g.row.eventId}`, contracts = Math.floor(Math.min(maxContracts, offered, perGame - (held.get(gameId) ?? 0)));
+    const gameId = `${g.row.league}-${g.row.eventId}`, contracts = Math.floor(Math.min(maxContracts, offered, perGame - (held.get(gameId) ?? 0),
+      (budget - ledger.openCost()) / (pick.price + pick.fee)));
     if (contracts < 1) continue;
     const row = { time: Date.now(), ticker, league: series, department: departmentOf(series, departments),
       game: `${g.name}, decided at ${new Date(at).toISOString().slice(11, 19)} UTC`, gameId, start: g.row.start, side, price: pick.price, fee: pick.fee,
