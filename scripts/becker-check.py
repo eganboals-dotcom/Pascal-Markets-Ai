@@ -45,11 +45,14 @@ else:
     market_cols = {r[0] for r in db.execute(f'DESCRIBE SELECT * FROM {m}').fetchall()}
     trade_cols = {r[0] for r in db.execute(f'DESCRIBE SELECT * FROM {t}').fetchall()}
     report['missing_columns'] = sorted((NEED_MARKET - market_cols) | (NEED_TRADE - trade_cols))
-    report['markets'], report['first_close'], report['last_close'] = map(str, db.execute(f'SELECT count(*), min(close_time), max(close_time) FROM {m}').fetchone())
+    # Times come back as text: handing DuckDB timestamps with a time zone to Python needs pytz, which the .venv does not have.
+    report['markets'], report['first_close'], report['last_close'] = map(str, db.execute(
+        f'SELECT count(*), min(close_time)::VARCHAR, max(close_time)::VARCHAR FROM {m}').fetchone())
     report['trades'], report['contracts'], report['first_trade'], report['last_trade'] = map(str, db.execute(
-        f'SELECT count(*), sum("count"), min(created_time), max(created_time) FROM {t}').fetchone())
-    sample = db.execute(f"""SELECT ticker, title, result, volume FROM {m}
-        WHERE status = 'finalized' AND result IN ('yes', 'no') AND volume > 1000 AND close_time < TIMESTAMP '2026-01-01'
+        f'SELECT count(*), sum("count"), min(created_time)::VARCHAR, max(created_time)::VARCHAR FROM {t}').fetchone())
+    # DuckDB samples before WHERE, so the filter runs in a subquery and the sample is taken from what passes it.
+    sample = db.execute(f"""SELECT * FROM (SELECT ticker, title, result, volume FROM {m}
+        WHERE status = 'finalized' AND result IN ('yes', 'no') AND volume > 1000 AND close_time < TIMESTAMP '2026-01-01')
         USING SAMPLE reservoir(25 ROWS) REPEATABLE (42)""").fetchall()
     checked = []
     for ticker, title, result, volume in sample:
