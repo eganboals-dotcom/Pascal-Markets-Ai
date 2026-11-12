@@ -152,3 +152,8 @@ test('an event code is matched only when the game codes spell it well', () => {
   assert.equal(matchEvent(parseMarket('KXNCAAMBTOTAL-26NOV05BELLIND-150'), index), null); // BEL+LIND fits CBBL at LIN only loosely
   assert.equal(matchEvent(parseMarket('KXNCAAMBTOTAL-26NOV03CLEVMIZZ-150'), index)?.eventId, '2');
 });
+
+test('a core-API play with an empty participant keeps the others', () => {
+  const p = corePlay({ participants: [null, { order: 1, athlete: { $ref: 'http://x/athletes/7?lang=en' } }] }, 'ncaab');
+  assert.deepEqual(p.participants, [{ athlete: { id: '7' } }]);
+});

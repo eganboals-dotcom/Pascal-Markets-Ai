@@ -102,7 +102,7 @@ const BOX = { nba: { pts: 'PTS', reb: 'REB', ast: 'AST', threes: '3PT' }, nhl: {
 // basketball's typed participants (shooter, assister) drop their types, since the summary lists them untyped in that order.
 export function corePlay(item, league) {
   const basketball = LEAGUES[league]?.site.startsWith('basketball/');
-  const participants = [...(item.participants ?? [])].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)).map(x => ({
+  const participants = (item.participants ?? []).filter(Boolean).sort((a, b) => (a.order ?? 0) - (b.order ?? 0)).map(x => ({
     athlete: { id: /\/athletes\/(\d+)/.exec(x.athlete?.$ref ?? '')?.[1] ?? null }, ...(!basketball && x.type ? { type: x.type } : {}) }));
   return { ...item, participants };
 }
