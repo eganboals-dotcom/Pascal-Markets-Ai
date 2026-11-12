@@ -21,8 +21,8 @@ if (dashboard) {
 function publish(message) {
   if (process.connected) process.send(message, error => { if (error) shutdown(); });
 }
-const time = arg('until', '23:59');
-if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) throw new Error('Usage: --until=HH:MM [--series=KXNBAGAME,...] [--out=data/gameday]');
+const time = arg('until', '23:59'), forever = time === 'never'; // never: runs until stopped, as the background paper loop does
+if (!forever && !/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) throw new Error('Usage: --until=HH:MM|never [--series=KXNBAGAME,...] [--out=data/gameday]');
 const seriesArg = arg('series', '');
 const seriesTickers = seriesArg ? seriesArg.split(',') : [];
 if (seriesTickers.some(t => !/^[A-Z0-9_-]{1,60}$/.test(t))) throw new Error('Invalid series ticker');
@@ -78,9 +78,9 @@ if (dashboard) publish({ type: 'mode', mode: feedMode ?? 'rest' });
 console.log(feedMode ? `Live feed: ${feedMode}${feedMode === 'demo' ? ' (demo prices; plumbing only)' : ''}.` :
   `REST fast tier: ${feedArg ? 'feed credentials are missing' : '--feed was not requested'}.`);
 let lastPublish = 0;
-const until = new Date(); until.setHours(...time.split(':').map(Number), 0, 0);
-console.log(`Game-day loop: ${seriesArg || 'all focus markets'} until ${until.toLocaleTimeString()}. No orders.`);
-await runGameday({ config, feedMode, onFullScan, pairs: readJson('config/pairs.json', []), until: dashboard ? Number.MAX_SAFE_INTEGER : until.getTime(), state: readJson(`${out}/state.json`, null),
+const until = new Date(); if (!forever) until.setHours(...time.split(':').map(Number), 0, 0);
+console.log(`Game-day loop: ${seriesArg || 'all focus markets'} until ${forever ? "stopped" : until.toLocaleTimeString()}. No orders.`);
+await runGameday({ config, feedMode, onFullScan, pairs: readJson('config/pairs.json', []), until: dashboard || forever ? Number.MAX_SAFE_INTEGER : until.getTime(), state: readJson(`${out}/state.json`, null),
   onDryRunError: error => {
     appendFileSync(projectPath(`${out}/dryrun.jsonl`), JSON.stringify({ ...error, outcome: 'error' }) + '\n');
     console.error(JSON.stringify({ dryrunError: error }));

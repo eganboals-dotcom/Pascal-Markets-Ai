@@ -1,10 +1,12 @@
-import { createReadStream } from 'node:fs';
+import { createReadStream, existsSync, readFileSync } from 'node:fs';
 import { createInterface } from 'node:readline';
 import { simulate } from '../src/mm.js';
 import { fetchMarkets } from '../src/kalshi.js';
 import { readResearch, markdownTable } from '../src/report.js';
 import { projectPath, writeProjectFile } from '../src/files.js';
 import { HEARTBEAT_MS } from '../src/history.js';
+import { policy } from '../src/bandit.js';
+import { beat } from '../src/heartbeat.js';
 
 const out = process.argv.slice(2).find(a => !a.startsWith('--')) ?? 'research/kalshi';
 const config = readResearch('config/scan.json', {});
@@ -41,10 +43,21 @@ async function readSettlements(books, now = Date.now()) {
 const days = history ? Infinity : undefined;
 const books = await readRecent(`${out}/books.jsonl`, days), trades = await readRecent(`${out}/trades.jsonl`, days);
 const settlements = await readSettlements(books);
-const result = { generatedAt: Date.now(), ...simulate(books, { ...config.mm, makerFeeRate: config.makerFeeRate ?? 0.0175, takerFeeRate: config.feeRate ?? 0.07, ...historyLimits, settlements, trades }) };
+const options = { ...config.mm, makerFeeRate: config.makerFeeRate ?? 0.0175, takerFeeRate: config.feeRate ?? 0.07, ...historyLimits, settlements, trades };
+const result = { generatedAt: Date.now(), ...simulate(books, options) };
+// The learned policy (src/bandit.js, trained by kalshi-bandit.js on the downloaded history) on the same books: it declines the fixed
+// rules' quotes in contexts whose closing-line value was negative. Its totals sit beside the fixed rules' in the report.
+const MODEL = 'data/history/bandit-model.json';
+result.learned = existsSync(projectPath(MODEL)) ? simulate(books, { ...options, allow: policy(JSON.parse(readFileSync(projectPath(MODEL), 'utf8')), config.mm ?? {}) }).total : null;
+const money = x => (x < 0 ? '−$' : '$') + Math.abs(x).toFixed(2), line = t => `${t.fills} fills, ${money(t.netPnl)} net, ${money(t.clv)} closing-line value`;
+try {
+  beat('maker', 'waiting', `Paper quoting on ${result.markets.length} markets over ${history ? 'the replayed day' : `${config.mm?.replayDays ?? 7} days`}: fixed rules ${line(result.total)}`
+    + (result.learned ? `; learned policy ${line(result.learned)}` : ''), { nextWithinMs: 30 * 60000 });
+} catch (error) { console.error(JSON.stringify({ heartbeat: error.message })); }
 const rows = [...result.markets, { ticker: 'TOTAL', ...result.total }];
 writeProjectFile(`${out}/mm-sim.md`, ['# Market-making simulation', '', 'Research only. One-contract quotes, replaced at each snapshot. Quotes stop before a game starts, after a mid jump, and outside the mid-price band.', '',
   `Settled markets: ${result.markets.filter(m => m.settled).length} of ${result.markets.length}, valued at their $1/$0 outcome. Recorded trades: ${trades.length}; fills from trades: ${result.total.tradeFills}.`, '',
+  result.learned ? `Learned policy on the same books: ${line(result.learned)}, against the fixed rules' ${line(result.total)}.` : 'No learned model found (data/history/bandit-model.json).', '',
   `Quote lifetime: ${config.mm?.maxQuoteAgeMs ?? 30000} ms. Expired quote intervals: ${result.total.staleIntervals}. Sparse intervals cannot establish fills.`, '',
   'Net P&L is cash plus final inventory at its exit side (bid for a long, ask for a short) less the taker fee to flatten it, after fees. Spread captured measures quote improvement versus the posting mid. Signed adverse-selection loss measures fill price against the first observed mid at least 15 minutes later; negative values are favorable. This diagnostic is not subtracted from net P&L again. Unmarked fills lack a later observation. Realized P&L is closed inventory profit less all incurred fees. Unrealized P&L is the remaining inventory at that exit value against average entry cost. A settled market has no unrealized P&L: its inventory is valued at the outcome, without an exit fee. Liquidation depth is not simulated.', '',
   markdownTable(['Market', 'Fills', 'Spread captured', 'Fees', 'Adverse-selection loss', 'Unmarked fills', 'Realized P&L', 'Unrealized P&L', 'Net P&L'], rows.map(r => [r.ticker, r.fills, r.spreadCaptured.toFixed(4), r.fees.toFixed(4), r.adverseSelectionLoss.toFixed(4), r.unmarkedFills, r.realizedPnl.toFixed(4), r.unrealizedPnl.toFixed(4), r.netPnl.toFixed(4)])), ''].join('\n'));
