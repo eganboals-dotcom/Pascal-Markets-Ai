@@ -9,11 +9,15 @@
 // depth is not tested. Games are matched through ESPN's closing-line cache (data/odds/espn-closing.jsonl, written by
 // agent-sportsbook.js, so this runs after it); each game's plays are fetched once from ESPN, never Kalshi, into data/sports/.
 // Also reported: the same test at other lags, which shows how long Kalshi left decided markets cheap. Newest 10 days locked.
+// At the main lag the test is also run at each margin in MARGINS, into game-watch-grid.json, for the walk-forward picker
+// (scripts/agent-tune.js).
+// --fetch-only fetches the plays of every watched game in the closing-line cache and stops (ESPN only, so it can run while the
+// history downloads, and nothing is scored, so the locked days stay unseen).
 import { existsSync, readFileSync } from 'node:fs';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { historyDays, jsonLines, settlementValue } from '../src/history.js';
 import { LEAGUES, gameIndex, tickerDate } from '../src/agents/fair-odds.js';
-import { COMPACT_VERSION, compactGame, decision, matchEvent, parseMarket } from '../src/agents/game-watch.js';
+import { COMPACT_VERSION, WATCHED_LEAGUES, compactGame, decision, matchEvent, parseMarket } from '../src/agents/game-watch.js';
 import { settle, summarize, take } from '../src/takers.js';
 import { fetchJson } from '../src/odds.js';
 import { markdownTable, readResearch } from '../src/report.js';
@@ -23,6 +27,7 @@ const root = process.argv.slice(2).find(a => !a.startsWith('--')) ?? 'data/histo
 const final = process.argv.includes('--final');
 const option = (name, fallback) => Number(process.argv.find(a => a.startsWith(`--${name}=`))?.split('=')[1] ?? fallback);
 const margin = option('margin', 0.01), lagSeconds = option('lag-seconds', 60), feeRate = readResearch('config/scan.json', {}).feeRate ?? 0.07;
+const MARGINS = [...new Set([0.01, 0.02, 0.03, 0.05, margin])].sort((a, b) => a - b);
 const LAGS = [...new Set([15, 30, 60, 120, 300, 600, lagSeconds])].sort((a, b) => a - b), PAUSE_MS = 500, CLOSING = 'data/odds/espn-closing.jsonl';
 const readJson = path => JSON.parse(readFileSync(projectPath(path), 'utf8'));
 
@@ -47,7 +52,15 @@ async function playsOf(league, eventId) {
   return game;
 }
 
-const trades = Object.fromEntries(LAGS.map(l => [l, []])), coverage = { markets: 0, noGame: 0, unread: 0, decided: 0 };
+if (process.argv.includes('--fetch-only')) {
+  const wanted = [...index.values()].flat().filter(g => g.eventId && WATCHED_LEAGUES.includes(g.league));
+  let read = 0;
+  for (const g of wanted) if (await playsOf(g.league, g.eventId)) read++;
+  console.log(JSON.stringify({ games: wanted.length, read }));
+  process.exit(0);
+}
+
+const grid = [], trades = Object.fromEntries(LAGS.map(l => [l, []])), coverage = { markets: 0, noGame: 0, unread: 0, decided: 0 };
 for (const day of days) {
   const want = new Map();
   for await (const m of jsonLines(`${root}/${day}/markets.jsonl`)) {
@@ -76,6 +89,16 @@ for (const day of days) {
         break;
       }
     }
+    const open = new Set(MARGINS), fair = w.side === 'yes' ? 1 : 0;
+    for (const row of rows.filter(r => r.time >= w.at + lagSeconds * 1000)) {
+      for (const m of open) {
+        const t = take(fair, row, { feeRate, margin: m });
+        if (!t) continue;
+        grid.push({ day, ticker: w.ticker, event: w.event, group: `${w.series} ${w.side}`, setting: m, pnl: settle(t, w.value), stake: t.price + t.fee });
+        open.delete(m);
+      }
+      if (!open.size) break;
+    }
   }
 }
 
@@ -84,6 +107,7 @@ const money = x => (x < 0 ? '−$' : '$') + Math.abs(x).toFixed(2), wrongMain = 
 writeProjectFile(`${root}/agents/game-watch-report.json`, JSON.stringify({ generatedAt: Date.now(), margin, lagSeconds,
   summary: { ...main, wrong: wrongMain, coverage, byLag: byLag.map(({ lag, trades: n, settled, wrong }) => ({ lag, trades: n, settled, wrong })) },
   trades: trades[lagSeconds] }, null, 2) + '\n');
+writeProjectFile(`${root}/agents/game-watch-grid.json`, JSON.stringify({ generatedAt: Date.now(), agent: 'game-watch', setting: 'margin', lagSeconds, settings: MARGINS, trades: grid }) + '\n');
 writeProjectFile(`${root}/agents/game-watch-report.md`, ['# Game-watch: NBA, NFL, NHL and college markets already decided by the score, history test', '',
   `Research only. The play that decided a market is found in ESPN's play-by-play: the one that took a game total, team total or player stat to its line (Yes), or the end-of-game play for winners, spreads and totals still short (and the start of a later period for early half and quarter totals). ${lagSeconds} seconds after that play's wall-clock time, the decided side is bought at the first Kalshi book (1-minute candles, one contract) where its edge after the taker fee beats ${(margin * 100).toFixed(0)}¢, held to settlement. Ranges are 97.5%, resampling whole games. ${locked.length ? (final ? `The locked final exam (${locked[0]} to ${locked.at(-1)}) is included.` : `Locked final exam, not run: ${locked[0]} to ${locked.at(-1)}.`) : `No locked exam yet: fewer than ${minDaysToLock} days downloaded.`}`, '',
   `Of ${coverage.markets} settled NBA, NFL, NHL and college winner, spread, total and player markets with books, ${coverage.noGame} had no matched ESPN game, ${coverage.unread} were left undecided by the plays (a player prop never reached, a player not matched or off the box score, a play log that misses the final, a tie, a hockey shootout, or a quarter or half that can run into overtime), and ${coverage.decided} were decided.`, '',

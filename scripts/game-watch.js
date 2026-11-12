@@ -6,13 +6,16 @@
 // fresh prices for just the markets the plays have decided (a line reached, or the end-of-game play), 50 to a request. It buys on
 // paper the decided side, held to settlement, when its edge after the taker fee beats --margin (1¢) and something is offered at
 // that price: as many contracts as are offered, up to --contracts (25) a market and --per-game (25) across one game's markets, since
-// a feed error can turn several of a game's markets at once. The best edges get a game's room first; the size offered is saved. Trades go to data/paper/game-watch.jsonl and results to game-settled.jsonl (src/paper.js). The Sports US
+// a feed error can turn several of a game's markets at once. The best edges get a game's room first; the size offered is saved.
+// Each series and side runs the margin the walk-forward picker chose (data/history/agents/tune-report.json, scripts/agent-tune.js),
+// --margin where it had too few events to say, and none at all where it found no margin that pays. Trades go to data/paper/game-watch.jsonl and results to game-settled.jsonl (src/paper.js). The Sports US
 // switch on the leaderboard turns the Kalshi part off. --once runs one pass. No orders.
 import { setTimeout as sleep } from 'node:timers/promises';
 import { fetchMarkets, fetchOpenEvents } from '../src/kalshi.js';
 import { LEAGUES, gameIndex, usDate } from '../src/agents/fair-odds.js';
 import { SERIES, WATCHED_LEAGUES, compactGame, corePlay, decision, matchEvent, parseMarket } from '../src/agents/game-watch.js';
 import { take } from '../src/takers.js';
+import { TUNE_REPORT, pickedMargin } from '../src/tuner.js';
 import { fetchJson } from '../src/odds.js';
 import { departmentOf, loadDepartments, readSwitches } from '../src/departments.js';
 import { beat } from '../src/heartbeat.js';
@@ -114,13 +117,13 @@ async function trade(games, departments) {
   let books;
   try { books = new Map((await fetchMarkets(decided.map(d => d.ticker))).map(m => [m.ticker, m])); }
   catch (error) { warn({ books: error.message }); return counts; }
-  const picks = [];
+  const picks = [], report = readResearch(TUNE_REPORT, null);
   for (const { ticker, series, g, side, at } of decided) {
-    const m = books.get(ticker);
-    if (!m) continue;
+    const m = books.get(ticker), chosen = pickedMargin(report, AGENT, `${series} ${side}`, margin);
+    if (!m || chosen === null) continue;
     const book = { yesBid: Number(m.yes_bid_dollars ?? 0), yesAsk: Number(m.yes_ask_dollars ?? 1), yesAskSize: Number(m.yes_ask_size_fp ?? 0),
       yesBidSize: Number(m.yes_bid_size_fp ?? 0), fee_multiplier: m.fee_multiplier ?? 1 };
-    const fair = side === 'yes' ? 1 : 0, pick = take(fair, book, { feeRate, margin }), offered = side === 'yes' ? book.yesAskSize : book.yesBidSize; // No is bought by selling into the Yes bid
+    const fair = side === 'yes' ? 1 : 0, pick = take(fair, book, { feeRate, margin: chosen }), offered = side === 'yes' ? book.yesAskSize : book.yesBidSize; // No is bought by selling into the Yes bid
     if (pick && pick.side === side && offered > 0) picks.push({ ticker, series, g, side, at, fair, pick, offered });
   }
   for (const { ticker, series, g, side, at, fair, pick, offered } of picks.sort((a, b) => b.pick.edge - a.pick.edge)) {

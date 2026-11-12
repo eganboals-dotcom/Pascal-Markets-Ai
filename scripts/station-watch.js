@@ -4,8 +4,10 @@
 // --force), every --every-seconds (30) it also reads the 1-minute readings Kalshi's public city index carries for twelve of the
 // stations (about 2.4 minutes late, against 24 to 27 for the Mesonet). Kalshi's open KXHIGH/KXLOW markets are listed every 5
 // minutes; each pass reads fresh prices for just the ranges the readings have already decided (src/agents/station-watch.js), 50 to
-// a request, and buys on paper the decided side: one contract per market, held to settlement, when
-// its edge after the taker fee beats --margin (1¢) and something is offered at that price. The weather switch on the leaderboard
+// a request, and buys on paper the decided side, held to settlement, when its edge after the taker fee beats the margin and
+// something is offered at that price: as many contracts as are offered, up to --contracts (25) a market and --per-day (25) across a
+// series' day. The margin per series is the walk-forward picker's (scripts/agent-tune.js), --margin (1¢) where the history had too
+// few events to say; a series it found no paying margin for is not traded. The weather switch on the leaderboard
 // turns the Kalshi part off. Stations and series come from Agent D's caches in data/weather/. --once runs one pass. No orders.
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { setTimeout as sleep } from 'node:timers/promises';
@@ -14,15 +16,16 @@ import { kindOf, stationOf } from '../src/agents/fair-weather.js';
 import { INDEX_CITY, asosReadings, asosUrl, clean, climateDate, climateDayStart, decided, indexReadings, indexUrl, soFar, standardOffsetMs } from '../src/agents/station-watch.js';
 import { tickerDate } from '../src/agents/fair-odds.js';
 import { take } from '../src/takers.js';
+import { TUNE_REPORT, pickedMargin } from '../src/tuner.js';
 import { departmentOf, loadDepartments, readSwitches } from '../src/departments.js';
 import { beat } from '../src/heartbeat.js';
-import { downloadBusy, openLedger } from '../src/paper.js';
+import { downloadBusy, eventOf, openLedger } from '../src/paper.js';
 import { projectPath } from '../src/files.js';
 import { readResearch } from '../src/report.js';
 
 const option = (name, fallback) => process.argv.find(a => a.startsWith(`--${name}=`))?.split('=')[1] ?? fallback;
 const flag = name => process.argv.includes(`--${name}`);
-const minutes = Number(option('minutes', 10)), everyMs = Number(option('every-seconds', 30)) * 1000, margin = Number(option('margin', 0.01)), feeRate = readResearch('config/scan.json', {}).feeRate ?? 0.07;
+const minutes = Number(option('minutes', 10)), everyMs = Number(option('every-seconds', 30)) * 1000, margin = Number(option('margin', 0.01)), maxContracts = Number(option('contracts', 25)), perDay = Number(option('per-day', 25)), feeRate = readResearch('config/scan.json', {}).feeRate ?? 0.07;
 const AGENT = 'station-watch', PAUSE_MS = 3000, DAY_MS = 86400000, SETTLE_AFTER_MS = 6 * 3600000, NEXT_MS = 2 * minutes * 60000 + 5 * 60000, OVERLAP_MS = 15 * 60000, LIST_MS = 5 * 60000;
 const say = fields => console.log(JSON.stringify({ time: new Date().toISOString(), ...fields }));
 const warn = fields => console.error(JSON.stringify({ time: new Date().toISOString(), ...fields }));
@@ -38,7 +41,8 @@ for (const f of readdirSync(projectPath('data/weather')).filter(f => /^kalshi-KX
   watch.set(series, { code, offset: standardOffsetMs(readJson(`data/weather/station-${code}.json`).tz) });
 }
 const stations = new Map([...watch.values()].map(w => [w.code, w.offset]));
-const ledger = openLedger(AGENT), taken = new Set(ledger.trades.map(t => t.ticker));
+const ledger = openLedger(AGENT), taken = new Set(ledger.trades.map(t => t.ticker)), held = new Map(); // contracts held per series and day
+for (const t of ledger.trades) held.set(eventOf(t.ticker), (held.get(eventOf(t.ticker)) ?? 0) + (t.contracts ?? 1));
 
 async function readStations(now) {
   const readings = new Map();
@@ -100,18 +104,21 @@ async function trade(readings, departments) {
   if (calls.length) {
     try { books = new Map((await fetchMarkets(calls.map(c => c.ticker))).map(m => [m.ticker, m])); } catch (error) { warn({ books: error.message }); }
   }
+  const report = readResearch(TUNE_REPORT, null);
   for (const { series, code, kind, bound, call, ticker } of calls) {
-    const m = books.get(ticker);
-    if (!m) continue;
+    const m = books.get(ticker), chosen = pickedMargin(report, AGENT, series, margin);
+    if (!m || chosen === null) continue;
     const book = { yesBid: Number(m.yes_bid_dollars ?? 0), yesAsk: Number(m.yes_ask_dollars ?? 1), yesBidSize: Number(m.yes_bid_size_fp ?? 0),
       yesAskSize: Number(m.yes_ask_size_fp ?? 0), fee_multiplier: m.fee_multiplier ?? 1 };
-    const fair = call === 'yes' ? 1 : 0, pick = take(fair, book, { feeRate, margin });
-    if (!pick || !((pick.side === 'yes' ? book.yesAskSize : book.yesBidSize) > 0)) continue;
+    const fair = call === 'yes' ? 1 : 0, pick = take(fair, book, { feeRate, margin: chosen }), offered = pick?.side === 'yes' ? book.yesAskSize : book.yesBidSize;
+    // One station's readings decide every range of its day, so a bad reading can turn them all: the cap is per series and day.
+    const day = eventOf(m.ticker), contracts = Math.floor(Math.min(maxContracts, offered, perDay - (held.get(day) ?? 0)));
+    if (!pick || !(contracts >= 1)) continue;
     const row = { time: Date.now(), ticker: m.ticker, league: series, department: departmentOf(series, departments),
       game: `${code} ${kind} so far ${kind === 'high' ? bound.high : bound.low}°`, start: null, side: pick.side, price: pick.price, fee: pick.fee,
-      edge: pick.edge, fair, books: null, offered: pick.side === 'yes' ? book.yesAskSize : book.yesBidSize };
-    ledger.record(row); taken.add(m.ticker); counts.take++;
-    say({ take: m.ticker, side: pick.side, price: pick.price, edge: Number(pick.edge.toFixed(4)), offered: row.offered });
+      edge: pick.edge, fair, books: null, offered, contracts };
+    ledger.record(row); taken.add(m.ticker); held.set(day, (held.get(day) ?? 0) + contracts); counts.take++;
+    say({ take: m.ticker, side: pick.side, contracts, price: pick.price, edge: Number(pick.edge.toFixed(4)), offered: row.offered });
   }
   try { await ledger.settleDue((t, now) => now - t.time > SETTLE_AFTER_MS); } catch (error) { warn({ settle: error.message }); }
   return counts;

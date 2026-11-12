@@ -2,7 +2,8 @@
 // already decided it? Research only; no orders. Each settled KXHIGH/KXLOW market's books are walked in time order; at each book
 // the readings that had arrived by then on its climate day bound the official high or low (src/agents/station-watch.js).
 // Once that settles the range, the decided side is bought, one contract held to settlement, at the first book where its edge after
-// the taker fee beats --margin (1¢). A decided range that settled the other way counts as a wrong call, at its full loss.
+// the taker fee beats --margin (1¢). A decided range that settled the other way counts as a wrong call, at its full loss. The same
+// walk at each margin in MARGINS goes to station-watch-grid.json for the walk-forward picker (scripts/agent-tune.js).
 // Strikes, rules and station sites come from Agent D's caches in data/weather/ (so it runs after agent-weather.js), 5-minute and
 // hourly readings from the Iowa Environmental Mesonet, and for twelve stations the 1-minute readings in Kalshi's public city index,
 // each counted from the moment Kalshi received it (one request per city and climate day, cached; skipped while the history download
@@ -84,7 +85,8 @@ async function indexDay(city, date, offset) {
   return indexDays.get(key);
 }
 
-const trades = [], coverage = {};
+const MARGINS = [...new Set([0.01, 0.02, 0.03, 0.05, margin])].sort((a, b) => a - b);
+const trades = [], grid = [], coverage = {};
 for (const day of days) {
   const want = new Map();
   for await (const m of jsonLines(`${root}/${day}/markets.jsonl`)) {
@@ -104,7 +106,8 @@ for (const day of days) {
     const c = coverage[w.series];
     if (!readings.length || !w.books.length) continue;
     c.tested++;
-    let call = null;
+    let call = null, mainDone = false;
+    const open = new Set(MARGINS);
     // A row stands until the next one, or the 15-minute heartbeat when the price did not change, so a range decided in between
     // meets the book still standing. Rows stop once nobody bids, which means Kalshi had already priced it out.
     const books = w.books.sort((a, b) => a.time - b.time);
@@ -113,12 +116,20 @@ for (const day of days) {
       const standsUntil = Math.min(books[i + 1]?.time ?? Infinity, book.time + HEARTBEAT_MS);
       call ??= decided(w.strike, w.kind, soFar(readings, w.date, w.st.offset, standsUntil));
       if (!call) continue;
-      const trade = take(call === 'yes' ? 1 : 0, book, { feeRate, margin });
-      if (!trade) continue;
-      trades.push({ day, ticker: w.ticker, group: w.series, side: trade.side, price: trade.price, edge: trade.edge, pnl: settle(trade, w.value),
-        minutesIntoDay: Math.round((book.time - start) / 60000), feed: fast.length ? 'kalshi' : 'mesonet', wrong: (call === 'yes' ? 1 : 0) !== w.value });
-      c.trades++;
-      break;
+      for (const m of open) {
+        const t = take(call === 'yes' ? 1 : 0, book, { feeRate, margin: m });
+        if (!t) continue;
+        open.delete(m);
+        grid.push({ day, ticker: w.ticker, group: w.series, setting: m, pnl: settle(t, w.value), stake: t.price + t.fee });
+      }
+      const trade = !mainDone && take(call === 'yes' ? 1 : 0, book, { feeRate, margin });
+      if (trade) {
+        mainDone = true;
+        trades.push({ day, ticker: w.ticker, group: w.series, side: trade.side, price: trade.price, edge: trade.edge, pnl: settle(trade, w.value),
+          minutesIntoDay: Math.round((book.time - start) / 60000), feed: fast.length ? 'kalshi' : 'mesonet', wrong: (call === 'yes' ? 1 : 0) !== w.value });
+        c.trades++;
+      }
+      if (!open.size) break;
     }
     if (call) { c.decided++; if ((call === 'yes' ? 1 : 0) !== w.value) c.wrong++; }
   }
@@ -128,6 +139,7 @@ const summary = { ...summarize(trades), coverage, cushion: CUSHION };
 const money = x => (x < 0 ? '−$' : '$') + Math.abs(x).toFixed(2), cents = x => `${(x * 100).toFixed(1)}¢`;
 const totals = Object.values(coverage).reduce((a, c) => ({ decided: a.decided + c.decided, wrong: a.wrong + c.wrong, tested: a.tested + c.tested }), { decided: 0, wrong: 0, tested: 0 });
 writeProjectFile(`${root}/agents/station-watch-report.json`, JSON.stringify({ generatedAt: Date.now(), margin, lagMinutes, summary, trades }, null, 2) + '\n');
+writeProjectFile(`${root}/agents/station-watch-grid.json`, JSON.stringify({ generatedAt: Date.now(), agent: 'station-watch', setting: 'margin', settings: MARGINS, trades: grid }) + '\n');
 writeProjectFile(`${root}/agents/station-watch-report.md`, ['# Station-watch: readings so far against Kalshi, history test', '',
   `Research only. A range counts as decided once the station's readings so far (5-minute and hourly, and Kalshi's 1-minute ones where it has them), as they had arrived, settle it whatever the rest of the climate day does (cushion ${CUSHION.high}° on highs, ${CUSHION.low}° on lows). The decided side is bought at the first book where its edge after the taker fee beats ${cents(margin)}; one contract, held to settlement. Ranges are 97.5%, resampling whole dates. ${locked.length ? (final ? `The locked final exam (${locked[0]} to ${locked.at(-1)}) is included.` : `Locked final exam, not run: ${locked[0]} to ${locked.at(-1)}.`) : `No locked exam yet: fewer than ${minDaysToLock} days downloaded.`}`, '',
   `Mesonet readings count ${lagMinutes} minutes after their time; Kalshi's 1-minute readings count from when Kalshi received them${useIndex ? '' : ' (not read this run: the history download was running, or --no-index)'}. ${trades.filter(t => t.feed === 'kalshi').length} of ${trades.length} trades came on stations with Kalshi's feed.`, '',

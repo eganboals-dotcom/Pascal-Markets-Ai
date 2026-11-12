@@ -74,7 +74,7 @@ if (errorLines('backfill.err.log')) {
 const failed = [];
 checkInAll('queued', 'Download finished; queued behind the earlier history tests', RUN_MS);
 for (const [script, report] of [['kalshi-bandit', 'bandit-report.md'], ['agent-sportsbook', 'agents/sportsbook-report.md'], ['agent-game-watch', 'agents/game-watch-report.md'],
-  ['agent-longshot', 'agents/longshot-report.md'], ['agent-weather', 'agents/weather-report.md'], ['agent-station-watch', 'agents/station-watch-report.md'], ['agent-weather-maker', 'agents/weather-maker-report.md'],
+  ['agent-longshot', 'agents/longshot-report.md'], ['agent-weather', 'agents/weather-report.md'], ['agent-station-watch', 'agents/station-watch-report.md'], ['agent-weather-maker', 'agents/weather-maker-report.md'], ['agent-tune', 'agents/tune-report.md'],
   ['agent-crossvenue', 'agents/crossvenue-report.md'], ['departments-report', 'departments-report.md']]) {
   const agent = AGENT_OF[script];
   try {
