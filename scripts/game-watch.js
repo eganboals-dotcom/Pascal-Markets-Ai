@@ -1,4 +1,4 @@
-// Game-watch, live (sports department): paper trades on NBA, NFL and NHL "N or more" markets the live score has already decided.
+// Game-watch, live (sports department): paper trades on NBA, NFL, NHL and college football and basketball "N or more" markets the live score has already decided.
 // Every --every-seconds (20) it reads ESPN's scoreboards and the play-by-play of each game in progress (or finished within the hour;
 // free, no key, never Kalshi) and notes how far behind the newest play ESPN is. Once the history download is done (or with --force),
 // it also reads Kalshi's open total, team-total and player markets (src/agents/game-watch.js lists them) and buys on paper Yes on any market the plays have taken to its
@@ -31,10 +31,12 @@ const ledger = openLedger(AGENT), taken = new Set(ledger.trades.map(t => t.ticke
 async function liveGames(now) {
   const games = [];
   for (const league of WATCHED_LEAGUES) {
-    let events;
-    try { events = (await fetchJson(`${ESPN}/${LEAGUES[league].site}/scoreboard`, `ESPN ${league} scoreboard`)).json.events ?? []; }
-    catch (error) { warn({ league, error: error.message }); continue; }
-    for (const e of events) {
+    const events = new Map(); // college scoreboards need a division query (FBS, FCS, Division I) to list every game
+    for (const query of LEAGUES[league].queries ?? ['']) {
+      try { for (const e of (await fetchJson(`${ESPN}/${LEAGUES[league].site}/scoreboard?${query}`, `ESPN ${league} scoreboard`)).json.events ?? []) events.set(e.id, e); }
+      catch (error) { warn({ league, query, error: error.message }); }
+    }
+    for (const e of events.values()) {
       const state = e.status?.type?.state, c = e.competitions?.[0], side = s => c?.competitors?.find(x => x.homeAway === s)?.team?.abbreviation;
       if (state !== 'in' && !(state === 'post' && now - Date.parse(e.date) < 4 * 3600000 + RECENT_MS)) continue;
       try {
@@ -81,7 +83,7 @@ async function pass() {
   // How far behind the newest play ESPN's feed is, per game in progress (the wall clock of the last play against now).
   const delays = games.filter(g => g.live && g.game.plays.length).map(g => Math.round((now - g.game.plays.at(-1).t) / 1000)).sort((a, b) => a - b);
   const live = games.filter(g => g.live).length;
-  const read = games.length ? `${live} NBA, NFL and NHL games in progress, ${games.length - live} just finished; ESPN's newest play ${delays.length ? `${delays[Math.floor(delays.length / 2)]} s old (median)` : 'not yet in'}` : 'No NBA, NFL or NHL game in progress';
+  const read = games.length ? `${live} NBA, NFL, NHL and college games in progress, ${games.length - live} just finished; ESPN's newest play ${delays.length ? `${delays[Math.floor(delays.length / 2)]} s old (median)` : 'not yet in'}` : 'No NBA, NFL, NHL or college game in progress';
   try { await ledger.settleDue((t, at) => at - t.time > SETTLE_AFTER_MS); } catch (error) { warn({ settle: error.message }); }
   const tally = `${ledger.trades.length} paper trades so far, ${ledger.settled.size} settled, ${money(ledger.pnl())}`;
   if (!games.length) { checkIn('idle', `${read}. ${tally}`, IDLE_MS + NEXT_MS); say({ games: 0 }); return IDLE_MS; }

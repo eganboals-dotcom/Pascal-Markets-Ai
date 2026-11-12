@@ -1,4 +1,4 @@
-// Game-watch on the downloaded history (sports department): did Kalshi keep selling "N or more" NBA, NFL and NHL markets cheap
+// Game-watch on the downloaded history (sports department): did Kalshi keep selling "N or more" NBA, NFL, NHL and college markets cheap
 // after the game had already reached N? Research only; no orders. Game totals, quarter, half and period totals, team totals, NBA
 // player points, rebounds, assists, threes and points+rebounds+assists, and NHL player goals can only go up, so the play that reaches the threshold decides Yes
 // (src/agents/game-watch.js). ESPN's free play-by-play gives each play's wall-clock time; --lag-seconds (60) after it, Yes is bought,
@@ -83,9 +83,9 @@ const money = x => (x < 0 ? '−$' : '$') + Math.abs(x).toFixed(2), wrongMain = 
 writeProjectFile(`${root}/agents/game-watch-report.json`, JSON.stringify({ generatedAt: Date.now(), margin, lagSeconds,
   summary: { ...main, wrong: wrongMain, coverage, byLag: byLag.map(({ lag, trades: n, settled, wrong }) => ({ lag, trades: n, settled, wrong })) },
   trades: trades[lagSeconds] }, null, 2) + '\n');
-writeProjectFile(`${root}/agents/game-watch-report.md`, ['# Game-watch: NBA, NFL and NHL markets already decided by the score, history test', '',
+writeProjectFile(`${root}/agents/game-watch-report.md`, ['# Game-watch: NBA, NFL, NHL and college markets already decided by the score, history test', '',
   `Research only. The play that took a game total, team total or player stat to its line is found in ESPN's play-by-play; ${lagSeconds} seconds after that play's wall-clock time, Yes is bought at the first Kalshi book (1-minute candles, one contract) where its edge after the taker fee beats ${(margin * 100).toFixed(0)}¢, held to settlement. Ranges are 97.5%, resampling whole games. ${locked.length ? (final ? `The locked final exam (${locked[0]} to ${locked.at(-1)}) is included.` : `Locked final exam, not run: ${locked[0]} to ${locked.at(-1)}.`) : `No locked exam yet: fewer than ${minDaysToLock} days downloaded.`}`, '',
-  `Of ${coverage.markets} settled NBA, NFL and NHL total and player markets with books, ${coverage.noGame} had no matched ESPN game, ${coverage.unread} settled Yes but could not be read from the plays (player not matched, tallies off the box score, a play log that misses the final, or a hockey shootout), ${coverage.notReached} never reached their line (or could not be read and settled No), and ${coverage.decided} were decided during the game.`, '',
+  `Of ${coverage.markets} settled NBA, NFL, NHL and college total and player markets with books, ${coverage.noGame} had no matched ESPN game, ${coverage.unread} settled Yes but could not be read from the plays (player not matched, tallies off the box score, a play log that misses the final, or a hockey shootout), ${coverage.notReached} never reached their line (or could not be read and settled No), and ${coverage.decided} were decided during the game.`, '',
   markdownTable(['Buy this long after the deciding play', 'Trades', 'Settled P&L (range)', 'Per trade', 'Wrong calls'],
     byLag.map(s => [s.lag < 60 ? `${s.lag} s` : `${s.lag / 60} min`, s.trades, s.trades ? `${money(s.settled.total)} (${money(s.settled.low)} to ${money(s.settled.high)})` : '', `${(s.perTrade * 100).toFixed(1)}¢`, s.wrong])), '',
   main.trades ? markdownTable(['Series', 'Trades', 'P&L'], Object.entries(main.groups).sort().map(([g, v]) => [g, v.trades, money(v.pnl)])) : '', ''].join('\n'));

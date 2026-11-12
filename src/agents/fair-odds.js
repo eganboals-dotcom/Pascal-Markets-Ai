@@ -65,8 +65,9 @@ const shiftDate = (date, days) => new Date(Date.parse(date) + days * 86400000).t
 
 // ESPN closing-line rows by league and Eastern date.
 export function gameIndex(games) {
-  const index = new Map();
-  for (const g of games) index.set(`${g.league}|${g.date}`, [...(index.get(`${g.league}|${g.date}`) ?? []), g]);
+  // An evening game also sits on the next UTC day's scoreboard, so the closing file can hold it twice; the last row is kept.
+  const unique = [...new Map(games.map(g => [g.eventId ? `${g.league}|${g.eventId}` : g, g])).values()], index = new Map();
+  for (const g of unique) index.set(`${g.league}|${g.date}`, [...(index.get(`${g.league}|${g.date}`) ?? []), g]);
   return index;
 }
 

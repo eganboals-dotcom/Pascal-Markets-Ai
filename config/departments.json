@@ -24,7 +24,7 @@
     "injuries": { "name": "Injuries and lineups", "role": "research", "built": false },
     "sportsbook": { "name": "Sportsbook taker (Agent A)", "role": "trading", "built": true },
     "gap-taker": { "name": "Live gap-taker, paper (Agent A live)", "role": "trading", "built": true },
-    "game-watch": { "name": "NBA, NFL and NHL totals and props the score already decided", "role": "trading", "built": true },
+    "game-watch": { "name": "NBA, NFL, NHL and college totals and props the score already decided", "role": "trading", "built": true },
     "soccer-books": { "name": "Live three-way soccer fair value", "role": "research", "built": false },
     "tennis-odds": { "name": "Tennis odds", "role": "research", "built": false }
   },

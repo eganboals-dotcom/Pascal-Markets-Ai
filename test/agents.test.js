@@ -72,6 +72,7 @@ test('game tickers match ESPN games exactly, by Eastern date and away+home codes
   assert.equal(matchMarket('KXNBAGAME-26NOV04DALSAS-DAL', nba).game.eventId, '2');
   assert.equal(matchMarket('KXNBAGAME-26NOV04CHINYK-NYK', gameIndex([game('CHI', 'NY', '1'), game('CHI', 'NYK', '3')])).game.eventId, '3'); // exact beats prefix
   assert.equal(matchMarket('KXNBAGAME-26NOV04CHINYK-NYK', gameIndex([game('CHI', 'NY', '1'), game('CHI', 'NY', '4')])), null); // a tie is skipped
+  assert.equal(matchMarket('KXNBAGAME-26NOV04CHINYK-NYK', gameIndex([game('CHI', 'NY', '1'), game('CHI', 'NY', '1')])).game.eventId, '1'); // one game saved twice
   assert.equal(matchMarket('KXNBAGAME-26NOV04ATLWAS-ATL', gameIndex([game('ATL', 'WSH', '5')])).game.eventId, '5');
   // Neutral site listed the other way round: Kalshi's away team is ESPN's home team, so it gets ESPN's home price.
   const swapped = matchMarket('KXNBAGAME-26NOV04NYCHI-NY', gameIndex([game('CHI', 'NY', '6')]));

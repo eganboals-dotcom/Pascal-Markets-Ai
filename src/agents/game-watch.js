@@ -1,5 +1,5 @@
 // Game-watch (sports department): the moment a live game decides a Kalshi "N or more" market. A game total, team total or player
-// count can only go up, so once ESPN's play-by-play shows it at the threshold, Yes has won. NBA, NFL and NHL. Research only; no orders.
+// count can only go up, so once ESPN's play-by-play shows it at the threshold, Yes has won. NBA, NFL, NHL and college. Research only; no orders.
 import { LEAGUES, codeSimilarity, matchGame, teamCode } from './fair-odds.js';
 
 // Series -> what they count. Totals and team totals are points (goals in hockey), over the whole game or the listed periods
@@ -17,9 +17,15 @@ export const SERIES = {
   KXNFL3QTOTAL: total('nfl', [3]), KXNFLTEAMTOTAL: team('nfl'), KXNFL1HTEAMTOTAL: team('nfl', [1, 2]),
   KXNHLTOTAL: total('nhl'), KXNHL1PTOTAL: total('nhl', [1]), KXNHL2PTOTAL: total('nhl', [2]), KXNHL3PTOTAL: total('nhl', [3]),
   KXNHLTEAMTOTAL: team('nhl'), KXNHLGOAL: player('nhl', 'goals'),
+  // College: football in quarters, men's basketball in two halves. A half or quarter count leaves overtime out, so it can only
+  // fall short of a count that includes it: a line reached without overtime is reached either way.
+  KXNCAAFTOTAL: total('ncaaf'), KXNCAAF1HTOTAL: total('ncaaf', [1, 2]), KXNCAAF2HTOTAL: total('ncaaf', [3, 4]), KXNCAAF1QTOTAL: total('ncaaf', [1]),
+  KXNCAAF2QTOTAL: total('ncaaf', [2]), KXNCAAF3QTOTAL: total('ncaaf', [3]), KXNCAAF4QTOTAL: total('ncaaf', [4]),
+  KXNCAAFTEAMTOTAL: team('ncaaf'), KXNCAAF1HTEAMTOTAL: team('ncaaf', [1, 2]),
+  KXNCAAMBTOTAL: total('ncaab'), KXNCAAMB1HTOTAL: total('ncaab', [1]), KXNCAAMB2HTOTAL: total('ncaab', [2]), KXNCAAMBTEAMTOTAL: team('ncaab'),
 };
 export const WATCHED_LEAGUES = [...new Set(Object.values(SERIES).map(s => s.league))];
-export const COMPACT_VERSION = 2;
+export const COMPACT_VERSION = 3;
 
 // KXNBATOTAL-26NOV05MIAGSW-217, KXNBATEAMTOTAL-26NOV05MIAGSW-GSW115, KXNBAPTS-26NOV05MIAGSW-GSWYLENDEBORG1-10; null otherwise.
 export function parseMarket(ticker) {
@@ -35,7 +41,7 @@ export function parseMarket(ticker) {
 // The ESPN game (from a gameIndex of { league, date, awayCode, homeCode, eventId } rows) of a parsed market's event code such as
 // 26NOV05MIAGSW: the away code is its first 2 to 4 letters, so each split is tried; null unless one matches.
 export function matchEvent(market, index) {
-  for (const k of [3, 2, 4]) {
+  for (const k of [3, 2, 4, 5]) {
     const match = matchGame(`${LEAGUES[market.league].series}-${market.dateCode}${market.teams}-${market.teams.slice(0, k)}`, index);
     if (match?.league === market.league && match.isAway) return match.game;
   }
@@ -80,12 +86,12 @@ export function compactGame(summary, eventId, league = 'nba') {
     }
   }
   const drives = summary.drives ? [...(summary.drives.previous ?? []), summary.drives.current].flatMap(d => d?.plays ?? []) : [];
-  const raw = league === 'nfl' ? [...new Map(drives.map(p => [p.id, p])).values()].sort((a, b) => Number(a.sequenceNumber) - Number(b.sequenceNumber)) : summary.plays ?? [];
+  const raw = LEAGUES[league]?.site.startsWith('football/') ? [...new Map(drives.map(p => [p.id, p])).values()].sort((a, b) => Number(a.sequenceNumber) - Number(b.sequenceNumber)) : summary.plays ?? [];
   const shootout = league === 'nhl' && raw.some(p => (p.period?.number ?? 0) >= 5);
   const plays = raw.map(p => {
     const scoring = Boolean(p.scoringPlay) && !(league === 'nhl' && (p.period?.number ?? 0) >= 5), people = p.participants ?? [];
     const typed = people.some(x => x.type), id = x => x?.athlete?.id ?? null;
-    return { t: Date.parse(p.wallclock), away: Number(p.awayScore), home: Number(p.homeScore), period: p.period?.number ?? 0,
+    return { t: Date.parse(p.wallclock), away: Number(p.awayScore), home: Number(p.homeScore), period: p.period?.number ?? 0, scoring,
       scorer: scoring ? id(typed ? people.find(x => x.type === 'scorer') : people[0]) : null, value: scoring ? Number(p.scoreValue) || 0 : 0,
       assisters: scoring ? (typed ? people.filter(x => x.type === 'assister') : people.slice(1, 2)).map(id).filter(Boolean) : [],
       rebounder: /rebound/i.test(p.type?.text ?? '') ? id(people[0]) : null };
@@ -111,7 +117,9 @@ function playerSeries(game, id, stat) {
 }
 
 // Wall-clock time of the play that took the market to its threshold, or null when it never got there (or cannot be read).
-// Hockey games settled in a shootout are skipped, since whether a total counts the shootout goal is not checked.
+// Hockey games settled in a shootout are skipped, since whether a total counts the shootout goal is not checked. In football a line
+// counts as reached only on a scoring play: ESPN's college log once showed a touchdown's points on a timeout and a run before the
+// touchdown (Buffalo at Miami (OH), Nov 3), and the market bought on it settled No.
 export function decidedAt(market, game) {
   let series;
   if (market.kind === 'player') {
@@ -125,10 +133,11 @@ export function decidedAt(market, game) {
       const gain = (side ? p[side] - prev[side] : p.away + p.home - prev.away - prev.home);
       if (!market.periods || market.periods.includes(p.period)) count += gain; // a correction (overturned basket) takes points back
       prev = p;
-      return { t: p.t, value: count };
+      return { t: p.t, value: count, scoring: p.scoring };
     });
     const last = game.plays.at(-1);
     if (!last || last.away !== game.away.score || last.home !== game.home.score) return null; // play log disagrees with the final
   }
-  return series?.find(s => s.value >= market.threshold)?.t ?? null;
+  const football = LEAGUES[market.league]?.site.startsWith('football/');
+  return series?.find(s => s.value >= market.threshold && (!football || s.scoring))?.t ?? null;
 }
