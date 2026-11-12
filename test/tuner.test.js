@@ -60,3 +60,19 @@ test('ranking by the low end in dollars prefers many thin trades over a few fat 
   assert.equal(bestSetting(rows, { quick: false, minEvents: 5 }).setting, 0.05); // 5.3% on stake against 2.0%
   assert.equal(bestSetting(rows, { quick: false, minEvents: 5, objective: 'low' }).setting, 0.01); // 20 x 2¢ = 40¢ against 5 x 5¢ = 25¢
 });
+
+test('a group keeps the picked setting only where the walk beat the fixed default on the same days', async () => {
+  const { guardPicks } = await import('../src/tuner.js');
+  const walk = { days: ['d1', 'd2', 'd3'], taken: [{ group: 'G', day: 'd2', pnl: 0.1 }, { group: 'H', day: 'd3', pnl: 0.4 }] };
+  const trades = [
+    { group: 'G', day: 'd1', setting: 0.01, pnl: -9 }, // the first day is outside the comparison
+    { group: 'G', day: 'd2', setting: 0.01, pnl: 0.5 }, { group: 'H', day: 'd3', setting: 0.01, pnl: 0.2 },
+    { group: 'K', day: 'd3', setting: 0.01, pnl: -0.3 }];
+  const next = { G: { pick: 0.05, events: 12 }, H: { pick: 0.03, events: 12 }, K: { pick: 'off', events: 12 }, L: { pick: 'default', events: 2 } };
+  const guarded = guardPicks(next, walk, trades, 0.01);
+  assert.deepEqual(guarded.G, { pick: 0.01, events: 12, guarded: true, picker: 0.1, fixed: 0.5 }); // 1¢ made more, so 1¢ runs
+  assert.equal(guarded.H.pick, 0.03); // the picker made more
+  assert.equal(guarded.K.pick, 'off'); // off made $0 where 1¢ lost
+  assert.equal(guarded.L.pick, 'default');
+  assert.equal(next.G.pick, 0.05); // the input is not changed
+});

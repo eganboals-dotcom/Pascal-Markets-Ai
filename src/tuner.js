@@ -64,3 +64,15 @@ export function pickedMargin(report, agent, group, fallback) {
   if (!next || next.pick === 'default') return fallback;
   return next.pick === 'off' ? null : next.pick;
 }
+
+// The live agents follow a group's pick (a setting or "off") only where the walk made more in dollars than the fixed default on
+// the same days (all but the first, which the walk cannot trade); elsewhere the group runs the default. "default" picks pass as is.
+export function guardPicks(next, walk, trades, fixed) {
+  const sum = list => list.reduce((a, t) => a + t.pnl, 0);
+  return Object.fromEntries(Object.entries(next).map(([group, n]) => {
+    if (n.pick === 'default' || n.pick === fixed) return [group, n];
+    const picker = sum(walk.taken.filter(t => t.group === group));
+    const plain = sum(trades.filter(t => t.group === group && t.setting === fixed && t.day > walk.days[0]));
+    return [group, picker > plain ? n : { pick: fixed, events: n.events, guarded: true, picker, fixed: plain }];
+  }));
+}
