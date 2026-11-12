@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { americanProb, bookAt, brierComparison, noVig, settle, summarize, take } from '../src/takers.js';
-import { bucketOf, longshotRules } from '../src/agents/longshot.js';
+import { bucketOf, longshotRules, ruleTracker } from '../src/agents/longshot.js';
 import { closingRow, gameIndex, matchGame, matchMarket, parseGameTicker, soccerTeamScore, tickerDate } from '../src/agents/fair-odds.js';
 import { dailyExtremes, errorModel, paysYes, stationOf, strikeProbability } from '../src/agents/fair-weather.js';
 import { hedge, polyGame, polyUsFee } from '../src/agents/cross-venue.js';
@@ -46,6 +46,14 @@ test('longshotRules learns to fade cheap Yes contracts only with enough events b
   assert.equal(longshotRules(samples.slice(0, 10)).size, 0); // too few events
   assert.equal(bucketOf(0.999), 11);
   assert.equal(bucketOf(0), 0);
+  // The one-at-a-time tracker gives the same rules, including events with several markets and mixed outcomes.
+  const mixed = [...samples, ...Array.from({ length: 60 }, (_, i) => ({ ticker: `KXB-E${i % 35}-${i}`, bucket: bucketOf(0.03), book: book(0.02, 0.04), settle: i % 4 ? 0 : 1 }))];
+  const tracker = ruleTracker();
+  mixed.forEach(s => tracker.add(s));
+  const want = longshotRules(mixed), got = tracker.rules();
+  assert.deepEqual([...got.keys()].sort(), [...want.keys()].sort());
+  for (const [k, r] of want) assert.ok(got.get(k).side === r.side && got.get(k).events === r.events && Math.abs(got.get(k).mean - r.mean) < 1e-9);
+  assert.equal(want.size, 2); // 5¢ never wins: buy No; 3¢ wins a quarter of the time: buy Yes
 });
 
 test('game tickers match ESPN games exactly, by Eastern date and away+home codes', () => {

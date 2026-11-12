@@ -33,6 +33,34 @@ export function longshotRules(samples, { minEvents = 30, margin = 0.01, feeRate 
   return rules;
 }
 
+// longshotRules kept up to date one sample at a time, for walks over millions of samples (scripts/becker-longshot.js): each bucket
+// and side keeps its per-event sums and the running total of their means, so rules() costs one pass over the buckets.
+export function ruleTracker({ minEvents = 30, margin = 0.01, feeRate = 0.07 } = {}) {
+  const stats = new Map(); // bucket|side -> { events: Map(event -> [sum, n]), total: sum of event means }
+  return {
+    add(s) {
+      const event = eventOf(s.ticker);
+      for (const side of ['yes', 'no']) {
+        const key = `${s.bucket}|${side}`;
+        if (!stats.has(key)) stats.set(key, { events: new Map(), total: 0 });
+        const st = stats.get(key), [sum = 0, n = 0] = st.events.get(event) ?? [];
+        const next = [sum + settle(sideTrade(side, s.book, feeRate), s.settle), n + 1];
+        st.total += next[0] / next[1] - (n ? sum / n : 0);
+        st.events.set(event, next);
+      }
+    },
+    rules() {
+      const rules = new Map();
+      for (const [key, { events, total }] of stats) {
+        if (events.size < minEvents) continue;
+        const mean = total / events.size, [bucket, side] = key.split('|');
+        if (mean > margin && mean > (rules.get(Number(bucket))?.mean ?? -Infinity)) rules.set(Number(bucket), { side, mean, events: events.size });
+      }
+      return rules;
+    },
+  };
+}
+
 // How often Yes won in each price bucket, beside the average price paid for it.
 export function calibration(samples) {
   return BUCKETS.slice(0, -1).map((_, bucket) => {
