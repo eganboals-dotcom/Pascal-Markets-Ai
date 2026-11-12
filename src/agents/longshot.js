@@ -1,7 +1,10 @@
 // Agent C (plan Phase 1F): the favorite-longshot bias. Contracts priced near 1–10¢ tend to win less often than their price says,
 // and near-certainties a little more often. Rules are learned per price bucket from earlier events only. Research only; no orders.
 import { eventOf } from '../stats.js';
-import { settle, sideTrade } from '../takers.js';
+import { MAX_BOOK_AGE_MS, settle, sideTrade } from '../takers.js';
+import { quoteEnd } from '../history.js';
+
+export const LEAD_MS = 3600000; // a market is read an hour before quoting would stop (before play for games)
 
 export const BUCKETS = [0, 0.02, 0.05, 0.10, 0.20, 0.35, 0.50, 0.65, 0.80, 0.90, 0.95, 0.98, 1.0001];
 export const bucketOf = mid => BUCKETS.findIndex((edge, i) => i < BUCKETS.length - 1 && mid >= edge && mid < BUCKETS[i + 1]);
@@ -38,4 +41,17 @@ export function calibration(samples) {
       meanMid: list.length ? list.reduce((a, s) => a + s.mid, 0) / list.length : null,
       yesRate: list.length ? list.reduce((a, s) => a + s.settle, 0) / list.length : null };
   });
+}
+
+// The live agent's read of one open market (scripts/longshot-watch.js), as the history test reads it: in the 30 minutes up to an
+// hour before quoting would stop, with at least minVolume traded, bought on the side its price bucket's rule names. The history
+// kept markets whose final volume reached 1,000; live, only the volume so far is known, so this keeps a few fewer.
+export function liveTrade(market, rules, { now = Date.now(), mm = {}, feeRate = 0.07, feeMultiplier = 1, minVolume = 1000 } = {}) {
+  const at = quoteEnd(market, mm) - LEAD_MS;
+  if (!(now <= at && now > at - MAX_BOOK_AGE_MS) || !(Number(market.volume_fp) >= minVolume)) return null;
+  const book = { yesBid: Number(market.yes_bid_dollars ?? 0), yesAsk: Number(market.yes_ask_dollars ?? 1), fee_multiplier: feeMultiplier };
+  const rule = rules.find(r => r.bucket === bucketOf((book.yesBid + book.yesAsk) / 2));
+  if (!rule) return null;
+  const trade = sideTrade(rule.side, book, feeRate), offered = Number(rule.side === 'yes' ? market.yes_ask_size_fp : market.yes_bid_size_fp);
+  return trade.price > 0 && trade.price < 1 && offered >= 1 ? { ...trade, rule, offered } : null;
 }

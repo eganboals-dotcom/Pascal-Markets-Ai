@@ -13,7 +13,8 @@ const DAY_MS = 86400000;
 // Each paper agent's trades file and the file its settled results go to; the dashboard lists them all on department pages.
 export const LEDGERS = [{ agent: 'gap-taker', trades: 'gap-taker.jsonl', settled: 'gap-settled.jsonl' },
   { agent: 'station-watch', trades: 'station-watch.jsonl', settled: 'station-settled.jsonl' },
-  { agent: 'game-watch', trades: 'game-watch.jsonl', settled: 'game-settled.jsonl' }];
+  { agent: 'game-watch', trades: 'game-watch.jsonl', settled: 'game-settled.jsonl' },
+  { agent: 'longshot', trades: 'longshot.jsonl', settled: 'longshot-settled.jsonl' }];
 
 // Kalshi allows about 10 requests a second and the download uses all of it, so live agents wait while the download runs or while
 // the model run's waiter is still in its waiting or retry phase (its maker heartbeat says 'waiting').

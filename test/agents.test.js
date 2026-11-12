@@ -152,3 +152,18 @@ test('soccer markets match home first, by ESPN codes or team names, and price ho
   assert.equal(matchMarket('KXSUPERLIGGAME-26NOV07GOZBAS-TIE', turkey, ['GOZ', 'BAS', 'TIE']), null); // once matched through "AS"
   assert.equal(matchGame('KXEPLGAME-26NOV08BRIBRE-BRI', index), null); // the US matcher never reads soccer away-first
 });
+
+test('the live longshot agent reads a market once, in the half hour up to an hour before quoting stops', async () => {
+  const { liveTrade } = await import('../src/agents/longshot.js');
+  const now = Date.parse('2026-11-12T20:00:00Z'), mm = { pullMinutes: 60, pullBeforeExpiryMinutes: 240 }, rules = [{ bucket: bucketOf(0.07), side: 'yes' }];
+  // Quoting stops 4 hours before the expected expiration, so the read time is 5 hours before it.
+  const market = minutes => ({ close_time: '2026-11-20T00:00:00Z', expected_expiration_time: new Date(now + (300 + minutes) * 60000).toISOString(),
+    volume_fp: '5000.00', yes_bid_dollars: '0.0600', yes_ask_dollars: '0.0800', yes_ask_size_fp: '40.00', yes_bid_size_fp: '9.00' });
+  const t = liveTrade(market(10), rules, { now, mm });
+  assert.equal(t.side, 'yes'); assert.equal(t.price, 0.08); assert.equal(t.offered, 40);
+  assert.equal(liveTrade(market(40), rules, { now, mm }), null); // more than 30 minutes before the read time
+  assert.equal(liveTrade(market(-1), rules, { now, mm }), null); // past it
+  assert.equal(liveTrade({ ...market(10), volume_fp: '999.00' }, rules, { now, mm }), null);
+  assert.equal(liveTrade({ ...market(10), yes_ask_size_fp: '0.00' }, rules, { now, mm }), null); // nothing offered
+  assert.equal(liveTrade({ ...market(10), yes_bid_dollars: '0.3000', yes_ask_dollars: '0.3200' }, rules, { now, mm }), null); // no rule for 31¢
+});

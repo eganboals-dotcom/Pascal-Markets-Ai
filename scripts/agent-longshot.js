@@ -4,7 +4,7 @@
 // before their close day, so the day just before overlaps it. One contract per market at the posted price, taker fee, held to
 // settlement. Closing-line value: the entry against the mid at the pull time. The newest 10 days stay locked unless --final.
 import { historyDays, jsonLines, quoteEnd, settlementValue } from '../src/history.js';
-import { bucketLabel, bucketOf, calibration, longshotRules } from '../src/agents/longshot.js';
+import { LEAD_MS, bucketLabel, bucketOf, calibration, longshotRules } from '../src/agents/longshot.js';
 import { GATE_RANGE, MAX_BOOK_AGE_MS, settle, sideTrade, summarize } from '../src/takers.js';
 import { bootstrapTotal, sumByEvent } from '../src/stats.js';
 import { markdownTable, readResearch } from '../src/report.js';
@@ -14,7 +14,6 @@ const root = process.argv.slice(2).find(a => !a.startsWith('--')) ?? 'data/histo
 const final = process.argv.includes('--final');
 const margin = Number(process.argv.find(a => a.startsWith('--margin='))?.split('=')[1] ?? 0.01);
 const config = readResearch('config/scan.json', {}), mm = config.mm ?? {}, feeRate = config.feeRate ?? 0.07;
-const LEAD_MS = 3600000;
 const mid = r => (r.yesBid + r.yesAsk) / 2;
 
 async function loadDay(dir) {
@@ -62,7 +61,9 @@ summary.gateC = summary.passes && summary.clv.low > 0;
 const table = calibration(seen);
 const money = x => (x < 0 ? '−$' : '$') + Math.abs(x).toFixed(2), cents = x => x === null ? '' : `${(x * 100).toFixed(1)}¢`;
 const range = r => `${money(r.total)} (${money(r.low)} to ${money(r.high)})`;
-writeProjectFile(`${root}/agents/longshot-report.json`, JSON.stringify({ generatedAt: Date.now(), margin, summary, calibration: table, days: daily, trades }, null, 2) + '\n');
+// The rules the live agent trades next (scripts/longshot-watch.js), learned from every day read.
+const next = [...longshotRules(seen, { margin, feeRate })].map(([bucket, r]) => ({ bucket, label: bucketLabel(bucket), side: r.side, mean: r.mean, events: r.events }));
+writeProjectFile(`${root}/agents/longshot-report.json`, JSON.stringify({ generatedAt: Date.now(), margin, summary, calibration: table, next, days: daily, trades }, null, 2) + '\n');
 writeProjectFile(`${root}/agents/longshot-report.md`, ['# Agent C: favorite-longshot fade, walk-forward', '',
   'Research only. Each settled market is read an hour before quoting would stop (before play for games). A day is traded by price-bucket rules learned from days at least two before it: the better side of a bucket is bought only where at least 30 earlier events back it and its mean settled return beats the margin. One contract at the posted price, taker fee, held to settlement.', '',
   `Ranges are 97.5%, resampling whole events. Margin ${cents(margin)}. ${locked.length ? (final ? `The locked final exam (${locked[0]} to ${locked.at(-1)}) is included.` : `Locked final exam, not run: ${locked[0]} to ${locked.at(-1)}.`) : `No locked exam yet: fewer than ${minDaysToLock} days downloaded.`}`, '',
