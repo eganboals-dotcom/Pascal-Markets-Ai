@@ -28,8 +28,10 @@ const money = x => (x < 0 ? '−$' : '$') + Math.abs(x).toFixed(2);
 const ledger = openLedger(AGENT), taken = new Set(ledger.trades.map(t => t.ticker));
 
 // Games in progress, or finished within the hour (a decided market can stay cheap until it settles), with their plays.
+// A finished game's plays no longer change, so its summary is fetched once and kept while it stays in the window.
+const finished = new Map();
 async function liveGames(now) {
-  const games = [];
+  const games = [], seen = new Set();
   for (const league of WATCHED_LEAGUES) {
     const events = new Map(); // college scoreboards need a division query (FBS, FCS, Division I) to list every game
     for (const query of LEAGUES[league].queries ?? ['']) {
@@ -39,14 +41,20 @@ async function liveGames(now) {
     for (const e of events.values()) {
       const state = e.status?.type?.state, c = e.competitions?.[0], side = s => c?.competitors?.find(x => x.homeAway === s)?.team?.abbreviation;
       if (state !== 'in' && !(state === 'post' && now - Date.parse(e.date) < 4 * 3600000 + RECENT_MS)) continue;
+      const key = `${league}-${e.id}`;
+      seen.add(key);
+      if (state === 'post' && finished.has(key)) { games.push(finished.get(key)); continue; }
       try {
         const summary = (await fetchJson(`${ESPN}/${LEAGUES[league].site}/summary?event=${e.id}`, `ESPN ${league} ${e.id}`)).json;
-        games.push({ row: { league, date: usDate(Date.parse(e.date)), awayCode: side('away'), homeCode: side('home'), eventId: e.id, start: e.date },
-          game: compactGame(summary, e.id, league), live: state === 'in', name: `${league.toUpperCase()} ${side('away')} at ${side('home')}` });
+        const entry = { row: { league, date: usDate(Date.parse(e.date)), awayCode: side('away'), homeCode: side('home'), eventId: e.id, start: e.date },
+          game: compactGame(summary, e.id, league), live: state === 'in', name: `${league.toUpperCase()} ${side('away')} at ${side('home')}` };
+        games.push(entry);
+        if (state === 'post') finished.set(key, entry);
       } catch (error) { warn({ league, event: e.id, error: error.message }); }
       await sleep(250);
     }
   }
+  for (const key of finished.keys()) if (!seen.has(key)) finished.delete(key);
   return games;
 }
 
