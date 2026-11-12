@@ -74,12 +74,12 @@ test('a paper ledger records trades, settles only those Kalshi has settled, and 
     const asked = [];
     const load = async tickers => { asked.push(...tickers); return [{ ticker: 'KXHIGHNY-26NOV04-B67.5', result: 'no' }, { ticker: 'KXHIGHNY-26NOV04-T66', result: '' }]; };
     const ledger = openLedger('station-watch', { dir, load });
-    ledger.record({ time: 0, ticker: 'KXHIGHNY-26NOV04-B67.5', side: 'no', price: 0.9, fee: 0.01 });
+    ledger.record({ time: 0, ticker: 'KXHIGHNY-26NOV04-B67.5', side: 'no', price: 0.9, fee: 0.01, contracts: 3 });
     ledger.record({ time: 0, ticker: 'KXHIGHNY-26NOV04-T66', side: 'yes', price: 0.95, fee: 0.01 });
     ledger.record({ time: 1000, ticker: 'KXHIGHNY-26NOV05-T66', side: 'yes', price: 0.95, fee: 0.01 });
     assert.equal(await ledger.settleDue((t, now) => now - t.time > 500, 1000), 1);
     assert.deepEqual(asked, ['KXHIGHNY-26NOV04-B67.5', 'KXHIGHNY-26NOV04-T66']); // the newest trade is not due yet
-    assert.ok(Math.abs(ledger.pnl() - 0.09) < 1e-9);
+    assert.ok(Math.abs(ledger.pnl() - 0.27) < 1e-9); // 9¢ on each of 3 contracts
     const again = openLedger('station-watch', { dir, load: async () => [] });
     assert.equal(again.trades.length, 3);
     assert.deepEqual([...again.settled.keys()], ['KXHIGHNY-26NOV04-B67.5']);

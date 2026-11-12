@@ -1,4 +1,5 @@
-// Shared by the live paper agents (gap-taker, station-watch, game-watch): a ledger of one-contract paper trades held to settlement, and the
+// Shared by the live paper agents (gap-taker, station-watch, game-watch): a ledger of paper trades held to settlement (one contract
+// unless a row's `contracts` says more; price and fee are per contract), and the
 // check that the history download is not using Kalshi's request limit. Paper only; nothing here places an order.
 import { appendFileSync, existsSync, mkdirSync, readFileSync, statSync } from 'node:fs';
 import { fetchMarkets } from './kalshi.js';
@@ -47,8 +48,8 @@ export function openLedger(agent, { dir = PAPER_DIR, load = fetchMarkets } = {})
       for (const m of await load(due.map(t => t.ticker))) {
         const value = settlementValue(m), trade = due.find(t => t.ticker === m.ticker);
         if (value === null || !trade) continue;
-        const pnl = settle(trade, value);
-        append(settledPath, { time: now, ticker: m.ticker, result: m.result, pnl });
+        const contracts = trade.contracts ?? 1, pnl = settle(trade, value) * contracts;
+        append(settledPath, { time: now, ticker: m.ticker, result: m.result, contracts, pnl });
         settled.set(m.ticker, pnl);
         count++;
       }

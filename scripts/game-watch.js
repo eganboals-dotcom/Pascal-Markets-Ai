@@ -4,8 +4,9 @@
 // how far behind the newest play the feed is. Once the history download is done (or with --force), it also lists Kalshi's open
 // winner, spread, total, team-total and player markets (src/agents/game-watch.js lists them) every 2 minutes, and each pass reads
 // fresh prices for just the markets the plays have decided (a line reached, or the end-of-game play), 50 to a request. It buys on
-// paper the decided side: one contract per market, held to settlement, when its edge after the taker fee beats --margin (1¢) and
-// something is offered at that price; the size offered is saved. Trades go to data/paper/game-watch.jsonl and results to game-settled.jsonl (src/paper.js). The Sports US
+// paper the decided side, held to settlement, when its edge after the taker fee beats --margin (1¢) and something is offered at
+// that price: as many contracts as are offered, up to --contracts (25) a market and --per-game (25) across one game's markets, since
+// a feed error can turn several of a game's markets at once. The best edges get a game's room first; the size offered is saved. Trades go to data/paper/game-watch.jsonl and results to game-settled.jsonl (src/paper.js). The Sports US
 // switch on the leaderboard turns the Kalshi part off. --once runs one pass. No orders.
 import { setTimeout as sleep } from 'node:timers/promises';
 import { fetchMarkets, fetchOpenEvents } from '../src/kalshi.js';
@@ -20,6 +21,7 @@ import { readResearch } from '../src/report.js';
 
 const option = (name, fallback) => process.argv.find(a => a.startsWith(`--${name}=`))?.split('=')[1] ?? fallback;
 const flag = name => process.argv.includes(`--${name}`);
+const maxContracts = Number(option('contracts', 25)), perGame = Number(option('per-game', 25));
 const everyMs = Number(option('every-seconds', 10)) * 1000, margin = Number(option('margin', 0.01)), feeRate = readResearch('config/scan.json', {}).feeRate ?? 0.07;
 const AGENT = 'game-watch', ESPN = 'https://site.api.espn.com/apis/site/v2/sports', CORE = 'https://sports.core.api.espn.com/v2/sports';
 const RECENT_MS = 3600000, SETTLE_AFTER_MS = 3 * 3600000, LIST_MS = 2 * 60000, PAGE = 50, PARALLEL = 4;
@@ -28,7 +30,8 @@ const say = fields => console.log(JSON.stringify({ time: new Date().toISOString(
 const warn = fields => console.error(JSON.stringify({ time: new Date().toISOString(), ...fields }));
 const checkIn = (state, detail, next = NEXT_MS) => { try { beat(AGENT, state, detail, { nextWithinMs: next }); } catch (error) { warn({ heartbeat: error.message }); } };
 const money = x => (x < 0 ? '−$' : '$') + Math.abs(x).toFixed(2);
-const ledger = openLedger(AGENT), taken = new Set(ledger.trades.map(t => t.ticker));
+const ledger = openLedger(AGENT), taken = new Set(ledger.trades.map(t => t.ticker)), held = new Map(); // contracts held per game
+for (const t of ledger.trades) if (t.gameId) held.set(t.gameId, (held.get(t.gameId) ?? 0) + (t.contracts ?? 1));
 
 // The plays after the summary's first `have` from ESPN's core API (on Nov 11 its newest NBA play was 7 to 35 s old while the
 // summary's was 23 to 919 s), in the summary's shape; [] when it fails, so the summary alone is used.
@@ -111,18 +114,23 @@ async function trade(games, departments) {
   let books;
   try { books = new Map((await fetchMarkets(decided.map(d => d.ticker))).map(m => [m.ticker, m])); }
   catch (error) { warn({ books: error.message }); return counts; }
+  const picks = [];
   for (const { ticker, series, g, side, at } of decided) {
     const m = books.get(ticker);
     if (!m) continue;
     const book = { yesBid: Number(m.yes_bid_dollars ?? 0), yesAsk: Number(m.yes_ask_dollars ?? 1), yesAskSize: Number(m.yes_ask_size_fp ?? 0),
       yesBidSize: Number(m.yes_bid_size_fp ?? 0), fee_multiplier: m.fee_multiplier ?? 1 };
     const fair = side === 'yes' ? 1 : 0, pick = take(fair, book, { feeRate, margin }), offered = side === 'yes' ? book.yesAskSize : book.yesBidSize; // No is bought by selling into the Yes bid
-    if (!pick || pick.side !== side || !(offered > 0)) continue;
+    if (pick && pick.side === side && offered > 0) picks.push({ ticker, series, g, side, at, fair, pick, offered });
+  }
+  for (const { ticker, series, g, side, at, fair, pick, offered } of picks.sort((a, b) => b.pick.edge - a.pick.edge)) {
+    const gameId = `${g.row.league}-${g.row.eventId}`, contracts = Math.floor(Math.min(maxContracts, offered, perGame - (held.get(gameId) ?? 0)));
+    if (contracts < 1) continue;
     const row = { time: Date.now(), ticker, league: series, department: departmentOf(series, departments),
-      game: `${g.name}, decided at ${new Date(at).toISOString().slice(11, 19)} UTC`, start: g.row.start, side, price: pick.price, fee: pick.fee,
-      edge: pick.edge, fair, books: null, offered, decidedAt: at };
-    ledger.record(row); taken.add(ticker); counts.take++;
-    say({ take: ticker, side, price: pick.price, edge: Number(pick.edge.toFixed(4)), offered: row.offered, secondsAfterPlay: Math.round((row.time - at) / 1000) });
+      game: `${g.name}, decided at ${new Date(at).toISOString().slice(11, 19)} UTC`, gameId, start: g.row.start, side, price: pick.price, fee: pick.fee,
+      edge: pick.edge, fair, books: null, offered, contracts, decidedAt: at };
+    ledger.record(row); taken.add(ticker); held.set(gameId, (held.get(gameId) ?? 0) + contracts); counts.take++;
+    say({ take: ticker, side, contracts, price: pick.price, edge: Number(pick.edge.toFixed(4)), offered, secondsAfterPlay: Math.round((row.time - at) / 1000) });
   }
   return counts;
 }
@@ -143,7 +151,7 @@ async function pass() {
   return everyMs;
 }
 
-say({ started: true, everySeconds: everyMs / 1000, margin, series: Object.keys(SERIES).length });
+say({ started: true, everySeconds: everyMs / 1000, margin, maxContracts, perGame, series: Object.keys(SERIES).length });
 for (;;) {
   const started = Date.now();
   let wait = everyMs;
