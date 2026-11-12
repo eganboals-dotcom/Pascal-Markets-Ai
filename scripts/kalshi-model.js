@@ -1,6 +1,8 @@
 // Runs the quoting-policy walk-forward once the history download is complete: waits for the backfill's finished marker,
-// retries markets that hit Kalshi's rate limit in one more resumable pass, then runs kalshi-bandit.js, the four taker agents
-// (sportsbook, longshot, weather, station-watch, cross-venue) and the department report, each on its own so one failure does not stop the rest.
+// retries markets that hit Kalshi's rate limit in one more resumable pass, then runs kalshi-bandit.js, the history tests of the
+// strategies kept on 2026-11-12 (game-watch, longshot, station-watch), the walk-forward picker and the department report, each on its
+// own so one failure does not stop the rest. agent-sportsbook.js still runs first: the sportsbook strategy is dropped, but it builds
+// the ESPN game cache (data/odds/espn-closing.jsonl) that game-watch's test matches games through.
 // Each agent's state goes to its heartbeat file for the dashboard's department pages. Research only; no orders.
 // The locked final exam is never run from here; it stays a separate, deliberate `kalshi-bandit.js --final`.
 import { spawnSync } from 'node:child_process';
@@ -26,7 +28,7 @@ const status = () => existsSync(file('backfill.log')) ? downloadState(readFileSy
 const say = fields => console.log(JSON.stringify({ time: new Date().toISOString(), ...fields }));
 
 // Heartbeats for the department pages; a failed write is logged and never stops the model run.
-const AGENT_OF = { 'kalshi-bandit': 'maker', 'agent-sportsbook': 'sportsbook', 'agent-longshot': 'longshot', 'agent-weather': 'weather', 'agent-crossvenue': 'crossvenue' };
+const AGENT_OF = { 'kalshi-bandit': 'maker', 'agent-longshot': 'longshot' };
 // station-watch and game-watch report through their live scripts (scripts/station-watch.js, scripts/game-watch.js), so their history tests run without heartbeats here.
 const WAIT_MS = 10 * 60000, RUN_MS = 12 * 3600000;
 const checkIn = (agent, state, detail, nextWithinMs = 0) => {
@@ -74,8 +76,8 @@ if (errorLines('backfill.err.log')) {
 const failed = [];
 checkInAll('queued', 'Download finished; queued behind the earlier history tests', RUN_MS);
 for (const [script, report] of [['kalshi-bandit', 'bandit-report.md'], ['agent-sportsbook', 'agents/sportsbook-report.md'], ['agent-game-watch', 'agents/game-watch-report.md'],
-  ['agent-longshot', 'agents/longshot-report.md'], ['agent-weather', 'agents/weather-report.md'], ['agent-station-watch', 'agents/station-watch-report.md'], ['agent-weather-maker', 'agents/weather-maker-report.md'], ['agent-tune', 'agents/tune-report.md'],
-  ['agent-crossvenue', 'agents/crossvenue-report.md'], ['departments-report', 'departments-report.md']]) {
+  ['agent-longshot', 'agents/longshot-report.md'], ['agent-station-watch', 'agents/station-watch-report.md'], ['agent-tune', 'agents/tune-report.md'],
+  ['departments-report', 'departments-report.md']]) {
   const agent = AGENT_OF[script];
   try {
     if (agent) checkIn(agent, 'running', 'History test on the downloaded days', RUN_MS);

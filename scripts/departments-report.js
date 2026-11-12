@@ -1,7 +1,8 @@
-// The department leaderboard from the history tests: every saved trade (quoting engine, agents A, C, D, F, station-watch, weather-maker and game-watch) split into the
+// The department leaderboard from the history tests: every saved trade of the four strategies kept on 2026-11-12 (the quoting
+// engine, longshot, station-watch and game-watch; sportsbook, weather, weather-maker and cross-venue were dropped) split into the
 // seven departments of config/departments.json. Research only; it reads reports and writes one. An agent whose report is missing
 // or predates saved trades is listed, not guessed.
-import { loadDepartments, scoreboard, ARBITRAGE } from '../src/departments.js';
+import { loadDepartments, scoreboard } from '../src/departments.js';
 import { markdownTable, readResearch } from '../src/report.js';
 import { writeProjectFile } from '../src/files.js';
 
@@ -9,13 +10,9 @@ const root = process.argv.slice(2).find(a => !a.startsWith('--')) ?? 'data/histo
 const WEEKLY_TARGET = 1000;
 const SOURCES = [
   { agent: 'maker', path: 'bandit-report.json', key: 'markets' },
-  { agent: 'sportsbook', path: 'agents/sportsbook-report.json', key: 'trades' },
   { agent: 'longshot', path: 'agents/longshot-report.json', key: 'trades' },
-  { agent: 'weather', path: 'agents/weather-report.json', key: 'trades' },
   { agent: 'station-watch', path: 'agents/station-watch-report.json', key: 'trades' },
   { agent: 'game-watch', path: 'agents/game-watch-report.json', key: 'trades' },
-  { agent: 'weather-maker', path: 'agents/weather-maker-report.json', key: 'trades' },
-  { agent: 'crossvenue', path: 'agents/crossvenue-report.json', key: 'trades', department: ARBITRAGE },
 ];
 
 const departments = loadDepartments(), results = [], missing = [];
