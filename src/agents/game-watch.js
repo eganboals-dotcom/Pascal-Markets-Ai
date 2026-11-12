@@ -72,9 +72,20 @@ export function sideOf(code, game) {
 // Box-score columns per league for the stats the plays are checked against.
 const BOX = { nba: { pts: 'PTS', reb: 'REB', ast: 'AST', threes: '3PT' }, nhl: { goals: 'G', ast: 'A' }, nfl: {} };
 
+// One play from ESPN's core API (fresher than the summary) in the summary's shape: athlete ids come from $ref links, and
+// basketball's typed participants (shooter, assister) drop their types, since the summary lists them untyped in that order.
+export function corePlay(item, league) {
+  const basketball = LEAGUES[league]?.site.startsWith('basketball/');
+  const participants = [...(item.participants ?? [])].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)).map(x => ({
+    athlete: { id: /\/athletes\/(\d+)/.exec(x.athlete?.$ref ?? '')?.[1] ?? null }, ...(!basketball && x.type ? { type: x.type } : {}) }));
+  return { ...item, participants };
+}
+
 // The parts of an ESPN summary the test needs: teams, roster, box-score totals and every play with its wall-clock time. NFL plays
-// sit inside drives; hockey plays name their scorer and assisters, basketball's list the shooter then the passer.
-export function compactGame(summary, eventId, league = 'nba') {
+// sit inside drives; hockey plays name their scorer and assisters, basketball's list the shooter then the passer. `newer` are
+// summary-shaped plays (corePlay) from a fresher feed; those after the summary's last play are appended. `checkedPlays` counts
+// the summary's own plays, the ones its box score and score line describe.
+export function compactGame(summary, eventId, league = 'nba', newer = []) {
   const competitors = summary.header?.competitions?.[0]?.competitors ?? [], side = s => competitors.find(c => c.homeAway === s);
   const roster = [], box = {}, columns = BOX[league] ?? {};
   for (const t of summary.boxscore?.players ?? []) for (const s of t.statistics ?? []) {
@@ -88,8 +99,10 @@ export function compactGame(summary, eventId, league = 'nba') {
   }
   const drives = summary.drives ? [...(summary.drives.previous ?? []), summary.drives.current].flatMap(d => d?.plays ?? []) : [];
   const raw = LEAGUES[league]?.site.startsWith('football/') ? [...new Map(drives.map(p => [p.id, p])).values()].sort((a, b) => Number(a.sequenceNumber) - Number(b.sequenceNumber)) : summary.plays ?? [];
-  const shootout = league === 'nhl' && raw.some(p => (p.period?.number ?? 0) >= 5);
-  const plays = raw.map(p => {
+  const seq = p => Number(p.sequenceNumber) || 0, lastSeq = raw.reduce((m, p) => Math.max(m, seq(p)), 0);
+  const extra = newer.filter(p => seq(p) > lastSeq).sort((a, b) => seq(a) - seq(b));
+  const shootout = league === 'nhl' && [...raw, ...extra].some(p => (p.period?.number ?? 0) >= 5);
+  const compact = list => list.map(p => {
     const scoring = Boolean(p.scoringPlay) && !(league === 'nhl' && (p.period?.number ?? 0) >= 5), people = p.participants ?? [];
     const typed = people.some(x => x.type), id = x => x?.athlete?.id ?? null;
     return { t: Date.parse(p.wallclock), away: Number(p.awayScore), home: Number(p.homeScore), period: p.period?.number ?? 0,
@@ -97,23 +110,26 @@ export function compactGame(summary, eventId, league = 'nba') {
       assisters: scoring ? (typed ? people.filter(x => x.type === 'assister') : people.slice(1, 2)).map(id).filter(Boolean) : [],
       rebounder: /rebound/i.test(p.type?.text ?? '') ? id(people[0]) : null };
   }).filter(p => Number.isFinite(p.t) && Number.isFinite(p.away) && Number.isFinite(p.home));
-  return { version: COMPACT_VERSION, league, eventId, start: summary.header?.competitions?.[0]?.date ?? null, shootout,
+  const own = compact(raw), plays = [...own, ...compact(extra)];
+  return { version: COMPACT_VERSION, league, eventId, start: summary.header?.competitions?.[0]?.date ?? null, shootout, checkedPlays: own.length,
     away: { code: side('away')?.team?.abbreviation, score: Number(side('away')?.score) },
     home: { code: side('home')?.team?.abbreviation, score: Number(side('home')?.score) }, roster, box, plays };
 }
 
 // Player stat tallies from the plays; a player whose tallies disagree with the box score is not trusted (returns null).
 function playerSeries(game, id, stat) {
-  const tally = { pts: 0, reb: 0, ast: 0, threes: 0, goals: 0 }, out = [];
-  for (const p of game.plays) {
+  const tally = { pts: 0, reb: 0, ast: 0, threes: 0, goals: 0 }, out = [], checked = game.checkedPlays ?? game.plays.length;
+  let atBox = { ...tally };
+  for (const [i, p] of game.plays.entries()) {
     if (p.scorer === id) { tally.pts += p.value; tally.goals++; if (p.value === 3) tally.threes++; }
     if (p.assisters.includes(id)) tally.ast++;
     if (p.rebounder === id) tally.reb++;
     const value = stat === 'pra' ? tally.pts + tally.reb + tally.ast : tally[stat];
     out.push({ t: p.t, value });
+    if (i === checked - 1) atBox = { ...tally };
   }
-  const b = game.box[id];
-  if (!b || !Object.keys(b).length || Object.entries(b).some(([k, v]) => v !== tally[k])) return null;
+  const b = game.box[id]; // the box score describes the summary's own plays only
+  if (!b || !Object.keys(b).length || Object.entries(b).some(([k, v]) => v !== atBox[k])) return null;
   return out;
 }
 
@@ -136,8 +152,8 @@ export function decidedAt(market, game) {
       prev = p;
       return { t: p.t, value: count };
     });
-    const last = game.plays.at(-1);
-    if (!last || last.away !== game.away.score || last.home !== game.home.score) return null; // play log disagrees with the final
+    const last = game.plays[(game.checkedPlays ?? game.plays.length) - 1];
+    if (!last || last.away !== game.away.score || last.home !== game.home.score) return null; // play log disagrees with the score line
   }
   return series?.find(s => s.value >= market.threshold)?.t ?? null;
 }

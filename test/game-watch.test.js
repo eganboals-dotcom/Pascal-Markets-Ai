@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { compactGame, decidedAt, findPlayer, parseMarket, sideOf } from '../src/agents/game-watch.js';
+import { compactGame, corePlay, decidedAt, findPlayer, parseMarket, sideOf } from '../src/agents/game-watch.js';
 
 const t0 = Date.parse('2026-11-06T03:00:00Z'), at = s => new Date(t0 + s * 1000).toISOString();
 // A tiny ESPN summary: Miami at Golden State, final 3-2 (the 2-0 basket is recorded, taken back, then given again).
@@ -100,4 +100,21 @@ test('college football plays come from drives and basketball halves count only t
   assert.deepEqual(parseMarket('KXNCAAMB1HTOTAL-26NOV07MIAND-3').periods, [1]);
   assert.equal(decidedAt(parseMarket('KXNCAAMB1HTOTAL-26NOV07MIAND-4'), basketball), null);
   assert.equal(decidedAt(parseMarket('KXNCAAMB2HTOTAL-26NOV07MIAND-7'), basketball), t0 + 15000);
+});
+
+test('fresher core-API plays extend the summary, and the box score is checked against the summary part only', () => {
+  const numbered = { ...summary, plays: summary.plays.map((p, i) => ({ ...p, sequenceNumber: String(i + 1) })) };
+  const ref = id => ({ $ref: `http://sports.core.api.espn.com/v2/sports/basketball/leagues/nba/seasons/2027/athletes/${id}?lang=en` });
+  const newer = [
+    { ...numbered.plays[3], participants: [] }, // already in the summary: ignored
+    { sequenceNumber: '5', wallclock: at(50), awayScore: 3, homeScore: 4, period: { number: 2 }, scoringPlay: true, scoreValue: 2,
+      participants: [{ athlete: ref('3'), type: 'assister', order: 2 }, { athlete: ref('2'), type: 'shooter', order: 1 }] },
+  ].map(p => corePlay(p, 'nba'));
+  const game = compactGame(numbered, '9', 'nba', newer);
+  assert.equal(game.plays.length, 5);
+  assert.equal(game.checkedPlays, 4);
+  assert.deepEqual([game.plays[4].scorer, game.plays[4].assisters], ['2', ['3']]);
+  assert.equal(decidedAt(parseMarket('KXNBATOTAL-26NOV05MIAGSW-7'), game), t0 + 50000);
+  assert.equal(decidedAt(parseMarket('KXNBAPTS-26NOV05MIAGSW-GSWDGREEN23-4'), game), t0 + 50000); // box says 2 before the new basket
+  assert.equal(decidedAt(parseMarket('KXNBAAST-26NOV05MIAGSW-NOPJALVARADO15-2'), game), t0 + 50000);
 });
