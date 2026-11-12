@@ -52,23 +52,7 @@ export function openLedger(agent, { dir = PAPER_DIR, load = fetchMarkets } = {})
       const contracts = trade.contracts ?? 1;
       return done({ time: now, ticker: trade.ticker, result: 'exited', exitPrice: value, exitFee: fee, reason, contracts, pnl: (value - fee - trade.price - trade.fee) * contracts });
     },
-    // Any loss or early exit pauses its group for 24 hours. Gross realized losses of at least dailyLimit in
-    // a rolling day trigger a full 24-hour agent pause from that loss, reconstructed from the saved ledger.
-    breaker(groupOf, { pauseMs = DAY_MS, dailyLimit = 25, now = Date.now() } = {}) {
-      if (!(Number.isFinite(dailyLimit) && dailyLimit > 0)) throw new Error('dailyLimit must be positive');
-      const byTicker = new Map(trades.map(t => [t.ticker, t]));
-      const prior = rows.filter(r => Number.isFinite(r.time) && r.time <= now).sort((a, b) => a.time - b.time);
-      const paused = new Set(prior.filter(r => (r.pnl < 0 || r.result === 'exited') && now - r.time < pauseMs && byTicker.has(r.ticker)).map(r => groupOf(byTicker.get(r.ticker))));
-      const losses = prior.filter(r => r.pnl < 0 && now - r.time < 2 * DAY_MS);
-      let left = 0, loss = 0, stoppedUntil = 0;
-      for (let right = 0; right < losses.length; right++) {
-        const row = losses[right]; loss -= row.pnl;
-        while (losses[left].time <= row.time - DAY_MS) loss += losses[left++].pnl;
-        if (loss >= dailyLimit - 1e-9) stoppedUntil = Math.max(stoppedUntil, row.time + DAY_MS);
-      }
-      const day = prior.filter(r => now - r.time < DAY_MS).reduce((a, r) => a + r.pnl, 0);
-      return { paused, stopped: now < stoppedUntil, stoppedUntil, day };
-    },
+    breaker: (groupOf, options) => breakerState(trades, rows, groupOf, options),
     pnl: () => [...settled.values()].reduce((a, b) => a + b, 0),
     async settleDue(isDue, now = Date.now()) {
       const due = trades.filter(t => !settled.has(t.ticker) && isDue(t, now));
@@ -87,6 +71,25 @@ export function openLedger(agent, { dir = PAPER_DIR, load = fetchMarkets } = {})
 }
 
 // Two distinct successful reads must agree. Missing/uncertain data resets confirmation.
+// The circuit breaker, from a ledger's trades and settled rows. Any loss or early exit pauses its group for 24 hours. Gross
+// realized losses of at least dailyLimit in a rolling day trigger a full 24-hour agent pause from that loss. Only rows settled by
+// `now` count, so a replay can ask it at any past moment (scripts/replay-sizing.js).
+export function breakerState(trades, rows, groupOf, { pauseMs = DAY_MS, dailyLimit = 25, now = Date.now() } = {}) {
+  if (!(Number.isFinite(dailyLimit) && dailyLimit > 0)) throw new Error('dailyLimit must be positive');
+  const byTicker = new Map(trades.map(t => [t.ticker, t]));
+  const prior = rows.filter(r => Number.isFinite(r.time) && r.time <= now).sort((a, b) => a.time - b.time);
+  const paused = new Set(prior.filter(r => (r.pnl < 0 || r.result === 'exited') && now - r.time < pauseMs && byTicker.has(r.ticker)).map(r => groupOf(byTicker.get(r.ticker))));
+  const losses = prior.filter(r => r.pnl < 0 && now - r.time < 2 * DAY_MS);
+  let left = 0, loss = 0, stoppedUntil = 0;
+  for (let right = 0; right < losses.length; right++) {
+    const row = losses[right]; loss -= row.pnl;
+    while (losses[left].time <= row.time - DAY_MS) loss += losses[left++].pnl;
+    if (loss >= dailyLimit - 1e-9) stoppedUntil = Math.max(stoppedUntil, row.time + DAY_MS);
+  }
+  const day = prior.filter(r => now - r.time < DAY_MS).reduce((a, r) => a + r.pnl, 0);
+  return { paused, stopped: now < stoppedUntil, stoppedUntil, day };
+}
+
 export function confirmOpposite(state, trade, decision, observedAt) {
   if (!decision || decision.side === trade.side || !Number.isFinite(observedAt)) { state.delete(trade.ticker); return false; }
   const previous = state.get(trade.ticker);

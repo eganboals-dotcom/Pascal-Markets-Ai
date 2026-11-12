@@ -5,12 +5,13 @@
 // winner, spread, total, team-total and player markets (src/agents/game-watch.js lists them) every 2 minutes, and each pass reads
 // fresh prices for just the markets the plays have decided (a line reached, or the end-of-game play), 50 to a request. It buys on
 // paper the decided side, held to settlement, when its edge after the taker fee beats --margin (1¢) and something is offered at
-// that price: as many contracts as are offered, up to --contracts (25) a market and --per-game (25) across one game's markets, since
-// a feed error can turn several of a game's markets at once. The best edges get a game's room first; the size offered is saved.
+// that price: as many contracts as are offered, up to --contracts (25) a market. --per-game caps contracts across one game's markets
+// (off by default: on the 60-day history a cap of 25 a game took 609 of 3,195 trades and $1,213 against $6,168 uncapped, and the
+// worst game was −$32 uncapped; scripts/replay-sizing.js). With a cap, the best edges get a game's room first; the size offered is saved.
 // Each series and side runs the margin the walk-forward picker chose (data/history/agents/tune-report.json, scripts/agent-tune.js),
 // --margin where it had too few events to say, and none at all where it found no margin that pays. A position is sold before
 // settlement only when the plays, on two passes in a row, decide the other side; a falling price alone never sells it. A series
-// and side with a loss in the last day is paused, and gross losses reaching --daily-loss ($25) in a rolling day pause new trades for 24 hours. Trades go to data/paper/game-watch.jsonl and results to game-settled.jsonl (src/paper.js). The Sports US
+// and side with a loss in the last day is paused, and gross losses reaching --daily-loss ($100; the history's worst day was −$12) in a rolling day pause new trades for 24 hours. Trades go to data/paper/game-watch.jsonl and results to game-settled.jsonl (src/paper.js). The Sports US
 // switch on the leaderboard turns the Kalshi part off. --once runs one pass. No orders.
 import { setTimeout as sleep } from 'node:timers/promises';
 import { fetchMarkets, fetchOpenEvents } from '../src/kalshi.js';
@@ -26,7 +27,7 @@ import { readResearch } from '../src/report.js';
 
 const option = (name, fallback) => process.argv.find(a => a.startsWith(`--${name}=`))?.split('=')[1] ?? fallback;
 const flag = name => process.argv.includes(`--${name}`);
-const maxContracts = Number(option('contracts', 25)), perGame = Number(option('per-game', 25)), dailyLimit = Number(option('daily-loss', 25));
+const maxContracts = Number(option('contracts', 25)), perGame = option('per-game', 'off') === 'off' ? Infinity : Number(option('per-game')), dailyLimit = Number(option('daily-loss', 100));
 const everyMs = Number(option('every-seconds', 10)) * 1000, margin = Number(option('margin', 0.01)), feeRate = readResearch('config/scan.json', {}).feeRate ?? 0.07;
 const AGENT = 'game-watch', ESPN = 'https://site.api.espn.com/apis/site/v2/sports', CORE = 'https://sports.core.api.espn.com/v2/sports';
 const RECENT_MS = 3600000, SETTLE_AFTER_MS = 3 * 3600000, LIST_MS = 2 * 60000, PAGE = 50, PARALLEL = 4;
