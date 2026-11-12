@@ -26,7 +26,7 @@ const status = () => existsSync(file('backfill.log')) ? downloadState(readFileSy
 const say = fields => console.log(JSON.stringify({ time: new Date().toISOString(), ...fields }));
 
 // Heartbeats for the department pages; a failed write is logged and never stops the model run.
-const AGENT_OF = { 'kalshi-bandit': 'maker', 'agent-sportsbook': 'sportsbook', 'agent-longshot': 'longshot', 'agent-weather': 'weather', 'agent-crossvenue': 'crossvenue' };
+const AGENT_OF = { 'kalshi-bandit': 'maker', 'agent-sportsbook': 'sportsbook', 'agent-longshot': 'longshot', 'agent-weather': 'weather', 'agent-crossvenue': 'crossvenue', 'agent-game-watch': 'game-watch' };
 // station-watch reports through its live script (scripts/station-watch.js), so its history test runs without heartbeats here.
 const WAIT_MS = 10 * 60000, RUN_MS = 12 * 3600000;
 const checkIn = (agent, state, detail, nextWithinMs = 0) => {
@@ -73,7 +73,7 @@ if (errorLines('backfill.err.log')) {
 }
 const failed = [];
 checkInAll('queued', 'Download finished; queued behind the earlier history tests', RUN_MS);
-for (const [script, report] of [['kalshi-bandit', 'bandit-report.md'], ['agent-sportsbook', 'agents/sportsbook-report.md'],
+for (const [script, report] of [['kalshi-bandit', 'bandit-report.md'], ['agent-sportsbook', 'agents/sportsbook-report.md'], ['agent-game-watch', 'agents/game-watch-report.md'],
   ['agent-longshot', 'agents/longshot-report.md'], ['agent-weather', 'agents/weather-report.md'], ['agent-station-watch', 'agents/station-watch-report.md'], ['agent-weather-maker', 'agents/weather-maker-report.md'],
   ['agent-crossvenue', 'agents/crossvenue-report.md'], ['departments-report', 'departments-report.md']]) {
   const agent = AGENT_OF[script];
