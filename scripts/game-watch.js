@@ -1,16 +1,16 @@
-// Game-watch, live (sports department): paper trades on NBA, NFL, NHL and college football and basketball "N or more" markets the live score has already decided.
+// Game-watch, live (sports department): paper trades on NBA, NFL, NHL and college football and basketball markets the live score has already decided.
 // Every --every-seconds (10) it reads ESPN's scoreboards and the play-by-play of each game in progress (or finished within the hour;
 // free, no key, never Kalshi): the summary, topped up with the newest plays from ESPN's core API, which runs ahead of it. It notes
 // how far behind the newest play the feed is. Once the history download is done (or with --force), it also lists Kalshi's open
-// total, team-total and player markets (src/agents/game-watch.js lists them) every 2 minutes, and each pass reads fresh prices for
-// just the markets the plays have taken to their line, 50 to a request. It buys on paper Yes on those: one contract per market,
-// held to settlement, when its edge after the taker fee beats --margin (1¢) and something is offered at that price; the size
-// offered is saved. Trades go to data/paper/game-watch.jsonl and results to game-settled.jsonl (src/paper.js). The Sports US
+// winner, spread, total, team-total and player markets (src/agents/game-watch.js lists them) every 2 minutes, and each pass reads
+// fresh prices for just the markets the plays have decided (a line reached, or the end-of-game play), 50 to a request. It buys on
+// paper the decided side: one contract per market, held to settlement, when its edge after the taker fee beats --margin (1¢) and
+// something is offered at that price; the size offered is saved. Trades go to data/paper/game-watch.jsonl and results to game-settled.jsonl (src/paper.js). The Sports US
 // switch on the leaderboard turns the Kalshi part off. --once runs one pass. No orders.
 import { setTimeout as sleep } from 'node:timers/promises';
 import { fetchMarkets, fetchOpenEvents } from '../src/kalshi.js';
 import { LEAGUES, gameIndex, usDate } from '../src/agents/fair-odds.js';
-import { SERIES, WATCHED_LEAGUES, compactGame, corePlay, decidedAt, matchEvent, parseMarket } from '../src/agents/game-watch.js';
+import { SERIES, WATCHED_LEAGUES, compactGame, corePlay, decision, matchEvent, parseMarket } from '../src/agents/game-watch.js';
 import { take } from '../src/takers.js';
 import { fetchJson } from '../src/odds.js';
 import { departmentOf, loadDepartments, readSwitches } from '../src/departments.js';
@@ -103,25 +103,26 @@ async function trade(games, departments) {
     const market = parseMarket(ticker), match = market ? matchEvent(market, index) : null, g = match && byId.get(`${market.league}-${match.eventId}`);
     if (!g) continue;
     counts.checked++;
-    const at = decidedAt(market, g.game);
-    if (at !== null) decided.push({ ticker, series, g, at });
+    const d = decision(market, g.game);
+    if (d) decided.push({ ticker, series, g, ...d });
   }
   counts.decided = decided.length;
   if (!decided.length) return counts;
   let books;
   try { books = new Map((await fetchMarkets(decided.map(d => d.ticker))).map(m => [m.ticker, m])); }
   catch (error) { warn({ books: error.message }); return counts; }
-  for (const { ticker, series, g, at } of decided) {
+  for (const { ticker, series, g, side, at } of decided) {
     const m = books.get(ticker);
     if (!m) continue;
-    const book = { yesBid: Number(m.yes_bid_dollars ?? 0), yesAsk: Number(m.yes_ask_dollars ?? 1), yesAskSize: Number(m.yes_ask_size_fp ?? 0), fee_multiplier: m.fee_multiplier ?? 1 };
-    const pick = take(1, book, { feeRate, margin });
-    if (!pick || pick.side !== 'yes' || !(book.yesAskSize > 0)) continue;
+    const book = { yesBid: Number(m.yes_bid_dollars ?? 0), yesAsk: Number(m.yes_ask_dollars ?? 1), yesAskSize: Number(m.yes_ask_size_fp ?? 0),
+      yesBidSize: Number(m.yes_bid_size_fp ?? 0), fee_multiplier: m.fee_multiplier ?? 1 };
+    const fair = side === 'yes' ? 1 : 0, pick = take(fair, book, { feeRate, margin }), offered = side === 'yes' ? book.yesAskSize : book.yesBidSize; // No is bought by selling into the Yes bid
+    if (!pick || pick.side !== side || !(offered > 0)) continue;
     const row = { time: Date.now(), ticker, league: series, department: departmentOf(series, departments),
-      game: `${g.name}, reached at ${new Date(at).toISOString().slice(11, 19)} UTC`, start: g.row.start, side: 'yes', price: pick.price, fee: pick.fee,
-      edge: pick.edge, fair: 1, books: null, offered: book.yesAskSize, decidedAt: at };
+      game: `${g.name}, decided at ${new Date(at).toISOString().slice(11, 19)} UTC`, start: g.row.start, side, price: pick.price, fee: pick.fee,
+      edge: pick.edge, fair, books: null, offered, decidedAt: at };
     ledger.record(row); taken.add(ticker); counts.take++;
-    say({ take: ticker, price: pick.price, edge: Number(pick.edge.toFixed(4)), offered: row.offered, secondsAfterPlay: Math.round((row.time - at) / 1000) });
+    say({ take: ticker, side, price: pick.price, edge: Number(pick.edge.toFixed(4)), offered: row.offered, secondsAfterPlay: Math.round((row.time - at) / 1000) });
   }
   return counts;
 }

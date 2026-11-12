@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { compactGame, corePlay, decidedAt, findPlayer, parseMarket, sideOf } from '../src/agents/game-watch.js';
+import { compactGame, corePlay, decidedAt, decision, findPlayer, matchEvent, parseMarket, sideOf } from '../src/agents/game-watch.js';
+import { gameIndex } from '../src/agents/fair-odds.js';
 
 const t0 = Date.parse('2026-11-06T03:00:00Z'), at = s => new Date(t0 + s * 1000).toISOString();
 // A tiny ESPN summary: Miami at Golden State, final 3-2 (the 2-0 basket is recorded, taken back, then given again).
@@ -27,7 +28,9 @@ test('Kalshi NBA tickers parse into what they count', () => {
   assert.equal(prop.player, 'MIAWCARTER34');
   assert.equal(prop.stat, 'pts');
   assert.equal(prop.threshold, 15);
-  assert.equal(parseMarket('KXNBAGAME-26NOV05MIAGSW-MIA'), null);
+  assert.equal(parseMarket('KXNBAGAME-26NOV05MIAGSW-MIA').team, 'MIA');
+  assert.equal(parseMarket('KXNBAGAME-26NOV05MIAGSW-MIA3'), null);
+  assert.equal(parseMarket('KXNBASPREAD-26NOV05MIAGSW-GSW10').threshold, 10);
   assert.equal(parseMarket('KXNBAPTS-26NOV05MIAGSW-15'), null);
 });
 
@@ -117,4 +120,35 @@ test('fresher core-API plays extend the summary, and the box score is checked ag
   assert.equal(decidedAt(parseMarket('KXNBATOTAL-26NOV05MIAGSW-7'), game), t0 + 50000);
   assert.equal(decidedAt(parseMarket('KXNBAPTS-26NOV05MIAGSW-GSWDGREEN23-4'), game), t0 + 50000); // box says 2 before the new basket
   assert.equal(decidedAt(parseMarket('KXNBAAST-26NOV05MIAGSW-NOPJALVARADO15-2'), game), t0 + 50000);
+});
+
+test('the final whistle decides winners, spreads and totals still short of their line', () => {
+  const ended = compactGame({ ...summary, plays: [...summary.plays,
+    { wallclock: at(50), awayScore: 3, homeScore: 2, period: { number: 3 } },
+    { wallclock: at(60), awayScore: 3, homeScore: 2, period: { number: 4 }, type: { text: 'End Game' } }] }, '9');
+  const d = (ticker, game = ended) => decision(parseMarket(ticker), game), final = t0 + 60000;
+  assert.deepEqual(d('KXNBAGAME-26NOV05MIAGSW-MIA'), { side: 'yes', at: final });
+  assert.deepEqual(d('KXNBAGAME-26NOV05MIAGSW-GSW'), { side: 'no', at: final });
+  assert.deepEqual(d('KXNBASPREAD-26NOV05MIAGSW-MIA1'), { side: 'yes', at: final }); // won by 1: "wins by 1 or more"
+  assert.deepEqual(d('KXNBASPREAD-26NOV05MIAGSW-MIA2'), { side: 'no', at: final });
+  assert.deepEqual(d('KXNBATOTAL-26NOV05MIAGSW-5'), { side: 'yes', at: t0 + 40000 });
+  assert.deepEqual(d('KXNBATOTAL-26NOV05MIAGSW-6'), { side: 'no', at: final });
+  assert.deepEqual(d('KXNBATEAMTOTAL-26NOV05MIAGSW-MIA4'), { side: 'no', at: final });
+  assert.deepEqual(d('KXNBA1HTOTAL-26NOV05MIAGSW-6'), { side: 'no', at: t0 + 50000 }); // short when the third quarter starts
+  assert.equal(d('KXNBAPTS-26NOV05MIAGSW-MIAWCARTER34-4'), null); // player props are Yes only
+  // Before the end-of-game play, winners and game totals wait; a team code placed on the wrong side of the event is skipped.
+  const live = compactGame(summary, '9');
+  assert.equal(d('KXNBAGAME-26NOV05MIAGSW-MIA', live), null);
+  assert.equal(d('KXNBATOTAL-26NOV05MIAGSW-6', live), null);
+  assert.equal(d('KXNBAGAME-26NOV05GSWMIA-GSW'), null);
+  // An end-of-game play off the score line is not trusted.
+  assert.equal(d('KXNBAGAME-26NOV05MIAGSW-MIA', { ...ended, plays: ended.plays.map(p => (p.end ? { ...p, away: 4 } : p)) }), null);
+  assert.equal(decidedAt(parseMarket('KXNBATOTAL-26NOV05MIAGSW-6'), ended), null); // decidedAt stays Yes only
+});
+
+test('an event code is matched only when the game codes spell it well', () => {
+  const index = gameIndex([{ league: 'ncaab', date: '2026-11-05', awayCode: 'CBBL', homeCode: 'LIN', eventId: '1' },
+    { league: 'ncaab', date: '2026-11-03', awayCode: 'CLE', homeCode: 'MIZ', eventId: '2' }]);
+  assert.equal(matchEvent(parseMarket('KXNCAAMBTOTAL-26NOV05BELLIND-150'), index), null); // BEL+LIND fits CBBL at LIN only loosely
+  assert.equal(matchEvent(parseMarket('KXNCAAMBTOTAL-26NOV03CLEVMIZZ-150'), index)?.eventId, '2');
 });

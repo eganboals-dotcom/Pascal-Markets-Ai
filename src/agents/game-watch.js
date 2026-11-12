@@ -1,5 +1,6 @@
-// Game-watch (sports department): the moment a live game decides a Kalshi "N or more" market. A game total, team total or player
-// count can only go up, so once ESPN's play-by-play shows it at the threshold, Yes has won. NBA, NFL, NHL and college. Research only; no orders.
+// Game-watch (sports department): the moment a live game decides a Kalshi market. A game total, team total or player count can
+// only go up, so once ESPN's play-by-play shows it at the threshold, Yes has won. At the final whistle (ESPN's end-of-game play)
+// every winner, spread and game total still short of its line is decided too. NBA, NFL, NHL and college. Research only; no orders.
 import { LEAGUES, codeSimilarity, matchGame, teamCode } from './fair-odds.js';
 
 // Series -> what they count. Totals and team totals are points (goals in hockey), over the whole game or the listed periods
@@ -9,7 +10,13 @@ import { LEAGUES, codeSimilarity, matchGame, teamCode } from './fair-odds.js';
 const total = (league, periods) => ({ league, kind: 'total', ...(periods ? { periods } : {}) });
 const team = (league, periods) => ({ league, kind: 'team', ...(periods ? { periods } : {}) });
 const player = (league, stat) => ({ league, kind: 'player', stat });
+// Winners (KXNBAGAME-...-LAC) and spreads (KXNBASPREAD-...-LAC10: LAC wins by 10 or more; on Nov 3 to 7 all 789 NBA and 216 NHL
+// spreads settled that way on ESPN's final score) are decided only at the final whistle.
+const winner = league => ({ league, kind: 'game' }), spread = league => ({ league, kind: 'spread' });
+const finals = Object.fromEntries([['NBA', 'nba'], ['NFL', 'nfl'], ['NHL', 'nhl'], ['NCAAF', 'ncaaf'], ['NCAAMB', 'ncaab'], ['NCAAWB', 'ncaawb']]
+  .flatMap(([code, league]) => [[`KX${code}GAME`, winner(league)], [`KX${code}SPREAD`, spread(league)]]));
 export const SERIES = {
+  ...finals,
   KXNBATOTAL: total('nba'), KXNBA1HTOTAL: total('nba', [1, 2]), KXNBA1QTOTAL: total('nba', [1]), KXNBA2QTOTAL: total('nba', [2]),
   KXNBA3QTOTAL: total('nba', [3]), KXNBATEAMTOTAL: team('nba'), KXNBA1HTEAMTOTAL: team('nba', [1, 2]),
   KXNBAPTS: player('nba', 'pts'), KXNBAREB: player('nba', 'reb'), KXNBAAST: player('nba', 'ast'), KXNBA3PT: player('nba', 'threes'), KXNBAPRA: player('nba', 'pra'),
@@ -26,7 +33,9 @@ export const SERIES = {
   KXNCAAWBTOTAL: total('ncaawb'),
 };
 export const WATCHED_LEAGUES = [...new Set(Object.values(SERIES).map(s => s.league))];
-export const COMPACT_VERSION = 3;
+export const COMPACT_VERSION = 4;
+// The last regulation period: a half or quarter count that ends before it is final once a later period starts.
+const LAST_PERIOD = { nba: 4, nfl: 4, ncaaf: 4, ncaab: 2, ncaawb: 4, nhl: 3 };
 
 // KXNBATOTAL-26NOV05MIAGSW-217, KXNBATEAMTOTAL-26NOV05MIAGSW-GSW115, KXNBAPTS-26NOV05MIAGSW-GSWYLENDEBORG1-10; null otherwise.
 export function parseMarket(ticker) {
@@ -34,19 +43,29 @@ export function parseMarket(ticker) {
   const m = /^(\d{2}[A-Z]{3}\d{2})([A-Z]+)$/.exec(event ?? '');
   if (!spec || !m) return null;
   const base = { series, ...spec, event, dateCode: m[1], teams: m[2] }; // every market of one game shares its event code
+  if (spec.kind === 'game') return /^[A-Z]+$/.test(a ?? '') && b === undefined ? { ...base, team: a } : null;
   if (spec.kind === 'total') return /^\d+$/.test(a ?? '') && b === undefined ? { ...base, threshold: Number(a) } : null;
-  if (spec.kind === 'team') { const t = /^([A-Z]+)(\d+)$/.exec(a ?? ''); return t && b === undefined ? { ...base, team: t[1], threshold: Number(t[2]) } : null; }
+  if (spec.kind === 'team' || spec.kind === 'spread') { const t = /^([A-Z]+)(\d+)$/.exec(a ?? ''); return t && b === undefined ? { ...base, team: t[1], threshold: Number(t[2]) } : null; }
   return /^[A-Z]+\d+$/.test(a ?? '') && /^\d+$/.test(b ?? '') ? { ...base, player: a, threshold: Number(b) } : null;
 }
 
 // The ESPN game (from a gameIndex of { league, date, awayCode, homeCode, eventId } rows) of a parsed market's event code such as
-// 26NOV05MIAGSW: the away code is its first 2 to 4 letters, so each split is tried; null unless one matches.
+// 26NOV05MIAGSW: the away code is its first 2 to 4 letters, so each split is tried; null unless one matches. The game's two codes
+// must also spell the event code well (a fit of 4 of 6): on Nov 3 to 7 every weaker fit that was checked, such as BEL+LIND for
+// Bellarmine at Indiana against CBBL at LIN, was a different game half the time.
 export function matchEvent(market, index) {
   for (const k of [3, 2, 4, 5]) {
     const match = matchGame(`${LEAGUES[market.league].series}-${market.dateCode}${market.teams}-${market.teams.slice(0, k)}`, index);
-    if (match?.league === market.league && match.isAway) return match.game;
+    if (match?.league !== market.league || !match.isAway) continue;
+    const a = teamCode(match.game.awayCode), h = teamCode(match.game.homeCode);
+    if (Math.max(fit(market.teams, a, h), fit(market.teams, h, a)) >= 4) return match.game;
   }
   return null;
+}
+function fit(teams, first, second) {
+  let best = 0;
+  for (let k = 2; k <= teams.length - 2; k++) best = Math.max(best, codeSimilarity(teams.slice(0, k), first) + codeSimilarity(teams.slice(k), second));
+  return best;
 }
 
 const SUFFIX = /^(JR|SR|II|III|IV|V)$/;
@@ -61,6 +80,13 @@ export function findPlayer(code, roster) {
     return [words.slice(1).join(''), words.at(-1)].some(last => m[1].endsWith(words[0][0] + last));
   });
   return hits.length === 1 ? hits[0].id : null;
+}
+
+// The side a market's team code names: where it sits in the event code (away first), and only when its letters agree (SCSTSCUS
+// names USC Upstate at home, though SCUS looks more like SC State). Games listed the other way round are skipped.
+function teamSide(market, game) {
+  const away = market.teams.startsWith(market.team), home = market.teams.endsWith(market.team), at = away === home ? null : away ? 'away' : 'home';
+  return at && sideOf(market.team, game) === at ? at : null;
 }
 
 // Which side ('away' or 'home') a Kalshi team code names in an ESPN game, or null when neither or both fit.
@@ -108,7 +134,7 @@ export function compactGame(summary, eventId, league = 'nba', newer = []) {
     return { t: Date.parse(p.wallclock), away: Number(p.awayScore), home: Number(p.homeScore), period: p.period?.number ?? 0,
       scorer: scoring ? id(typed ? people.find(x => x.type === 'scorer') : people[0]) : null, value: scoring ? Number(p.scoreValue) || 0 : 0,
       assisters: scoring ? (typed ? people.filter(x => x.type === 'assister') : people.slice(1, 2)).map(id).filter(Boolean) : [],
-      rebounder: /rebound/i.test(p.type?.text ?? '') ? id(people[0]) : null };
+      rebounder: /rebound/i.test(p.type?.text ?? '') ? id(people[0]) : null, ...(/^end (of )?game$/i.test(p.type?.text ?? '') ? { end: true } : {}) };
   }).filter(p => Number.isFinite(p.t) && Number.isFinite(p.away) && Number.isFinite(p.home));
   const own = compact(raw), plays = [...own, ...compact(extra)];
   return { version: COMPACT_VERSION, league, eventId, start: summary.header?.competitions?.[0]?.date ?? null, shootout, checkedPlays: own.length,
@@ -133,27 +159,44 @@ function playerSeries(game, id, stat) {
   return out;
 }
 
-// Wall-clock time of the play that took the market to its threshold, or null when it never got there (or cannot be read).
-// Hockey games settled in a shootout are skipped, since whether a total counts the shootout goal is not checked.
+// How the plays decide a market: { side: 'yes' | 'no', at } with the wall-clock time of the deciding play, or null while
+// undecided (or when it cannot be read). Yes: the play that took a count to its threshold. No, for a game total or team total
+// still short at the end-of-game play, or a half or quarter total still short when a later period starts (only for periods that
+// end before the last regulation one, since those counts leave overtime out). Winners and spreads: by the final margin at the
+// end-of-game play; a tie is left alone. Player counts are Yes only. Hockey games settled in a shootout are skipped, since whether
+// a total counts the shootout goal is not checked.
 // Known risk: ESPN's log can show points that never happened (Buffalo at Miami (OH), Nov 3, on a run and a timeout), and a market
 // bought on them settles No. Football scores often appear a row before their scoring play, so every row counts.
-export function decidedAt(market, game) {
-  let series;
+export function decision(market, game) {
   if (market.kind === 'player') {
-    const id = findPlayer(market.player, game.roster);
-    series = id && playerSeries(game, id, market.stat);
-  } else {
-    const side = market.kind === 'team' ? sideOf(market.team, game) : null;
-    if ((market.kind === 'team' && !side) || game.shootout) return null;
-    let prev = { away: 0, home: 0 }, count = 0;
-    series = game.plays.map(p => {
-      const gain = (side ? p[side] - prev[side] : p.away + p.home - prev.away - prev.home);
-      if (!market.periods || market.periods.includes(p.period)) count += gain; // a correction (overturned basket) takes points back
-      prev = p;
-      return { t: p.t, value: count };
-    });
-    const last = game.plays[(game.checkedPlays ?? game.plays.length) - 1];
-    if (!last || last.away !== game.away.score || last.home !== game.home.score) return null; // play log disagrees with the score line
+    const id = findPlayer(market.player, game.roster), t = id && playerSeries(game, id, market.stat)?.find(s => s.value >= market.threshold)?.t;
+    return t ? { side: 'yes', at: t } : null;
   }
-  return series?.find(s => s.value >= market.threshold)?.t ?? null;
+  const side = market.kind === 'total' ? null : teamSide(market, game);
+  if ((market.kind !== 'total' && !side) || game.shootout) return null;
+  const scoreLine = p => p && p.away === game.away.score && p.home === game.home.score, end = game.plays.find(p => p.end);
+  if (!scoreLine(game.plays[(game.checkedPlays ?? game.plays.length) - 1]) || (end && !scoreLine(end))) return null; // play log disagrees with the score line
+  if (market.kind === 'game' || market.kind === 'spread') {
+    if (!end) return null;
+    const margin = end[side] - end[side === 'away' ? 'home' : 'away'];
+    if (market.kind === 'game' && margin === 0) return null;
+    return { side: margin >= (market.kind === 'game' ? 1 : market.threshold) ? 'yes' : 'no', at: end.t };
+  }
+  const lastPeriod = market.periods ? Math.max(...market.periods) : Infinity;
+  let prev = { away: 0, home: 0 }, count = 0, closed = null;
+  for (const p of game.plays) {
+    if (!closed && p.period > lastPeriod) closed = p;
+    const gain = side ? p[side] - prev[side] : p.away + p.home - prev.away - prev.home;
+    if (!market.periods || market.periods.includes(p.period)) count += gain; // a correction (overturned basket) takes points back
+    prev = p;
+    if (count >= market.threshold) return { side: 'yes', at: p.t };
+  }
+  if (!market.periods) return end ? { side: 'no', at: end.t } : null;
+  return closed && lastPeriod < LAST_PERIOD[market.league] ? { side: 'no', at: closed.t } : null;
+}
+
+// Wall-clock time of the play that decided the market Yes, or null.
+export function decidedAt(market, game) {
+  const d = decision(market, game);
+  return d?.side === 'yes' ? d.at : null;
 }
