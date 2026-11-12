@@ -91,7 +91,7 @@ export function compactGame(summary, eventId, league = 'nba') {
   const plays = raw.map(p => {
     const scoring = Boolean(p.scoringPlay) && !(league === 'nhl' && (p.period?.number ?? 0) >= 5), people = p.participants ?? [];
     const typed = people.some(x => x.type), id = x => x?.athlete?.id ?? null;
-    return { t: Date.parse(p.wallclock), away: Number(p.awayScore), home: Number(p.homeScore), period: p.period?.number ?? 0, scoring,
+    return { t: Date.parse(p.wallclock), away: Number(p.awayScore), home: Number(p.homeScore), period: p.period?.number ?? 0,
       scorer: scoring ? id(typed ? people.find(x => x.type === 'scorer') : people[0]) : null, value: scoring ? Number(p.scoreValue) || 0 : 0,
       assisters: scoring ? (typed ? people.filter(x => x.type === 'assister') : people.slice(1, 2)).map(id).filter(Boolean) : [],
       rebounder: /rebound/i.test(p.type?.text ?? '') ? id(people[0]) : null };
@@ -117,9 +117,9 @@ function playerSeries(game, id, stat) {
 }
 
 // Wall-clock time of the play that took the market to its threshold, or null when it never got there (or cannot be read).
-// Hockey games settled in a shootout are skipped, since whether a total counts the shootout goal is not checked. In football a line
-// counts as reached only on a scoring play: ESPN's college log once showed a touchdown's points on a timeout and a run before the
-// touchdown (Buffalo at Miami (OH), Nov 3), and the market bought on it settled No.
+// Hockey games settled in a shootout are skipped, since whether a total counts the shootout goal is not checked.
+// Known risk: ESPN's log can show points that never happened (Buffalo at Miami (OH), Nov 3, on a run and a timeout), and a market
+// bought on them settles No. Football scores often appear a row before their scoring play, so every row counts.
 export function decidedAt(market, game) {
   let series;
   if (market.kind === 'player') {
@@ -133,11 +133,10 @@ export function decidedAt(market, game) {
       const gain = (side ? p[side] - prev[side] : p.away + p.home - prev.away - prev.home);
       if (!market.periods || market.periods.includes(p.period)) count += gain; // a correction (overturned basket) takes points back
       prev = p;
-      return { t: p.t, value: count, scoring: p.scoring };
+      return { t: p.t, value: count };
     });
     const last = game.plays.at(-1);
     if (!last || last.away !== game.away.score || last.home !== game.home.score) return null; // play log disagrees with the final
   }
-  const football = LEAGUES[market.league]?.site.startsWith('football/');
-  return series?.find(s => s.value >= market.threshold && (!football || s.scoring))?.t ?? null;
+  return series?.find(s => s.value >= market.threshold)?.t ?? null;
 }

@@ -95,13 +95,6 @@ test('college football plays come from drives and basketball halves count only t
   assert.equal(decidedAt(parseMarket('KXNCAAF2HTOTAL-26NOV07MIAND-7'), football), t0 + 15000);
   assert.equal(decidedAt(parseMarket('KXNCAAF1HTOTAL-26NOV07MIAND-4'), football), null);
   assert.equal(decidedAt(parseMarket('KXNCAAFTEAMTOTAL-26NOV07MIAND-ND7'), football), t0 + 15000);
-  // Points that show up on a play that is not a scoring play (a feed error) do not decide a football market.
-  const glitch = compactGame({ header, drives: { previous: [{ plays: [
-    { id: 'a', sequenceNumber: '1', wallclock: at(5), awayScore: 3, homeScore: 0, period: { number: 1 }, scoringPlay: true },
-    { id: 'b', sequenceNumber: '2', wallclock: at(10), awayScore: 3, homeScore: 14, period: { number: 2 }, type: { text: 'Timeout' } },
-    { id: 'c', sequenceNumber: '3', wallclock: at(15), awayScore: 3, homeScore: 7, period: { number: 3 }, scoringPlay: true }] }] } }, '5', 'ncaaf');
-  assert.equal(decidedAt(parseMarket('KXNCAAFTEAMTOTAL-26NOV07MIAND-ND10'), glitch), null);
-  assert.equal(decidedAt(parseMarket('KXNCAAFTEAMTOTAL-26NOV07MIAND-ND7'), glitch), t0 + 15000);
   const basketball = compactGame({ header, plays: [
     { wallclock: at(5), awayScore: 3, homeScore: 0, period: { number: 1 } }, { wallclock: at(15), awayScore: 3, homeScore: 7, period: { number: 2 } }] }, '4', 'ncaab');
   assert.deepEqual(parseMarket('KXNCAAMB1HTOTAL-26NOV07MIAND-3').periods, [1]);
