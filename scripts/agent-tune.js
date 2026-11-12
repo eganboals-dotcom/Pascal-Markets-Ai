@@ -11,8 +11,8 @@ import { projectPath, writeProjectFile } from '../src/files.js';
 
 const root = process.argv.slice(2).find(a => !a.startsWith('--')) ?? 'data/history';
 const minEvents = Number(process.argv.find(a => a.startsWith('--min-events='))?.split('=')[1] ?? 10);
-// ratio: the highest profit-to-risk; low: the highest low end of the profit range in dollars.
-const objective = process.argv.find(a => a.startsWith('--objective='))?.split('=')[1] ?? 'ratio';
+// low (the default, chosen 2026-11-12 to grow total profit): the highest low end of the profit range in dollars; ratio: the highest profit-to-risk.
+const objective = process.argv.find(a => a.startsWith('--objective='))?.split('=')[1] ?? 'low';
 if (!['ratio', 'low'].includes(objective)) throw new Error('--objective must be ratio or low');
 const AGENTS = [{ agent: 'game-watch', fixed: 0.01 }, { agent: 'station-watch', fixed: 0.01 }];
 const money = x => (x < 0 ? '−$' : '$') + Math.abs(x).toFixed(2), pct = x => `${(x * 100).toFixed(1)}%`;
