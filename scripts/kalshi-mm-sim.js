@@ -67,7 +67,8 @@ result.sized = { size: quoteSize, fixed: sizedTotal(result.markets), learned: le
 const money = x => (x < 0 ? '−$' : '$') + Math.abs(x).toFixed(2), line = t => `${t.fills} fills, ${money(t.netPnl)} net, ${money(t.clv)} closing-line value`;
 const sizedLine = t => `${t.contracts} contracts, ${money(t.settledPnl)} settled on ${t.settledFills} settled fills, ${money(t.clv)} closing-line value`;
 try {
-  beat('maker', 'waiting', `Paper quoting on ${result.markets.length} markets over ${history ? 'the replayed day' : `${config.mm?.replayDays ?? 7} days`}: fixed rules ${line(result.total)}`
+  // 'quoting', never 'waiting': the live agents read a fresh 'waiting' maker row as the model run waiting for the download (src/paper.js).
+  beat('maker', 'quoting', `Paper quoting on ${result.markets.length} markets over ${history ? 'the replayed day' : `${config.mm?.replayDays ?? 7} days`}: fixed rules ${line(result.total)}`
     + (result.learned ? `; learned policy ${line(result.learned)}` : '') + `; at ${quoteSize} a quote, ${sizedLine(result.sized.learned ?? result.sized.fixed)}`, { nextWithinMs: 30 * 60000 });
 } catch (error) { console.error(JSON.stringify({ heartbeat: error.message })); }
 const rows = [...result.markets, { ticker: 'TOTAL', ...result.total }];
