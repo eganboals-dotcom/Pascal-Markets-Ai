@@ -17,12 +17,13 @@ export const SERIES = {
   KXNFL3QTOTAL: total('nfl', [3]), KXNFLTEAMTOTAL: team('nfl'), KXNFL1HTEAMTOTAL: team('nfl', [1, 2]),
   KXNHLTOTAL: total('nhl'), KXNHL1PTOTAL: total('nhl', [1]), KXNHL2PTOTAL: total('nhl', [2]), KXNHL3PTOTAL: total('nhl', [3]),
   KXNHLTEAMTOTAL: team('nhl'), KXNHLGOAL: player('nhl', 'goals'),
-  // College: football in quarters, men's basketball in two halves. A half or quarter count leaves overtime out, so it can only
+  // College: football in quarters, men's basketball in two halves, women's basketball (game totals only) in quarters. A half or quarter count leaves overtime out, so it can only
   // fall short of a count that includes it: a line reached without overtime is reached either way.
   KXNCAAFTOTAL: total('ncaaf'), KXNCAAF1HTOTAL: total('ncaaf', [1, 2]), KXNCAAF2HTOTAL: total('ncaaf', [3, 4]), KXNCAAF1QTOTAL: total('ncaaf', [1]),
   KXNCAAF2QTOTAL: total('ncaaf', [2]), KXNCAAF3QTOTAL: total('ncaaf', [3]), KXNCAAF4QTOTAL: total('ncaaf', [4]),
   KXNCAAFTEAMTOTAL: team('ncaaf'), KXNCAAF1HTEAMTOTAL: team('ncaaf', [1, 2]),
   KXNCAAMBTOTAL: total('ncaab'), KXNCAAMB1HTOTAL: total('ncaab', [1]), KXNCAAMB2HTOTAL: total('ncaab', [2]), KXNCAAMBTEAMTOTAL: team('ncaab'),
+  KXNCAAWBTOTAL: total('ncaawb'),
 };
 export const WATCHED_LEAGUES = [...new Set(Object.values(SERIES).map(s => s.league))];
 export const COMPACT_VERSION = 3;

@@ -7,6 +7,7 @@ export const LEAGUES = { // league -> Kalshi game series, ESPN API paths and sco
   ncaaf: { series: 'KXNCAAFGAME', site: 'football/college-football', core: 'football/leagues/college-football', queries: ['groups=80&limit=500', 'groups=81&limit=500'] },
   nba: { series: 'KXNBAGAME', site: 'basketball/nba', core: 'basketball/leagues/nba' },
   ncaab: { series: 'KXNCAAMBGAME', site: 'basketball/mens-college-basketball', core: 'basketball/leagues/mens-college-basketball', queries: ['groups=50&limit=500'] },
+  ncaawb: { series: 'KXNCAAWBGAME', site: 'basketball/womens-college-basketball', core: 'basketball/leagues/womens-college-basketball', queries: ['groups=50&limit=500'] },
   nhl: { series: 'KXNHLGAME', site: 'hockey/nhl', core: 'hockey/leagues/nhl' },
   mlb: { series: 'KXMLBGAME', site: 'baseball/mlb', core: 'baseball/leagues/mlb' },
   wnba: { series: 'KXWNBAGAME', site: 'basketball/wnba', core: 'basketball/leagues/wnba' },
