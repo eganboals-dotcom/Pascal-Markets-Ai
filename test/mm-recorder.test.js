@@ -4,7 +4,7 @@ import { spawnSync } from 'node:child_process';
 import { readFileSync, rmSync } from 'node:fs';
 import { randomUUID } from 'node:crypto';
 import { fetchMarkets, fetchTrades } from '../src/kalshi.js';
-import { bookRow, recordBooks, recordTrades } from '../src/mm-recorder.js';
+import { bookRow, recordBooks, recordTape } from '../src/mm-recorder.js';
 import { runGameday } from '../src/gameday.js';
 import { PROJECT_ROOT, projectPath, writeProjectFile } from '../src/files.js';
 
@@ -74,19 +74,37 @@ test('fetchTrades pages by cursor with whole-second min_ts and validates input',
   await assert.rejects(fetchTrades('KX-A', 0, async () => ({})), /Invalid Kalshi trades response/);
 });
 
-test('recordTrades drops repeats from the cursor second, advances cursors and keeps a failed market for retry', async () => {
+test('recordTape keeps cohort prints, drops repeats from the cursor second and flags a capped poll', async () => {
   const t = (id, iso, ticker = 'KX-A') => ({ trade_id: id, ticker, created_time: iso, yes_price_dollars: '0.41', count_fp: '2', taker_side: 'yes' });
-  const cursors = new Map([['KX-A', { time: Date.parse('2026-11-08T20:00:00.200Z'), ids: new Set(['old']) }], ['KX-B', { time: 7, ids: new Set() }]]);
-  const first = await recordTrades(cursors, async ticker => {
-    if (ticker === 'KX-B') throw new Error('Kalshi HTTP 500');
-    return [t('old', '2026-11-08T20:00:00.200Z'), t('early', '2026-11-08T20:00:00.100Z'), t('n1', '2026-11-08T20:00:01.300Z'), t('n2', '2026-11-08T20:00:01.300Z')];
-  });
+  const cursor = { time: Date.parse('2026-11-08T20:00:00.200Z'), ids: new Set(['old']) }, cohort = new Set(['KX-A']);
+  const calls = [];
+  const first = await recordTape(cursor, cohort, async (ticker, since, _load, pages) => {
+    calls.push([ticker, since, pages]);
+    return [t('old', '2026-11-08T20:00:00.200Z'), t('early', '2026-11-08T20:00:00.100Z'), t('n1', '2026-11-08T20:00:01.300Z'),
+      t('x1', '2026-11-08T20:00:01.300Z', 'KX-OTHER'), t('n2', '2026-11-08T20:00:01.300Z')];
+  }, 2);
+  assert.deepEqual(calls, [[null, cursor.time, 2]]); // one exchange-wide poll, no ticker
   assert.deepEqual(first.rows.map(r => r.tradeId), ['n1', 'n2']);
   assert.deepEqual(first.rows[0], { ticker: 'KX-A', tradeId: 'n1', time: Date.parse('2026-11-08T20:00:01.300Z'), price: .41, count: 2, takerSide: 'yes' });
-  assert.equal(first.cursors.get('KX-A').time, Date.parse('2026-11-08T20:00:01.300Z'));
-  assert.deepEqual(first.cursors.get('KX-B'), { time: 7, ids: new Set() });
-  assert.equal(first.errors[0].ticker, 'KX-B');
-  assert.equal(cursors.get('KX-A').ids.has('n1'), false); // The caller's map is not mutated.
-  const second = await recordTrades(new Map([['KX-A', first.cursors.get('KX-A')]]), async () => [t('n2', '2026-11-08T20:00:01.300Z'), t('n3', '2026-11-08T20:00:01.900Z')]);
+  assert.equal(first.cursor.time, Date.parse('2026-11-08T20:00:01.300Z'));
+  assert.ok(first.cursor.ids.has('x1')); // prints outside the cohort still advance the cursor
+  assert.equal(first.truncated, false);
+  assert.equal(cursor.ids.has('n1'), false); // the caller's cursor is not mutated
+  const second = await recordTape(first.cursor, cohort, async () => [t('n2', '2026-11-08T20:00:01.300Z'), t('n3', '2026-11-08T20:00:01.900Z')]);
   assert.deepEqual(second.rows.map(r => r.tradeId), ['n3']);
+  const capped = await recordTape(cursor, cohort, async () => Array.from({ length: 1000 }, (_, i) => t(`c${i}`, '2026-11-08T20:00:05Z')), 1);
+  assert.equal(capped.truncated, true);
+  assert.deepEqual(await recordTape(cursor, cohort, async () => []), { rows: [], cursor, truncated: false });
+});
+
+test('recordingFiles lists daily roll-overs from the window start, oldest first, then the live file', async t => {
+  const { recordingFiles } = await import('../src/files.js');
+  const out = `work/test-rollover-${randomUUID()}`;
+  t.after(() => rmSync(projectPath(out), { recursive: true, force: true }));
+  for (const name of ['books.jsonl', 'books-2026-11-10.jsonl', 'books-2026-11-12.jsonl', 'books-2026-11-11-1794400000000.jsonl', 'books-2026-11-11.jsonl', 'trades-2026-11-12.jsonl', 'books-x.jsonl'])
+    writeProjectFile(`${out}/${name}`, '');
+  assert.deepEqual(recordingFiles(out, 'books', Date.parse('2026-11-11T23:00:00Z')).map(p => p.split('/').pop()),
+    ['books-2026-11-11-1794400000000.jsonl', 'books-2026-11-11.jsonl', 'books-2026-11-12.jsonl', 'books.jsonl']);
+  assert.equal(recordingFiles(out, 'books').length, 5); // no window: every roll-over
+  assert.deepEqual(recordingFiles(`${out}/missing`, 'books'), []);
 });

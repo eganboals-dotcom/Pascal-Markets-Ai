@@ -1,4 +1,4 @@
-import { lstatSync, realpathSync, mkdirSync, writeFileSync, renameSync, unlinkSync } from 'node:fs';
+import { lstatSync, realpathSync, mkdirSync, readdirSync, writeFileSync, renameSync, unlinkSync } from 'node:fs';
 import { dirname, isAbsolute, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { randomUUID } from 'node:crypto';
@@ -33,4 +33,13 @@ export function writeProjectFile(path, content) {
   } finally {
     if (lstatSync(temporary, { throwIfNoEntry: false })) unlinkSync(temporary);
   }
+}
+
+// A recording and its daily roll-overs (name-YYYY-MM-DD[-n].jsonl, written by scripts/kalshi-gameday.js) from sinceMs's UTC day
+// on, oldest first and the live file last.
+export function recordingFiles(dir, name, sinceMs = -Infinity) {
+  const since = Number.isFinite(sinceMs) ? new Date(sinceMs).toISOString().slice(0, 10) : '', dated = new RegExp(String.raw`^${name}-(\d{4}-\d{2}-\d{2})(-\d+)?\.jsonl$`);
+  let names = [];
+  try { names = readdirSync(projectPath(dir)); } catch (error) { if (error.code !== 'ENOENT') throw error; }
+  return [...names.filter(n => dated.exec(n)?.[1] >= since).sort(), ...names.filter(n => n === `${name}.jsonl`)].map(n => `${dir}/${n}`);
 }

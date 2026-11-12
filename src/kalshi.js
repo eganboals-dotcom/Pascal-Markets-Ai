@@ -68,14 +68,15 @@ export async function fetchMarkets(tickers, load = getJson) {
   return markets;
 }
 
-// Public trade prints for one market since sinceMs; min_ts is whole seconds, so callers drop repeats by trade id.
+// Public trade prints for one market (or, with ticker null, the whole exchange's tape) since sinceMs; min_ts is whole seconds,
+// so callers drop repeats by trade id.
 // shortcut: at most maxPages x 1000 prints per call, newest first; a busier market loses its oldest prints, raise maxPages or poll faster for it.
 export async function fetchTrades(ticker, sinceMs, load = getJson, maxPages = 10, untilMs = null) {
-  if (!/^[A-Z0-9._-]{1,120}$/i.test(ticker ?? '') || !Number.isFinite(sinceMs) || (untilMs !== null && !Number.isFinite(untilMs))) throw new Error('Invalid Kalshi trades request');
+  if ((ticker !== null && !/^[A-Z0-9._-]{1,120}$/i.test(ticker ?? '')) || !Number.isFinite(sinceMs) || (untilMs !== null && !Number.isFinite(untilMs))) throw new Error('Invalid Kalshi trades request');
   const trades = [];
   let cursor = '';
   for (let page = 0; page < maxPages; page++) {
-    const body = await load(`${BASE}/markets/trades?ticker=${encodeURIComponent(ticker)}&min_ts=${Math.floor(sinceMs / 1000)}${untilMs === null ? '' : `&max_ts=${Math.ceil(untilMs / 1000)}`}&limit=1000${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`);
+    const body = await load(`${BASE}/markets/trades?${ticker === null ? '' : `ticker=${encodeURIComponent(ticker)}&`}min_ts=${Math.floor(sinceMs / 1000)}${untilMs === null ? '' : `&max_ts=${Math.ceil(untilMs / 1000)}`}&limit=1000${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`);
     if (!Array.isArray(body.trades)) throw new Error('Invalid Kalshi trades response');
     trades.push(...body.trades);
     if (!body.cursor || body.trades.length < 1000) break;

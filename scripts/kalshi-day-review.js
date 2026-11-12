@@ -1,7 +1,7 @@
 // Daily research audit; public recordings only, no account access or orders.
 import { createReadStream, existsSync, readFileSync } from 'node:fs';
 import { createInterface } from 'node:readline';
-import { projectPath, writeProjectFile } from '../src/files.js';
+import { projectPath, recordingFiles, writeProjectFile } from '../src/files.js';
 import { simulate } from '../src/mm.js';
 const calendar = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Los_Angeles', year: 'numeric', month: '2-digit', day: '2-digit' });
 const day = t => { const n = typeof t === 'string' ? Date.parse(t) : t; return Number.isFinite(n) ? calendar.format(new Date(n)) : null; };
@@ -36,10 +36,10 @@ for (const directory of ['data/dashboard', 'data/gameday', 'research/kalshi']) {
 const books = [];
 let booksSource = null;
 for (const directory of ['data/dashboard', 'data/gameday', 'research/kalshi']) {
-  const path = projectPath(`${directory}/books.jsonl`);
-  if (!existsSync(path)) continue;
-  for await (const line of createInterface({ input: createReadStream(path), crlfDelay: Infinity })) {
-    try { const r = JSON.parse(line); if (day(r.time) === selected) books.push(r); } catch {}
+  for (const path of recordingFiles(directory, 'books', Date.parse(selected) - 86400000)) { // a UTC roll-over may hold a Pacific day
+    for await (const line of createInterface({ input: createReadStream(projectPath(path)), crlfDelay: Infinity })) {
+      try { const r = JSON.parse(line); if (day(r.time) === selected) books.push(r); } catch {}
+    }
   }
   if (books.length) { booksSource = directory; break; }
 }

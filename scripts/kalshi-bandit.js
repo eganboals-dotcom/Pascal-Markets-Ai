@@ -7,6 +7,8 @@ import { HEARTBEAT_MS, historyDays, jsonLines, settlementValue } from '../src/hi
 import { bootstrapTotal, eventOf, pairedDifference, sumByEvent } from '../src/stats.js';
 import { readResearch, markdownTable } from '../src/report.js';
 import { writeProjectFile } from '../src/files.js';
+import { kalshiFee } from '../src/kalshi.js';
+import { profitToRisk } from '../src/tuner.js';
 
 const root = process.argv.slice(2).find(a => !a.startsWith('--')) ?? 'data/history';
 const final = process.argv.includes('--final');
@@ -27,7 +29,7 @@ async function loadDay(dir) {
 
 const { days, locked, minDaysToLock } = historyDays(root, final);
 let model = emptyModel(), heldBack = null;
-const daily = [], fixedMarkets = [], learnedMarkets = [];
+const daily = [], fixedMarkets = [], learnedMarkets = [], learnedFills = [];
 for (const day of days) {
   const { settlements, books, tapes } = await loadDay(`${root}/${day}`);
   const snapshots = [...books.values()].flat(), trades = [...tapes.values()].flat();
@@ -35,6 +37,7 @@ for (const day of days) {
     const run = allow => simulate(snapshots, { ...mm, settlements, trades, allow }).markets;
     const fixed = run(null), learned = run(policy(model, mm));
     fixedMarkets.push(...fixed.map(m => ({ ...m, day }))); learnedMarkets.push(...learned);
+    for (const m of learned) for (const f of m.fillLog) learnedFills.push({ ...f, event: eventOf(m.ticker), outcome: settlements[m.ticker] });
     const sum = (list, key) => list.reduce((n, m) => n + m[key], 0);
     daily.push({ day, locked: locked.includes(day), markets: books.size, fixedFills: sum(fixed, 'fills'), fixedClv: sum(fixed, 'clv'), fixedNet: sum(fixed, 'netPnl'),
       learnedFills: sum(learned, 'fills'), learnedClv: sum(learned, 'clv'), learnedNet: sum(learned, 'netPnl') });
@@ -66,6 +69,22 @@ const summary = {
   learned: { fills: fills(learnedMarkets), settled: score(learnedMarkets, 'netPnl'), clv: score(learnedMarkets, 'clv'), capacityPerDay: capacity(learnedMarkets) / tested },
   learnedMinusFixed: { settled: diff('netPnl'), clv: diff('clv') }
 };
+// Quote size: each learned fill at min(size, contracts that traded through it), held to settlement, the fee charged on the whole
+// order. Ranked like the picker, by the low end of the event-grouped range in dollars.
+// shortcut: first in line for every traded contract and the inventory cap scaled with size, so this is an upper bound; depth
+// recordings and the Phase 2 pilot's real fill rate make it real.
+summary.sizing = [1, 2, 5, 10, 25, 50, 100].map(size => {
+  const settled = [], clv = [];
+  for (const f of learnedFills) {
+    const n = Math.max(1, Math.min(size, f.available)), dir = f.side === 'buy' ? 1 : -1, fee = kalshiFee(n, f.price, f.feeRate);
+    const stake = n * (f.side === 'buy' ? f.price : 1 - f.price);
+    settled.push({ event: f.event, pnl: n * dir * (f.outcome - f.price) - fee, stake });
+    clv.push({ event: f.event, pnl: n * (f.clv + f.fee) - fee, stake });
+  }
+  const s = profitToRisk(settled), c = profitToRisk(clv);
+  return { size, contracts: learnedFills.reduce((a, f) => a + Math.max(1, Math.min(size, f.available)), 0),
+    settled: s.pnl, settledLow: s.low, worstEvent: s.worstEvent, clv: c.pnl, clvLow: c.low, staked: s.stake, perDay: s.pnl / tested };
+});
 // Gate 0 from the plan: closing-line value above zero with its whole range, and settled P&L not significantly negative.
 const passes = s => s.clv.low > 0 && s.settled.high >= 0;
 summary.gate0 = { fixed: passes(summary.fixed), learned: passes(summary.learned), learnedBetter: summary.learnedMinusFixed.clv.low > 0 && summary.learnedMinusFixed.settled.high >= 0 };
@@ -85,6 +104,9 @@ writeProjectFile(`${root}/bandit-report.md`, ['# Quoting policy, walk-forward', 
     ['Learned', summary.learned.fills, range(summary.learned.clv), range(summary.learned.settled), money(summary.learned.capacityPerDay)],
     ['Learned minus fixed', '', range(summary.learnedMinusFixed.clv), range(summary.learnedMinusFixed.settled), '']]) : 'At least three downloaded days are needed before any day can be tested.', '',
   daily.length ? `Gate 0 (closing-line value above zero across its range, settled P&L not significantly negative): fixed ${summary.gate0.fixed ? 'passes' : 'fails'}, learned ${summary.gate0.learned ? 'passes' : 'fails'}; learned better than fixed: ${summary.gate0.learnedBetter ? 'yes' : 'no'}.` : '', '',
+  daily.length ? markdownTable(['Quote size (learned)', 'Contracts', 'Settled P&L', 'Low end', 'Worst event', 'Closing-line value', 'Per day'],
+    summary.sizing.map(r => [r.size, r.contracts, money(r.settled), money(r.settledLow), money(r.worstEvent), money(r.clv), money(r.perDay)])) : '', '',
+  'Quote size fills each learned fill at the smaller of the size and the contracts traded through it, as if first in line: an upper bound.', '',
   'Capacity is an upper bound: every contract traded at or through a filled quote, times that fill\'s closing-line value, as if the quote were first in line.', '',
   daily.length ? markdownTable(['Day', 'Markets', 'Fixed fills', 'Fixed CLV', 'Fixed settled', 'Learned fills', 'Learned CLV', 'Learned settled'],
     daily.map(r => [r.day + (r.locked ? ' (exam)' : ''), r.markets, r.fixedFills, money(r.fixedClv), money(r.fixedNet), r.learnedFills, money(r.learnedClv), money(r.learnedNet)])) : '', ''].join('\n'));

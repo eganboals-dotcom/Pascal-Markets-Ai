@@ -3,7 +3,7 @@ import { createInterface } from 'node:readline';
 import { simulate } from '../src/mm.js';
 import { fetchMarkets } from '../src/kalshi.js';
 import { readResearch, markdownTable } from '../src/report.js';
-import { projectPath, writeProjectFile } from '../src/files.js';
+import { projectPath, recordingFiles, writeProjectFile } from '../src/files.js';
 import { HEARTBEAT_MS } from '../src/history.js';
 import { policy } from '../src/bandit.js';
 import { beat } from '../src/heartbeat.js';
@@ -15,18 +15,20 @@ const history = process.argv.includes('--history');
 const historyLimits = history ? { maxQuoteAgeMs: HEARTBEAT_MS + 60000, maxMarkoutDelayMs: HEARTBEAT_MS + 60000 } : {};
 // Streamed line by line: a week of 100-market recordings is larger than Node can hold as one string.
 // The game-day recorder may be appending while this replay reads; an unfinished final line is left for the next run.
-// shortcut: the file is never rotated and is re-read in full each run, rotate it daily once runs get slow.
-async function readRecent(path, days = config.mm?.replayDays ?? 7) {
+// The live file and its daily roll-overs from the window's first day are read, oldest first.
+async function readRecent(name, days = config.mm?.replayDays ?? 7) {
   const since = Date.now() - days * 86400000, rows = [];
   const keep = line => { const row = JSON.parse(line); if (row.time >= since) rows.push(row); };
-  let pending = null;
-  try {
-    for await (const line of createInterface({ input: createReadStream(projectPath(path)), crlfDelay: Infinity })) {
-      if (pending) keep(pending);
-      pending = line || null;
-    }
-  } catch (error) { if (error.code === 'ENOENT') return []; throw error; }
-  if (pending) { try { keep(pending); } catch { /* unfinished final line */ } }
+  for (const path of recordingFiles(out, name, since)) {
+    let pending = null;
+    try {
+      for await (const line of createInterface({ input: createReadStream(projectPath(path)), crlfDelay: Infinity })) {
+        if (pending) keep(pending);
+        pending = line || null;
+      }
+    } catch (error) { if (error.code === 'ENOENT') continue; throw error; } // rolled over after it was listed
+    if (pending) { try { keep(pending); } catch { /* unfinished final line */ } }
+  }
   return rows;
 }
 // Settled outcomes are permanent, so they are cached; only markets missing from recent books are asked about again.
@@ -41,7 +43,7 @@ async function readSettlements(books, now = Date.now()) {
   return known;
 }
 const days = history ? Infinity : undefined;
-const books = await readRecent(`${out}/books.jsonl`, days), trades = await readRecent(`${out}/trades.jsonl`, days);
+const books = await readRecent('books', days), trades = await readRecent('trades', days);
 const settlements = await readSettlements(books);
 const options = { ...config.mm, makerFeeRate: config.makerFeeRate ?? 0.0175, takerFeeRate: config.feeRate ?? 0.07, ...historyLimits, settlements, trades };
 const result = { generatedAt: Date.now(), ...simulate(books, options) };

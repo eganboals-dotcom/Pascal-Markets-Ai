@@ -8,22 +8,16 @@ export const bookRow = (m, fees, time) => ({ ticker: m.ticker, time, yesBid: Num
 export const tradeRow = t => ({ ticker: t.ticker, tradeId: t.trade_id, time: Date.parse(t.created_time), price: Number(t.yes_price_dollars),
   count: Number(t.count_fp), takerSide: t.taker_side });
 
-// New public trades per market since its cursor. Ids from the cursor's second are kept because min_ts is whole seconds.
-// A market that fails keeps its cursor and is retried on the next poll.
-export async function recordTrades(cursors, load = fetchTrades) {
-  const rows = [], errors = [], next = new Map(cursors);
-  for (const [ticker, c] of cursors) {
-    try {
-      const fresh = (await load(ticker, c.time)).map(tradeRow)
-        .filter(t => t.ticker === ticker && Number.isFinite(t.time) && Number.isFinite(t.price) && t.time >= c.time && !c.ids.has(t.tradeId));
-      if (!fresh.length) continue;
-      rows.push(...fresh);
-      const time = Math.max(...fresh.map(t => t.time)), second = Math.floor(time / 1000) * 1000;
-      const carried = Math.floor(c.time / 1000) * 1000 === second ? [...c.ids] : [];
-      next.set(ticker, { time, ids: new Set([...carried, ...fresh.filter(t => t.time >= second).map(t => t.tradeId)]) });
-    } catch (error) { errors.push({ ticker, error: error.message }); }
-  }
-  return { rows: rows.sort((a, b) => a.time - b.time), cursors: next, errors };
+// New public trades since the cursor, from one poll of the exchange-wide tape (about 19 pages a minute on 2026-11-12), so the cohort can be any size.
+// Ids from the cursor's second are kept because min_ts is whole seconds. One cursor for the tape; prints outside the cohort are dropped. A poll that hits maxPages has lost its oldest prints and says so.
+export async function recordTape(cursor, tickers, load = fetchTrades, maxPages = 100) {
+  const raw = await load(null, cursor.time, undefined, maxPages);
+  const fresh = raw.map(tradeRow).filter(t => Number.isFinite(t.time) && Number.isFinite(t.price) && t.time >= cursor.time && !cursor.ids.has(t.tradeId));
+  if (!fresh.length) return { rows: [], cursor, truncated: false };
+  const time = Math.max(...fresh.map(t => t.time)), second = Math.floor(time / 1000) * 1000;
+  const carried = Math.floor(cursor.time / 1000) * 1000 === second ? [...cursor.ids] : [];
+  return { rows: fresh.filter(t => tickers.has(t.ticker)).sort((a, b) => a.time - b.time), truncated: raw.length >= maxPages * 1000,
+    cursor: { time, ids: new Set([...carried, ...fresh.filter(t => t.time >= second).map(t => t.tradeId)]) } };
 }
 
 // A missing or inactive market is left out, so the simulator sees a gap rather than a stale price.

@@ -78,7 +78,7 @@ export function simulate(snapshots, { maxInventory = 10, skewTicks = 1, pullMinu
           maxAbsInventory = Math.max(maxAbsInventory, Math.abs(inventory));
           result.fees += fee;
           result.spreadCaptured += direction * (quotes.mid - p);
-          fills.push({ time: s.time, side, price: p, fee, available: size });
+          fills.push({ time: s.time, side, price: p, fee, feeRate, available: size });
         }
       }
       const realizedPnl = closedGross - result.fees;

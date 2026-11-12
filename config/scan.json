@@ -59,7 +59,7 @@
   },
   "makerMaxSpread": 0.04,
   "mm": {
-    "maxMarkets": 100,
+    "maxMarkets": 1000,
     "seriesPrefixes": ["KXNFL", "KXNBA", "KXWNBA", "KXNHL", "KXMLB", "KXEPL", "KXLALIGA", "KXSERIEA", "KXBUNDESLIGA", "KXLIGUE1", "KXUCL", "KXUEL", "KXUECL",
       "KXEREDIVISIE", "KXLIGAPORTUGAL", "KXFACUP", "KXEFLCUP", "KXDFBPOKAL", "KXCOPADELREY", "KXCOPPAITALIA", "KXCOUPEDEFRANCE"],
     "excludeSeriesPattern": "^KX(LALIGA|BUNDESLIGA|LIGAPORTUGAL)2(?!H)|^KXSERIEAW",
@@ -74,7 +74,7 @@
     "jumpHalt": 0.03,
     "minMid": 0.05,
     "maxMid": 0.95,
-    "maxQuoteAgeMs": 30000,
+    "maxQuoteAgeMs": 90000, "maxMarkoutDelayMs": 90000,
     "maxMarkoutDelayMs": 30000,
     "minQuoteEdge": 0.005
   },
