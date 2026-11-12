@@ -120,19 +120,19 @@ Each full scan also selects the market-making cohort (up to `mm.maxMarkets` quot
 
 The same replay also scores the learned quoting policy (`policy` in `src/bandit.js`, with the model `kalshi-bandit.js` saves as `data/history/bandit-model.json`), which declines the fixed rules' quotes where the history's closing-line value was negative. Its totals go to `mm-sim.json` as `learned`, beside the fixed rules' `total`, and both reach the quoting engine's heartbeat on the department pages. Since Nov 12 the loop runs in the background as the quoting engine's paper loop, `node scripts/kalshi-gameday.js --until=never --out=data/maker`, separate from the dashboard's Start (which writes `data/dashboard`). On the dashboard's last live recordings (Nov 8 and 9, after the model's training days), the learned policy made $0.73 on 169 fills against the fixed rules' −$6.27 on 335.
 
-Quote size, on the 49 walk-forward days (Sep 14 to Nov 1, learned policy). `kalshi-bandit.js` refills each of the policy's 50,606 one-contract fills at the smaller of the size and the contracts that traded through the quote, holds it to settlement and charges the fee on the whole order (`summary.sizing` in `bandit-report.json`). At one contract this reproduces the walk-forward's settled total to the cent. The low end is that of the 97.5% range grouped by event, the same yardstick the picker uses.
+Quote size, on the 49 walk-forward days (Sep 14 to Nov 1, learned policy). `kalshi-bandit.js` refills each of the policy's 50,606 one-contract fills at the smaller of the size and the whole contracts that traded through the quote (at least one), holds it to settlement and charges the fee on the whole order (`summary.sizing` in `bandit-report.json`). At one contract this reproduces the walk-forward's settled total to the cent. The low end is that of the 97.5% range grouped by event, the same yardstick the picker uses.
 
 | Size | Contracts | Settled P&L | Low end | Worst event | Per day |
 |---|---|---|---|---|---|
 | 1 | 50,606 | $723 | $390 | −$28 | $15 |
-| 2 | 82,736 | $1,166 | $600 | −$39 | $24 |
-| 5 | 170,898 | $2,188 | $933 | −$80 | $45 |
-| **10** | **300,057** | **$3,463** | **$1,131** | **−$146** | **$71** |
-| 25 | 607,753 | $5,501 | $423 | −$349 | $112 |
-| 50 | 996,225 | $7,358 | −$1,308 | −$650 | $150 |
-| 100 | 1,564,463 | $7,750 | −$6,879 | −$1,184 | $158 |
+| 2 | 82,211 | $1,152 | $598 | −$38 | $24 |
+| 5 | 169,527 | $2,145 | $898 | −$80 | $44 |
+| **10** | **297,581** | **$3,399** | **$1,069** | **−$145** | **$69** |
+| 25 | 603,251 | $5,386 | $349 | −$347 | $110 |
+| 50 | 990,256 | $7,210 | −$1,406 | −$647 | $147 |
+| 100 | 1,557,200 | $7,579 | −$7,002 | −$1,180 | $155 |
 
-Ten contracts a quote is the pick. Past it, the extra contracts come from the largest trades through the quote, and those pay less: settled profit per contract falls from 1.43¢ at one contract to 1.15¢ at ten, 0.74¢ at fifty and 0.50¢ at a hundred, while the worst game grows with size. Closing-line value keeps rising almost in step with size, so it would have picked the largest size; settlement is what shows the large prints are informed. Every row is an upper bound: it assumes the quote was first in line for every contract that traded, with the inventory cap scaled to the size. The live paper loop still quotes one contract, and real size waits for the Phase 2 pilot's fill rate.
+Ten contracts a quote is the pick. Past it, the extra contracts come from the largest trades through the quote, and those pay less: settled profit per contract falls from 1.43¢ at one contract to 1.14¢ at ten, 0.73¢ at fifty and 0.49¢ at a hundred, while the worst game grows with size. Closing-line value keeps rising almost in step with size, so it would have picked the largest size; settlement is what shows the large prints are informed. Every row is an upper bound: it assumes the quote was first in line for every contract that traded, with the inventory cap scaled to the size. Since Nov 12 the paper loop scores its quotes at `mm.quoteSize` (10): `kalshi-mm-sim.js` re-scores each one-contract fill with the same rule (`sizedFill` in `src/mm.js`) and writes the totals to `mm-sim.json` as `sized`, for the fixed rules and the learned policy, with settled P&L over settled fills only; the quoting engine's heartbeat shows the learned policy's. The simulation itself still steps one contract at a time, so inventory skew and the cap act per fill, not per contract. Real size waits for the Phase 2 pilot's fill rate.
 
 ## Live feed
 
@@ -208,6 +208,6 @@ Mutually exclusive No baskets test liquid subsets at up to eight depth breakpoin
 
 Removing an outcome preserves the at-most-one-winner lower bound: No on k selected outcomes pays at least k - 1 even if an excluded outcome wins. The fast watch list ranks taker candidates, since hypothetical maker savings require an unobserved seller and are not directly replayable. An ineligible below-par ladder no longer prevents the same event's closest verified ladder from entering discovery.
 
-Model quotes now expire after `mm.maxQuoteAgeMs` (30 seconds). A sparse later book cannot imply a fill against an expired quote. A whole-contract simulated fill also requires at least one contract of opposing displayed depth; fractional depth cannot be promoted to a whole fill. Posting requires `mm.minQuoteEdge` (half a cent) after the estimated one-contract maker fee, and locked quotes are rejected. This is a conservative modeled spread floor, not a measured profit guarantee. Fifteen-minute markouts require an observation within `mm.maxMarkoutDelayMs` (30 seconds) after the horizon. Missing marks remain unmarked. Expired intervals are counted explicitly. Sparse data may produce no inferred fills; a zero modeled P&L in that case is not evidence of profitability.
+Model quotes now expire after `mm.maxQuoteAgeMs` (30 seconds). A sparse later book cannot imply a fill against an expired quote. A whole-contract simulated fill also requires at least one contract of opposing displayed depth; fractional depth cannot be promoted to a whole fill. Posting requires `mm.minQuoteEdge` (half a cent) after the estimated one-contract maker fee, and locked quotes are rejected. This is a conservative modeled spread floor, not a measured profit guarantee. Fifteen-minute markouts require an observation within `mm.maxMarkoutDelayMs` (90 seconds since Nov 12) after the horizon. Missing marks remain unmarked. Expired intervals are counted explicitly. Sparse data may produce no inferred fills; a zero modeled P&L in that case is not evidence of profitability.
 
 The [follow-up strategy review](research/strategy-review-2026-11-07.md) records capital-aware selection, shared-depth regression fixes, and the current evidence gap.

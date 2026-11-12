@@ -1,6 +1,23 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { simulate as simulateFresh } from '../src/mm.js';
+import { simulate as simulateFresh, sizedFill } from '../src/mm.js';
+import { kalshiFee } from '../src/kalshi.js';
+
+test('sizedFill takes the smaller of the size and the whole contracts traded, at least one, and charges the fee on the whole order', () => {
+  const fill = { side: 'buy', price: 0.4, feeRate: 0.0175, fee: kalshiFee(1, 0.4, 0.0175), available: 4.7, clv: 0.02 };
+  const four = sizedFill(fill, 10, 1);
+  assert.equal(four.contracts, 4);
+  assert.ok(Math.abs(four.settled - (4 * 0.6 - kalshiFee(4, 0.4, 0.0175))) < 1e-12);
+  assert.ok(Math.abs(four.clv - (4 * (0.02 + fill.fee) - kalshiFee(4, 0.4, 0.0175))) < 1e-12);
+  assert.ok(Math.abs(four.stake - 1.6) < 1e-12);
+  assert.equal(sizedFill(fill, 2, 1).contracts, 2);
+  const short = sizedFill({ ...fill, side: 'sell', available: 0.5 }, 10, 1);
+  assert.equal(short.contracts, 1);
+  assert.ok(Math.abs(short.settled - (-0.6 - fill.fee)) < 1e-12);
+  assert.ok(Math.abs(short.stake - 0.6) < 1e-12);
+  assert.equal(sizedFill(fill, 10, undefined).settled, null);
+  assert.throws(() => sizedFill(fill, 2.5, 1));
+});
 // Historical path fixtures explicitly assume quotes remain live between their 15-minute samples.
 const simulate = (rows, options = {}) => simulateFresh(rows, { maxQuoteAgeMs: 1200000, ...options });
 import { quotingCandidates } from '../src/scan.js';

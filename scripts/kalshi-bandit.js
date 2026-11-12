@@ -1,13 +1,12 @@
 // Walk-forward test of the learned quoting policy on backfilled history: each day is first traded by a model trained only on
 // days at least two before it, scored against the fixed rules on the same day, and learned from a day later. Research only; no orders.
 // The newest 10 days are a locked final exam: skipped unless --final is passed, which should happen once, at the very end.
-import { simulate } from '../src/mm.js';
+import { simulate, sizedFill } from '../src/mm.js';
 import { addTrained, emptyModel, marketSamples, policy, train } from '../src/bandit.js';
 import { HEARTBEAT_MS, historyDays, jsonLines, settlementValue } from '../src/history.js';
 import { bootstrapTotal, eventOf, pairedDifference, sumByEvent } from '../src/stats.js';
 import { readResearch, markdownTable } from '../src/report.js';
 import { writeProjectFile } from '../src/files.js';
-import { kalshiFee } from '../src/kalshi.js';
 import { profitToRisk } from '../src/tuner.js';
 
 const root = process.argv.slice(2).find(a => !a.startsWith('--')) ?? 'data/history';
@@ -75,14 +74,15 @@ const summary = {
 // recordings and the Phase 2 pilot's real fill rate make it real.
 summary.sizing = [1, 2, 5, 10, 25, 50, 100].map(size => {
   const settled = [], clv = [];
+  let contracts = 0;
   for (const f of learnedFills) {
-    const n = Math.max(1, Math.min(size, f.available)), dir = f.side === 'buy' ? 1 : -1, fee = kalshiFee(n, f.price, f.feeRate);
-    const stake = n * (f.side === 'buy' ? f.price : 1 - f.price);
-    settled.push({ event: f.event, pnl: n * dir * (f.outcome - f.price) - fee, stake });
-    clv.push({ event: f.event, pnl: n * (f.clv + f.fee) - fee, stake });
+    const r = sizedFill(f, size, f.outcome);
+    contracts += r.contracts;
+    if (r.settled !== null) settled.push({ event: f.event, pnl: r.settled, stake: r.stake });
+    clv.push({ event: f.event, pnl: r.clv, stake: r.stake });
   }
   const s = profitToRisk(settled), c = profitToRisk(clv);
-  return { size, contracts: learnedFills.reduce((a, f) => a + Math.max(1, Math.min(size, f.available)), 0),
+  return { size, contracts,
     settled: s.pnl, settledLow: s.low, worstEvent: s.worstEvent, clv: c.pnl, clvLow: c.low, staked: s.stake, perDay: s.pnl / tested };
 });
 // Gate 0 from the plan: closing-line value above zero with its whole range, and settled P&L not significantly negative.

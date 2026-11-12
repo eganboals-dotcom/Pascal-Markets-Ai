@@ -4,6 +4,16 @@ const minute = 60000;
 const cents = x => Math.round(x * 100) / 100;
 const metrics = () => ({ fills: 0, spreadCaptured: 0, fees: 0, adverseSelectionLoss: 0, markedFills: 0, unmarkedFills: 0, grossPnl: 0, netPnl: 0, staleIntervals: 0, tradeFills: 0, clv: 0, availableContracts: 0 });
 
+// Quote size: a filled quote gets the smaller of its size and the contracts that traded through it (at least the one that filled),
+// held to settlement, with the fee charged on the whole order. Returns contracts, stake, closing-line value and settled P&L (null unsettled).
+// shortcut: first in line for every traded contract, inventory cap scaled with size; an upper bound until real fills measure the queue.
+export function sizedFill(fill, size, outcome) {
+  if (!Number.isInteger(size) || size < 1) throw new Error('Quote size must be a whole number of contracts');
+  const n = Math.max(1, Math.min(size, Math.floor(fill.available))), dir = fill.side === 'buy' ? 1 : -1, fee = kalshiFee(n, fill.price, fill.feeRate);
+  return { contracts: n, stake: n * (dir > 0 ? fill.price : 1 - fill.price), clv: n * (fill.clv + fill.fee) - fee,
+    settled: outcome === 0 || outcome === 1 ? n * dir * (outcome - fill.price) - fee : null };
+}
+
 // One tick inside the touch, skewed against inventory, kept only where the edge over mid beats the maker fee.
 // Returns null when no side can be quoted (outside the mid band or no room inside the spread).
 export function quotePrices(s, inventory, { maxInventory = 10, skewTicks = 1, makerFeeRate = 0.0175, minQuoteEdge = 0.005, minMid = 0, maxMid = 1 } = {}) {
