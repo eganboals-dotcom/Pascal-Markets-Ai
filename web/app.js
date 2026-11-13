@@ -396,6 +396,20 @@ async function load() {
   } catch (error) { el('status').textContent = error.message; }
   finally { fetching = false; }
 }
+// The live paper test of the $2,000 split: each agent's budget tonight, its trades and settled P&L, the cash it holds, and whether it runs.
+async function loadPortfolio() {
+  try {
+    const response = await fetch('/api/portfolio');
+    if (!response.ok) throw new Error('Paper test unavailable');
+    const p = await response.json(), days = Math.max((Date.now() - p.start) / 86400000, 1 / 24);
+    el('paper-total').textContent = `Bankroll ${money(p.base + p.total)} · ${signedText(p.total)} since ${new Date(p.start).toLocaleDateString()} · ${signedText(p.total / days)} a day · reserve ${money(p.reserve)}`
+      + (p.rebalance ? ` · last rebalance ${p.rebalance.day}` : '');
+    const runs = r => r.agent === 'quoting' ? p.engine : p.running.includes(r.agent);
+    table('paper-table', ['Agent', 'Status', 'Budget', 'Held now', 'Trades', 'Settled', 'P&L', 'Note'], p.rows.map(r => [
+      r.agent, tag(runs(r) ? 'Running' : 'Stopped', runs(r) ? 'good' : 'bad'), money(r.budget), money(r.open), number(r.trades), r.settled ?? '—', signed(r.pnl), r.note ?? '']));
+  } catch (error) { empty('paper-table', 'Paper test unavailable', error.message, '▦'); }
+}
+const signedText = n => (n > 0 ? '+' : '') + money(n);
 async function toggle() {
   if (controlling) return;
   controlling = true; render();
@@ -436,7 +450,8 @@ window.addEventListener('pagehide', () => windowSession.close());
 window.addEventListener('pageshow', event => { if (event.persisted) location.reload(); });
 // Opening the page never starts scanning.
 setInterval(load, 5000);
-render(); renderDepartments(); load();
+setInterval(loadPortfolio, 30000); // the tally reads every ledger, so it refreshes less often than the engine status
+render(); renderDepartments(); load(); loadPortfolio();
 
 for (const period of ['day', 'all']) el(`pnl-${period}`).addEventListener('click', () => {
   pnlPeriod = period;

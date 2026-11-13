@@ -30,6 +30,11 @@
         <div class="metric"><span>Model positions</span><strong id="position-count">0</strong><small>Simulated inventory only</small><span class="metric-symbol">▤</span></div>
         <div class="metric"><span>Dry-run checks</span><strong id="trade-count">0</strong><small id="trade-note">No recorded price checks</small><span class="metric-symbol">⇄</span></div>
       </section>
+      <section class="panel departments-panel" id="paper-test" aria-labelledby="paper-title">
+        <div class="panel-heading"><div><span class="section-kicker">Paper test / live</span><h2 id="paper-title">The $2,000 split</h2></div><span class="quiet-tag" id="paper-total">Reading the paper test</span></div>
+        <div class="account-note">Paper only: no orders. Budgets come from the nightly rebalance at midnight Pacific; P&amp;L counts settled trades since the test began. Refreshed every 30 seconds.</div>
+        <div id="paper-table" class="table-wrap"></div>
+      </section>
       <section class="panel departments-panel" id="departments" aria-labelledby="departments-title">
         <div class="panel-heading"><div><span class="section-kicker">Departments / history test</span><h2 id="departments-title">The leaderboard</h2></div><span class="quiet-tag" id="departments-total">No department report yet</span></div>
         <div class="account-note">Research only: each row is a history test, and no department places orders yet. A switch is saved now and takes effect once the paper-trading loop runs.</div>

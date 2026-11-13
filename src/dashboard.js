@@ -6,6 +6,7 @@ import { recentRecords, dashboardData } from './dashboard-data.js';
 import { SWITCHES_PATH, loadDepartments, readSwitches, writeSwitch } from './departments.js';
 import { HEARTBEAT_DIR, isStale, recentBeats } from './heartbeat.js';
 import { LEDGERS, PAPER_DIR } from './paper.js';
+import { BASE, START, budgetRows, tally } from './portfolio.js';
 
 const LEASE_MS = 20000, MAX_BODY = 1024;
 
@@ -34,6 +35,8 @@ export function createDashboardServer({ runner = createDashboardRunner(),
       checks: localChecks.length ? localChecks : recentRecords('research/kalshi/dryrun.jsonl'), mm,
       budget: readJson('config/scan.json', {}).budget ?? {} }) };
   },
+  // The live paper test of the $2,000 split (src/portfolio.js), the same tally scripts/paper-portfolio.js writes.
+  portfolio = () => ({ ...tally(), start: START, base: BASE, rebalance: budgetRows().at(-1) ?? null }),
   now = Date.now, leaseMs = LEASE_MS, departmentsRoot = 'data/history', switchesPath = SWITCHES_PATH, heartbeatDir = HEARTBEAT_DIR, paperDir = PAPER_DIR } = {}) {
   // One department's page: each agent's latest heartbeat (the live scanner reports through the runner), its part of the history
   // test, a merged activity feed and the newest history-test trades.
@@ -108,6 +111,11 @@ export function createDashboardServer({ runner = createDashboardRunner(),
     if (request.url === '/api/research') {
       try { json(200, research()); }
       catch { json(500, { error: 'Research reports unavailable' }); }
+      return;
+    }
+    if (request.url === '/api/portfolio') {
+      try { json(200, { ...portfolio(), running: runner.snapshot().agents ?? [], engine: runner.snapshot().running }); }
+      catch { json(500, { error: 'Paper test unavailable' }); }
       return;
     }
     if (request.url === '/api/departments') {

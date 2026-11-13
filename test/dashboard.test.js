@@ -95,6 +95,21 @@ test('dashboard opens idle; status reads never start scanning; Start and Stop ar
   });
 });
 
+test('the paper-test panel reads the tally and which agents run, and never starts the engine', async () => {
+  const runner = fakeRunner(), rows = [{ agent: 'game-watch', budget: 850, open: 10, trades: 2, settled: 1, pnl: 1.5 }];
+  await withServer({ runner, portfolio: () => ({ rows, total: 1.5, reserve: 150, start: 0, base: 2000, rebalance: null }) }, async base => {
+    assert.match(await (await fetch(base)).text(), /id="paper-table"/);
+    const p = await (await fetch(`${base}/api/portfolio`)).json();
+    assert.deepEqual(p.rows, rows);
+    assert.equal(p.engine, false);
+    assert.deepEqual(p.running, []);
+    assert.equal(runner.counts().starts, 0);
+  });
+  await withServer({ runner, portfolio: () => { throw new Error('broken ledger'); } }, async base => {
+    assert.equal((await fetch(`${base}/api/portfolio`)).status, 500);
+  });
+});
+
 test('controls reject external origins, simple form posts, GET starts and untrusted hosts', async () => {
   const runner = fakeRunner();
   await withServer({ runner }, async base => {
