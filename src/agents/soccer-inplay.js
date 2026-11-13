@@ -101,13 +101,15 @@ export function goalLag(match, market, trades) {
 // 108 minutes after kickoff, and with the line not yet passed. In each bucketMin of the match it keeps the first such print as a
 // calibration row { p, yes, over }, and the first taker print that a buyer could have matched with an edge after the fee above
 // margin as a pick { side, price, fee, edge, pnl }. fee(price) is the taker fee per contract.
-export function scorePrints(match, market, trades, model, fee, { margin = 0.03, guardMin = 4, bucketMin = 5 } = {}) {
+// guardBefore (default guardMin) also skips the minutes before a goal, which only hindsight knows: it drops the No bets a coming goal
+// would lose, so an honest test of what a live agent could do sets it to 0 and lets guardMin cover clock error after the goal.
+export function scorePrints(match, market, trades, model, fee, { margin = 0.03, guardMin = 4, guardBefore = guardMin, bucketMin = 5 } = {}) {
   const over = market.result === 'yes' ? 1 : 0, rows = [], picks = [], rowBuckets = new Set(), pickBuckets = new Set();
   const goalTimes = match.elapsed ?? match.goals.map(elapsedAt);
   for (const t of [...trades].sort((a, b) => Date.parse(a.created_time) - Date.parse(b.created_time))) {
     const elapsed = (Date.parse(t.created_time) - match.kickoff) / 60000, minute = minuteAt(elapsed), yes = Number(t.yes_price_dollars);
     if (minute === null || elapsed < 1 || elapsed > 108 || (elapsed >= 44 && elapsed <= 49) || (elapsed >= 60 && elapsed <= 66) || !(yes > 0 && yes < 1)) continue;
-    if (goalTimes.some(g => Math.abs(g - elapsed) < guardMin)) continue;
+    if (goalTimes.some(g => elapsed > g - guardBefore && elapsed < g + guardMin)) continue;
     const scored = goalTimes.filter(g => g < elapsed).length;
     if (scored > market.line) continue;
     const p = overChance(model, match.league, minute, scored, market.line), bucket = Math.floor(elapsed / bucketMin);

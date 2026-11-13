@@ -15,7 +15,8 @@ import { projectPath, writeProjectFile } from '../src/files.js';
 
 const option = (name, fallback) => process.argv.find(a => a.startsWith(`--${name}=`))?.split('=')[1] ?? fallback;
 const from = Date.parse(option('from', '2025-11-25')), to = Date.parse(option('to', '2026-06-30')), perLeague = Number(option('per-league', 30));
-const guardMin = Number(option('guard', 4)); // minutes left out around each goal's estimated time, against clock error
+const guardMin = Number(option('guard', 4)); // minutes left out after each goal's estimated time, against clock error
+const guardBefore = Number(option('guard-before', guardMin)); // and before it: hindsight, so 0 for an honest live test
 const margins = option('margins', '0.03,0.06,0.10').split(',').map(Number), LINES = [0.5, 1.5, 2.5, 3.5];
 const BASE = 'https://api.elections.kalshi.com/trade-api/v2', CACHE = 'data/football-charts/kalshi-trades';
 const SERIES = { premier: 'KXEPLTOTAL', spain1: 'KXLALIGATOTAL', italy1: 'KXSERIEATOTAL', germany1: 'KXBUNDESLIGATOTAL', france1: 'KXLIGUE1TOTAL',
@@ -104,8 +105,8 @@ for (const [league, series] of Object.entries(SERIES).filter(([l]) => !only || o
     if ((m.total > line ? 'yes' : 'no') !== x.result) { results.push({ league, ticker: x.ticker, mismatch: true }); continue; }
     let trades;
     try { trades = await prints(x.ticker, m.kickoff); } catch (error) { console.error(x.ticker, error.message); continue; }
-    const scored = Object.fromEntries(margins.map(margin => [margin, scorePrints(m, { line, result: x.result }, trades, model, fee, { margin, guardMin }).picks]));
-    results.push({ league, ticker: x.ticker, match: `${m.date} ${m.home} v ${m.away}`, line, lag: goalLag(m, { line, result: x.result }, trades), rows: scorePrints(m, { line, result: x.result }, trades, model, fee, { guardMin }).rows, picks: scored });
+    const scored = Object.fromEntries(margins.map(margin => [margin, scorePrints(m, { line, result: x.result }, trades, model, fee, { margin, guardMin, guardBefore }).picks]));
+    results.push({ league, ticker: x.ticker, match: `${m.date} ${m.home} v ${m.away}`, line, lag: goalLag(m, { line, result: x.result }, trades), rows: scorePrints(m, { line, result: x.result }, trades, model, fee, { guardMin, guardBefore }).rows, picks: scored });
   }
 }
 

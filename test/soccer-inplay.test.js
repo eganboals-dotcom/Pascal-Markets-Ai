@@ -52,6 +52,15 @@ test('in-play prints skip the minutes near a goal and the break, and a cheap tak
   assert.equal(scorePrints(match, { line: 0.5, result: 'yes' }, [print(30, 0.99, 'no')], model, () => 0).rows.length, 0); // line passed
 });
 
+test('the guard before a goal is optional, since only hindsight knows a goal is coming', () => {
+  const model = { share: Array.from({ length: 91 }, (_, t) => 1 - t / 90), rate: new Map([['a', 2.7]]), overall: 2.7 };
+  const kickoff = Date.parse('2026-01-04T15:00:00Z'), at = min => new Date(kickoff + min * 60000).toISOString();
+  const match = { league: 'a', kickoff, goals: [20] }, trades = [{ created_time: at(17), yes_price_dollars: '0.5', taker_side: 'yes' }, { created_time: at(22), yes_price_dollars: '0.5', taker_side: 'yes' }];
+  const minutes = opts => scorePrints(match, { line: 2.5, result: 'yes' }, trades, model, () => 0, opts).rows.map(r => r.minute);
+  assert.deepEqual(minutes({ guardMin: 4 }), []); // 3 minutes before and 2 after the goal
+  assert.deepEqual(minutes({ guardMin: 4, guardBefore: 0 }), [17]);
+});
+
 test('the clock check measures the settle jump against the deciding goal', () => {
   const kickoff = Date.parse('2026-01-04T15:00:00Z'), at = min => new Date(kickoff + min * 60000).toISOString();
   const match = { kickoff, goals: [10, 60], elapsed: [10, 78], total: 2 };
