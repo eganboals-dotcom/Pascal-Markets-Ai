@@ -52,7 +52,7 @@ const result = { generatedAt: Date.now(), ...simulate(books, options) };
 const MODEL = 'data/history/bandit-model.json';
 const learnedRun = existsSync(projectPath(MODEL)) ? simulate(books, { ...options, allow: policy(JSON.parse(readFileSync(projectPath(MODEL), 'utf8')), config.mm ?? {}) }) : null;
 result.learned = learnedRun?.total ?? null;
-// Quote size (mm.quoteSize, 10 from the history replay in kalshi-bandit.js): every one-contract fill re-scored at the size, held to settlement.
+// Quote size (mm.quoteSize, 5: the largest size whose low end stays positive under both fill rules in kalshi-bandit.js): every one-contract fill re-scored at the size, held to settlement.
 const quoteSize = config.mm?.quoteSize ?? 1;
 const sizedTotal = markets => {
   const t = { contracts: 0, clv: 0, settledFills: 0, settledPnl: 0 };
