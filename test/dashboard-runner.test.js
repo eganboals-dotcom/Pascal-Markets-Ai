@@ -3,11 +3,11 @@ import assert from 'node:assert/strict';
 import { EventEmitter, once } from 'node:events';
 import { fork } from 'node:child_process';
 import { PROJECT_ROOT } from '../src/files.js';
-import { createDashboardRunner } from '../src/dashboard-runner.js';
+import { PAPER_AGENTS, createDashboardRunner } from '../src/dashboard-runner.js';
 
 test('one owned process, results over IPC, stop waits for exit, restart is explicit', async () => {
   let launches = 0, child;
-  const runner = createDashboardRunner({ launch: () => {
+  const runner = createDashboardRunner({ agents: [], launch: () => {
     launches++;
     child = new EventEmitter(); child.connected = true;
     child.send = message => { assert.equal(message.type, 'stop'); setImmediate(() => child.emit('exit', 0)); };
@@ -32,7 +32,7 @@ test('one owned process, results over IPC, stop waits for exit, restart is expli
 
 test('unexpected exit leaves scanner stopped instead of restarting', () => {
   const child = new EventEmitter();
-  const runner = createDashboardRunner({ launch: () => child });
+  const runner = createDashboardRunner({ agents: [], launch: () => child });
   runner.start(); child.emit('exit', 1);
   assert.equal(runner.snapshot().running, false);
   assert.match(runner.snapshot().error, /unexpectedly/);
@@ -42,7 +42,7 @@ test('real dashboard scanner starts on IPC and exits on stop or parent disconnec
   const preload = 'data:text/javascript,' + encodeURIComponent("globalThis.fetch = async () => { throw new Error('network disabled for test'); };");
   for (const disconnect of [false, true]) {
     let child;
-    const runner = createDashboardRunner({ launch: () => {
+    const runner = createDashboardRunner({ agents: [], launch: () => {
       child = fork('scripts/kalshi-gameday.js', ['--dashboard', '--feed', '--out=work/dashboard-process-test'], {
         cwd: PROJECT_ROOT, windowsHide: true, execArgv: ['--import', preload],
         env: { ...process.env, KALSHI_KEY_ID: '', KALSHI_KEY_PATH: '' }, stdio: ['ignore', 'ignore', 'pipe', 'ipc']
@@ -61,4 +61,24 @@ test('real dashboard scanner starts on IPC and exits on stop or parent disconnec
     assert.equal(runner.snapshot().running, false);
     assert.equal(child.exitCode, 0);
   }
+});
+
+test('Start engine also starts every paper agent once, Stop stops them, and an agent that dies is reported, not restarted', async () => {
+  const scanner = new EventEmitter(); scanner.connected = true;
+  scanner.send = () => setImmediate(() => scanner.emit('exit', 0));
+  const launched = [];
+  const fake = name => { const p = new EventEmitter(); p.exitCode = null; p.kill = () => { p.exitCode = 0; setImmediate(() => p.emit('exit', 0)); }; launched.push([name, p]); return p; };
+  const runner = createDashboardRunner({ launch: () => scanner, launchAgent: fake });
+  runner.start(); runner.start();
+  assert.deepEqual(launched.map(([name]) => name), PAPER_AGENTS.map(([name]) => name));
+  assert.deepEqual(PAPER_AGENTS.find(([name]) => name === 'game-watch')[1], ['--budget=split']);
+  assert.ok(PAPER_AGENTS.some(([name]) => name === 'rebalance'));
+  assert.equal(runner.snapshot().agents.length, PAPER_AGENTS.length);
+  const [, dying] = launched.find(([name]) => name === 'score-watch');
+  dying.exitCode = 1; dying.emit('exit', 1);
+  assert.equal(runner.snapshot().agents.includes('score-watch'), false);
+  assert.match(runner.snapshot().agentErrors[0], /score-watch exited/);
+  await runner.stop();
+  assert.deepEqual(runner.snapshot().agents, []);
+  assert.ok(launched.every(([, p]) => p.exitCode !== null));
 });
