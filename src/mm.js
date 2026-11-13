@@ -14,17 +14,20 @@ export function sizedFill(fill, size, outcome) {
     settled: outcome === 0 || outcome === 1 ? n * dir * (outcome - fill.price) - fee : null };
 }
 
-// The paper test's cash cap for quoting: fills in time order at `size`, each cut to what `budget` (dollars) leaves room for, and
+// The paper test's cash cap for quoting: fills in time order at `size`, each cut to what `budget` (dollars, or a function of the
+// fill's time) leaves room for, and
 // skipped when not one contract fits. A fill's cash is freed settleMs after its market's expected expiration (expiresAt).
 // shortcut: a buy and a sell in one market are not netted, so the cash held is overstated; fine while mm.maxInventory caps a market.
 export function budgetedFills(fills, size, budget, outcomes = {}, { now = Date.now(), settleMs = 3600000 } = {}) {
   const open = [], t = { taken: 0, skipped: 0, contracts: 0, settledFills: 0, settledPnl: 0, held: 0 };
+  const cap = typeof budget === 'function' ? budget : () => budget;
   let held = 0;
   for (const f of [...fills].sort((a, b) => a.time - b.time)) {
+    const limit = cap(f.time);
     for (let i = open.length - 1; i >= 0; i--) if (open[i].at <= f.time) { held -= open[i].cash; open.splice(i, 1); }
     let r = sizedFill(f, size, outcomes[f.ticker]);
-    if (held + r.stake > budget + 1e-9) {
-      const fits = Math.floor((budget - held) / (r.stake / r.contracts) + 1e-9);
+    if (held + r.stake > limit + 1e-9) {
+      const fits = Math.floor((limit - held) / (r.stake / r.contracts) + 1e-9);
       if (fits < 1) { t.skipped++; continue; }
       r = sizedFill(f, fits, outcomes[f.ticker]);
     }

@@ -25,10 +25,12 @@ import { departmentOf, loadDepartments, readSwitches } from '../src/departments.
 import { beat } from '../src/heartbeat.js';
 import { confirmOpposite, downloadBusy, exitQuote, openLedger } from '../src/paper.js';
 import { readResearch } from '../src/report.js';
+import { budgetOf } from '../src/portfolio.js';
 
 const option = (name, fallback) => process.argv.find(a => a.startsWith(`--${name}=`))?.split('=')[1] ?? fallback;
 const flag = name => process.argv.includes(`--${name}`);
-const budget = option('budget', 'off') === 'off' ? Infinity : Number(option('budget')); // dollars of open positions at most
+// dollars of open positions at most; 'split' reads the paper split's latest budget (src/portfolio.js) on every pass
+const budgetOption = option('budget', 'off'), budget = () => budgetOption === 'split' ? budgetOf('game-watch') : budgetOption === 'off' ? Infinity : Number(budgetOption);
 const maxContracts = Number(option('contracts', 25)), perGame = option('per-game', 'off') === 'off' ? Infinity : Number(option('per-game')), dailyLimit = Number(option('daily-loss', 100));
 const everyMs = Number(option('every-seconds', 10)) * 1000, margin = Number(option('margin', 0.01)), feeRate = readResearch('config/scan.json', {}).feeRate ?? 0.07;
 const AGENT = 'game-watch', ESPN = 'https://site.api.espn.com/apis/site/v2/sports', CORE = 'https://sports.core.api.espn.com/v2/sports';
@@ -162,7 +164,7 @@ async function trade(games, departments) {
   }
   for (const { ticker, series, g, side, at, fair, pick, offered } of picks.sort((a, b) => b.pick.edge - a.pick.edge)) {
     const gameId = `${g.row.league}-${g.row.eventId}`, contracts = Math.floor(Math.min(maxContracts, offered, perGame - (held.get(gameId) ?? 0),
-      (budget - ledger.openCost()) / (pick.price + pick.fee)));
+      (budget() - ledger.openCost()) / (pick.price + pick.fee)));
     if (contracts < 1) continue;
     const row = { time: Date.now(), ticker, league: series, department: departmentOf(series, departments),
       game: `${g.name}, decided at ${new Date(at).toISOString().slice(11, 19)} UTC`, gameId, start: g.row.start, side, price: pick.price, fee: pick.fee,

@@ -25,11 +25,13 @@ import { beat } from '../src/heartbeat.js';
 import { downloadBusy, eventOf, openLedger } from '../src/paper.js';
 import { projectPath } from '../src/files.js';
 import { readResearch } from '../src/report.js';
+import { budgetOf } from '../src/portfolio.js';
 
 const option = (name, fallback) => process.argv.find(a => a.startsWith(`--${name}=`))?.split('=')[1] ?? fallback;
 const flag = name => process.argv.includes(`--${name}`);
 const minutes = Number(option('minutes', 10)), everyMs = Number(option('every-seconds', 30)) * 1000, margin = Number(option('margin', 0.01)), maxContracts = Number(option('contracts', 25)), perDay = Number(option('per-day', 25)), dailyLimit = Number(option('daily-loss', 25)), feeRate = readResearch('config/scan.json', {}).feeRate ?? 0.07;
-const budget = option('budget', 'off') === 'off' ? Infinity : Number(option('budget')); // dollars of open positions at most
+// dollars of open positions at most; 'split' reads the paper split's latest budget (src/portfolio.js) on every pass
+const budgetOption = option('budget', 'off'), budget = () => budgetOption === 'split' ? budgetOf('station-watch') : budgetOption === 'off' ? Infinity : Number(budgetOption);
 const AGENT = 'station-watch', PAUSE_MS = 3000, DAY_MS = 86400000, SETTLE_AFTER_MS = 6 * 3600000, NEXT_MS = 2 * minutes * 60000 + 5 * 60000, OVERLAP_MS = 15 * 60000, LIST_MS = 5 * 60000;
 const say = fields => console.log(JSON.stringify({ time: new Date().toISOString(), ...fields }));
 const warn = fields => console.error(JSON.stringify({ time: new Date().toISOString(), ...fields }));
@@ -141,7 +143,7 @@ async function trade(readings, departments) {
     const fair = call === 'yes' ? 1 : 0, pick = take(fair, book, { feeRate, margin: chosen }), offered = pick?.side === 'yes' ? book.yesAskSize : book.yesBidSize;
     // One station's readings decide every range of its day, so a bad reading can turn them all: the cap is per series and day.
     const day = eventOf(m.ticker), contracts = Math.floor(Math.min(maxContracts, offered, perDay - (held.get(day) ?? 0),
-      pick ? (budget - ledger.openCost()) / (pick.price + pick.fee) : 0));
+      pick ? (budget() - ledger.openCost()) / (pick.price + pick.fee) : 0));
     if (!pick || !(contracts >= 1)) continue;
     const row = { time: Date.now(), ticker: m.ticker, league: series, department: departmentOf(series, departments),
       game: `${code} ${kind} so far ${kind === 'high' ? bound.high : bound.low}°`, start: null, side: pick.side, price: pick.price, fee: pick.fee,
