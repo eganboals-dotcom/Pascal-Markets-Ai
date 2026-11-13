@@ -104,3 +104,15 @@ export function fillBid(order, side, trades) {
 export const fillPnl = (fill, outcome, fee) => fill.contracts * ((fill.side === 'yes' ? outcome : 1 - outcome) - fill.price) - fee;
 // Net Yes position in contracts: a Yes and a No together are worth $1 whatever happens.
 export const netYes = fills => fills.reduce((a, f) => a + (f.side === 'yes' ? f.contracts : -f.contracts), 0);
+
+// A market's event: its ticker without the strike (KXRT-EBE-47 -> KXRT-EBE), so every strike of one movie or one count is one event.
+export const eventKey = ticker => ticker.split('-').slice(0, -1).join('-') || ticker;
+// Toxicity stop: events whose fills, valued by value(ticker) (the outcome once settled, else the Yes mid), cost more than the rewards
+// their programs accrued by over `limit` dollars. There, informed traders pick the bids off (a movie's reviews landing, a post count
+// racing) faster than the pool pays, so the event stops being bid.
+export function toxicEvents(fills, programs, value, limit = 1) {
+  const net = new Map(), add = (ticker, x) => net.set(eventKey(ticker), (net.get(eventKey(ticker)) ?? 0) + x);
+  for (const p of programs) add(p.ticker, p.accrued ?? 0);
+  for (const f of fills) { const v = value(f.ticker); if (Number.isFinite(v)) add(f.ticker, fillPnl(f, v, f.fee)); }
+  return new Set([...net].filter(([, n]) => n < -limit).map(([e]) => e));
+}

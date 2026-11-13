@@ -103,7 +103,7 @@ Each score change is logged to `data/scores/<day>.jsonl`, so a history test can 
 
 **A week's paper test of a $2,000 split (from Nov 12, 22:27 UTC).** The money goes where the history shows the most edge per dollar the agent can use: game-watch $1,200, reward-maker $500, station-watch $150, reserve $150, and nothing to the strategies that failed their tests. Game-watch and station-watch take `--budget=<dollars>`, which caps the cash held in open positions (`openCost` in `src/paper.js`); station-watch also runs at `--contracts=10`. Replaying the history test's trades with the cash freed each day, game-watch at up to 25 contracts made about $58 a day on $900, $65 on $1,100, $70 on $1,300 and $89 on $2,000, with a median day near $50 and one losing day (−$12) in 43; station-watch at 10 contracts made $7.30 a day and never held more than $118. Both assume the size offered at each price, which the history (1-contract candles) cannot show. `node scripts/paper-portfolio.js` tallies the test into `data/paper/portfolio.md`.
 
-`node scripts/reward-maker.js [--markets=40] [--size=10] [--candidates=200] [--max-inventory=30] [--every-seconds=60] [--list-minutes=30] [--force] [--once]` is the reward-maker, a paper agent for Kalshi's Liquidity Incentive Program, which pays resting orders whether they fill or not.
+`node scripts/reward-maker.js [--markets=40] [--size=10] [--candidates=200] [--max-inventory=30] [--toxic-limit=1] [--every-seconds=60] [--list-minutes=30] [--force] [--once]` is the reward-maker, a paper agent for Kalshi's Liquidity Incentive Program, which pays resting orders whether they fill or not.
 
 - **The program (checked Nov 12):** 6,619 programs, about $143,000 a day in pools. Each covers one market for up to 31 days, usually about 7, and is listed on the public `GET /incentive_programs` with `period_reward` in hundredths of a cent.
 - **Scoring:** almost every program sets a Target Size of 1,000 contracts and a discount factor of 0.5 a tick.
@@ -116,6 +116,8 @@ Each score change is logged to `data/scores/<day>.jsonl`, so a history test can 
   2. The bids that rested through the interval are scored on the fresh book as one snapshot and credited for the time since the last pass.
   3. A bid that no longer scores in full moves to the new Reference Price, at the back of that price's line. The line ahead of a bid only shrinks as the level thins.
 - **Positions:** fills are held to settlement with the maker fee charged. A market stops bidding a side once its net position reaches 30 contracts that way.
+- **Toxicity stop (Nov 13):** an event, meaning every strike of one market (all of one movie's Rotten Tomatoes thresholds, say), stops being bid once its fills have lost more than its rewards paid by over `--toxic-limit` dollars ($1). Fills are valued at the outcome once settled and at the Yes mid until then (`toxicEvents` in `src/agents/reward-maker.js`). Its bids are cancelled, and it is skipped when markets are chosen.
+- **First four hours (Nov 12, 21:29 to Nov 13, 01:35 UTC, 10 contracts a side):** rewards accrued $6.80 and the 57 fills cost $4.03 at the mid or settled, for +$2.77 net, about $16 a day on about $500 of cash held. Losses sat in two events. One movie's Rotten Tomatoes ladder, bid on six strikes, lost $4.44 on 30 fills against $1.10 of rewards, and a Trump nominations count lost $1.52. Every other event was net positive. The stop would have blocked those two. Four hours are far too few to tune the $1 limit; it is a loss guard, not a fitted rule.
 - **First reading:** in one snapshot of the 400 best-paying books, 10 contracts a side would have earned about $72 a day and 100 contracts about $624, before fills. Those markets are mostly politics, entertainment and review-score markets, where informed traders pick off resting orders, so fills are the cost this agent measures.
 - **Sports:** the 182 sports programs are season-long props, not the game markets the quoting loop trades.
 - **Files:** fills go to `data/paper/reward-maker-fills.jsonl`, and orders, rewards earned, outcomes and marks to `reward-maker-state.json`.
@@ -163,6 +165,18 @@ Quote size, on the 49 walk-forward days (Sep 14 to Nov 1, learned policy). `kals
 | 100 | 1,557,200 | $7,579 | −$7,002 | −$1,180 | $155 |
 
 Ten contracts a quote is the pick. Past it, the extra contracts come from the largest trades through the quote, and those pay less: settled profit per contract falls from 1.43¢ at one contract to 1.14¢ at ten, 0.73¢ at fifty and 0.49¢ at a hundred, while the worst game grows with size. Closing-line value keeps rising almost in step with size, so it would have picked the largest size; settlement is what shows the large prints are informed. Every row is an upper bound: it assumes the quote was first in line for every contract that traded, with the inventory cap scaled to the size. Since Nov 12 the paper loop scores its quotes at `mm.quoteSize` (10): `kalshi-mm-sim.js` re-scores each one-contract fill with the same rule (`sizedFill` in `src/mm.js`) and writes the totals to `mm-sim.json` as `sized`, for the fixed rules and the learned policy, with settled P&L over settled fills only; the quoting engine's heartbeat shows the learned policy's. The simulation itself still steps one contract at a time, so inventory skew and the cap act per fill, not per contract. Real size waits for the Phase 2 pilot's fill rate.
+
+**Strict fills, the lower bound (Nov 13).** `node scripts/kalshi-bandit.js --strict` reruns the same walk-forward with `strictFills` (`src/mm.js`, and the policy's training samples in `src/bandit.js`): a quote fills only on a print or a book strictly through its price, never at it. A quote rests one tick inside the spread, so a print at its own price may have gone to an order already resting there; a print at a worse price could not have traded before it. The results go to `bandit-report-strict.md`/`.json` and `bandit-model-strict.json`, beside the usual files.
+
+| 49 days, Sep 14 to Nov 1 | First in line (upper bound) | Strict (lower bound) |
+|---|---|---|
+| Fixed rules: fills, settled P&L | 94,846, $62 (−$281 to $410) | 57,463, $28 (−$209 to $264) |
+| Learned: fills, settled P&L | 50,606, $723 ($486 to $970) | 31,314, $438 ($272 to $618) |
+| Learned: closing-line value | $1,638 ($1,472 to $1,815) | $1,130 ($1,011 to $1,259) |
+| Learned, per day at 1 contract | $14.76 | $8.95 |
+| Low end of settled P&L at 2 / 5 / 10 contracts | $598 / $898 / $1,069 | $233 / $74 / −$390 |
+
+The learned policy passes Gate 0 under both rules, and its edge per fill barely moves (1.43¢ against 1.40¢): the fills strict rules drop are about as good as the ones they keep. Size is the part that does not hold. Under strict fills the low end peaks at two contracts and turns negative by ten, because the extra contracts then come only from large prints that sweep through the quote, the informed ones. Ten contracts is the pick only if the quote really is first in line; the truth sits between the two columns until the Phase 2 pilot measures the queue.
 
 ## Live feed
 

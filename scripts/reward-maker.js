@@ -8,12 +8,14 @@
 //   3. moves each bid to the side's Reference Price where it no longer scores in full, at the back of that price's line.
 // Fills are held to settlement with the maker fee charged. A market stops bidding a side once its net position reaches
 // --max-inventory contracts that way. A program that ends with under $1 accrued pays nothing (the program's minimum).
+// An event (all strikes of one market) whose fills, at the mid or settled, have cost over --toxic-limit ($1) more than its rewards
+// paid stops being bid (src/agents/reward-maker.js toxicEvents).
 // Fills go to data/paper/reward-maker-fills.jsonl, everything else to reward-maker-state.json. No orders.
 import { setTimeout as sleep } from 'node:timers/promises';
 import { appendFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { fetchIncentivePrograms, fetchMarkets, fetchOrderbook, fetchTrades, getJson, kalshiFee } from '../src/kalshi.js';
 import { recordTape } from '../src/mm-recorder.js';
-import { DAY_MS, fillBid, fillPnl, netYes, parseBook, programDiscount, programPerDay, programTarget, restingBid, snapshotShare } from '../src/agents/reward-maker.js';
+import { DAY_MS, eventKey, fillBid, fillPnl, netYes, toxicEvents, parseBook, programDiscount, programPerDay, programTarget, restingBid, snapshotShare } from '../src/agents/reward-maker.js';
 import { departmentOf, loadDepartments, readSwitches, seriesOf } from '../src/departments.js';
 import { settlementValue } from '../src/history.js';
 import { beat } from '../src/heartbeat.js';
@@ -25,6 +27,7 @@ const option = (name, fallback) => Number(process.argv.find(a => a.startsWith(`-
 const flag = name => process.argv.includes(`--${name}`);
 const everyMs = option('every-seconds', 60) * 1000, listMs = option('list-minutes', 30) * 60000;
 const SIZE = option('size', 10), MARKETS = option('markets', 40), CANDIDATES = option('candidates', 200), MAX_INV = option('max-inventory', 30);
+const TOXIC = option('toxic-limit', 1); // dollars an event may lose net of its rewards before it stops being bid
 const makerFeeRate = readResearch('config/scan.json', {}).makerFeeRate ?? 0.0175;
 const AGENT = 'reward-maker', FILLS = 'data/paper/reward-maker-fills.jsonl', STATE = 'data/paper/reward-maker-state.json', SETTLE_MS = 10 * 60000;
 const say = fields => console.log(JSON.stringify({ time: new Date().toISOString(), ...fields }));
@@ -41,13 +44,14 @@ const state = { startedAt: saved.startedAt ?? Date.now(), programs: saved.progra
   outcomes: saved.outcomes ?? {}, marks: saved.marks ?? {}, listedAt: saved.listedAt ?? 0, lastPass: saved.lastPass ?? 0 };
 let tape = saved.tape ? { time: saved.tape.time, ids: new Set(saved.tape.ids) } : null, settledAt = 0;
 const save = () => writeProjectFile(STATE, JSON.stringify({ ...state, tape: tape && { time: tape.time, ids: [...tape.ids] } }) + '\n');
+const toxic = () => toxicEvents(fills, Object.values(state.programs), t => state.outcomes[t] ?? state.marks[t], TOXIC);
 const programOf = ticker => Object.entries(state.programs).find(([, p]) => p.ticker === ticker && p.chosen);
 
 // Lists the programs and keeps the markets where fresh bids would earn the most. Accrued rewards stay with their program ids.
 async function choose(now) {
-  const departments = loadDepartments(), switches = readSwitches(departments);
+  const departments = loadDepartments(), switches = readSwitches(departments), blocked = toxic();
   const live = (await fetchIncentivePrograms({ load: paced })).filter(p => Date.parse(p.start_date) <= now && now < Date.parse(p.end_date)
-    && programTarget(p) > 0 && switches[departmentOf(seriesOf(p.market_ticker), departments)] !== false);
+    && programTarget(p) > 0 && !blocked.has(eventKey(p.market_ticker)) && switches[departmentOf(seriesOf(p.market_ticker), departments)] !== false);
   const best = new Map();
   for (const p of live) if (!best.has(p.market_ticker) || programPerDay(p) > programPerDay(best.get(p.market_ticker))) best.set(p.market_ticker, p);
   const scored = [];
@@ -132,9 +136,11 @@ async function pass() {
   // 2 and 3. Score the bids that rested through the interval on each book, then move them where needed.
   const interval = state.lastPass ? Math.min(now - state.lastPass, 3 * everyMs) : 0;
   let earned = 0, quoted = 0;
+  const blocked = toxic();
   for (const ticker of state.chosen) {
     const p = programOf(ticker)?.[1];
     if (!p) continue;
+    if (blocked.has(eventKey(ticker))) { delete state.orders[ticker]; continue; } // cancelled: the toxicity stop
     let book;
     try { book = parseBook(await fetchOrderbook(ticker, paced)); } catch (error) { warn({ book: ticker, error: error.message }); continue; }
     const orders = state.orders[ticker] ?? {};
@@ -154,10 +160,10 @@ async function pass() {
   if (now - settledAt >= SETTLE_MS) { try { await settle(now); } catch (error) { warn({ settle: error.message }); } }
   save();
   const t = totals(now);
-  checkIn('quoting', `${quoted} of ${state.chosen.length} markets bid at ${SIZE} a side; rewards ${money(t.accrued)} accrued`
+  checkIn('quoting', `${quoted} of ${state.chosen.length} markets bid at ${SIZE} a side${blocked.size ? ` (${blocked.size} events stopped as toxic)` : ''}; rewards ${money(t.accrued)} accrued`
     + `${t.forfeited ? ` (${money(t.forfeited)} lost to the $1 minimum)` : ''}, ${money(earned)} this pass; ${t.fills} fills (${t.contracts} contracts), `
     + `settled ${money(t.settledPnl)} on ${t.settledMarkets} markets, open ${money(t.openMarked)} at the mid; cash held ${money(t.cash)}`);
-  say({ quoted, filled, earned: +earned.toFixed(4), accrued: +t.accrued.toFixed(2), forfeited: +t.forfeited.toFixed(2), fills: t.fills,
+  say({ quoted, filled, toxic: blocked.size, earned: +earned.toFixed(4), accrued: +t.accrued.toFixed(2), forfeited: +t.forfeited.toFixed(2), fills: t.fills,
     settledPnl: +t.settledPnl.toFixed(2), openMarked: +t.openMarked.toFixed(2), cash: +t.cash.toFixed(0), ms: Date.now() - now });
 }
 

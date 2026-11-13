@@ -27,10 +27,13 @@ export function quotePrices(s, inventory, { maxInventory = 10, skewTicks = 1, ma
 }
 
 export function simulate(snapshots, { maxInventory = 10, skewTicks = 1, pullMinutes = 60, makerFeeRate = 0.0175, maxQuoteAgeMs = 30000, maxMarkoutDelayMs = 30000, minQuoteEdge = 0.005, takerFeeRate = 0.07,
-  pullBeforeExpiryMinutes = null, minMid = 0, maxMid = 1, jumpHalt = Infinity, settlements = {}, trades = [], allow = null } = {}) {
+  pullBeforeExpiryMinutes = null, minMid = 0, maxMid = 1, jumpHalt = Infinity, settlements = {}, trades = [], allow = null, strictFills = false } = {}) {
   if (!Number.isInteger(maxInventory) || maxInventory < 1 || !Number.isFinite(skewTicks) || skewTicks < 0 || !Number.isFinite(pullMinutes) || pullMinutes < 0 || !Number.isFinite(makerFeeRate) || makerFeeRate < 0 || !Number.isFinite(takerFeeRate) || takerFeeRate < 0) throw new Error('Invalid MM options');
   if (![maxQuoteAgeMs, maxMarkoutDelayMs, minQuoteEdge].every(n => Number.isFinite(n) && n >= 0)) throw new Error('Invalid MM freshness or edge');
   if ((pullBeforeExpiryMinutes !== null && !(pullBeforeExpiryMinutes >= 0)) || !(minMid >= 0 && maxMid <= 1 && minMid < maxMid) || !(jumpHalt > 0)) throw new Error('Invalid MM risk limits');
+  // strictFills: only a print or a book strictly through the quote fills it (a lower bound: the quote surely traded before a worse
+  // price did). The default, at or through, assumes the quote was first in line at its own price (an upper bound).
+  const slack = strictFills ? -1e-9 : 1e-9;
   const groups = new Map();
   for (const s of snapshots) {
     if (!s.ticker || !Number.isFinite(s.time) || !Number.isFinite(Date.parse(s.close_time)) || !(s.yesBid > 0 && s.yesAsk < 1 && s.yesBid < s.yesAsk) || ![s.yesBid, s.yesAsk, s.yesBidSize, s.yesAskSize].every(Number.isFinite) || !(s.yesBidSize > 0 && s.yesAskSize > 0)) continue;
@@ -66,15 +69,15 @@ export function simulate(snapshots, { maxInventory = 10, skewTicks = 1, pullMinu
       while (next < tape.length && tape[next].time <= s.time) {
         const t = tape[next++];
         if (!quotes || t.time <= quotes.time) continue;
-        if (t.takerSide === 'no' && quotes.bid != null && t.price <= quotes.bid + 1e-9) { soldInto = true; soldSize += t.count ?? 1; }
-        if (t.takerSide === 'yes' && quotes.ask != null && t.price >= quotes.ask - 1e-9) { boughtFrom = true; boughtSize += t.count ?? 1; }
+        if (t.takerSide === 'no' && quotes.bid != null && t.price <= quotes.bid + slack) { soldInto = true; soldSize += t.count ?? 1; }
+        if (t.takerSide === 'yes' && quotes.ask != null && t.price >= quotes.ask - slack) { boughtFrom = true; boughtSize += t.count ?? 1; }
       }
       if (!cutoff) lastOpenMid = mid;
       // shortcut: one contract per side per interval and no queue model, upgrade with depth recordings before sizing up.
       if (quotes && s.time - quotes.time > maxQuoteAgeMs) result.staleIntervals++;
       if (quotes && s.time > quotes.time && s.time - quotes.time <= maxQuoteAgeMs && !cutoff) {
-        for (const [side, p, crossed, traded, size] of [['buy', quotes.bid, s.yesAskSize >= 1 && s.yesAsk <= quotes.bid + 1e-9, soldInto, Math.max(soldSize, s.yesAsk <= quotes.bid + 1e-9 ? s.yesAskSize : 0)],
-          ['sell', quotes.ask, s.yesBidSize >= 1 && s.yesBid >= quotes.ask - 1e-9, boughtFrom, Math.max(boughtSize, s.yesBid >= quotes.ask - 1e-9 ? s.yesBidSize : 0)]]) {
+        for (const [side, p, crossed, traded, size] of [['buy', quotes.bid, s.yesAskSize >= 1 && s.yesAsk <= quotes.bid + slack, soldInto, Math.max(soldSize, s.yesAsk <= quotes.bid + slack ? s.yesAskSize : 0)],
+          ['sell', quotes.ask, s.yesBidSize >= 1 && s.yesBid >= quotes.ask - slack, boughtFrom, Math.max(boughtSize, s.yesBid >= quotes.ask - slack ? s.yesBidSize : 0)]]) {
           if (p == null || !(crossed || traded) || (side === 'buy' ? inventory >= maxInventory : inventory <= -maxInventory)) continue;
           if (!crossed) result.tradeFills++;
           const direction = side === 'buy' ? 1 : -1;

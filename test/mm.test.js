@@ -179,6 +179,19 @@ test('recorded trades fill a resting quote without a crossed book; earlier or wr
   }
 });
 
+test('strict fills need a print or a book strictly through the quote, not at it', () => {
+  const rows = [book(0, .48, .54), book(15, .48, .54)];
+  const at = (minutes, price, takerSide) => ({ ticker: 'TEST', time: start + minutes * 60000, price, takerSide, count: 3 });
+  assert.equal(simulate(rows, { skewTicks: 0, trades: [at(5, .49, 'no')] }).total.fills, 1); // at the bid: fills by default
+  assert.equal(simulate(rows, { skewTicks: 0, strictFills: true, trades: [at(5, .49, 'no'), at(6, .53, 'yes')] }).total.fills, 0);
+  const through = simulate(rows, { skewTicks: 0, strictFills: true, trades: [at(5, .48, 'no'), at(6, .54, 'yes')] });
+  assert.equal(through.total.fills, 2);
+  assert.equal(through.total.availableContracts, 6);
+  const crossedAt = [book(0, .48, .54), book(15, .45, .49)]; // the ask fell to the model bid of .49, not below it
+  assert.equal(simulate(crossedAt, { skewTicks: 0 }).total.fills, 1);
+  assert.equal(simulate(crossedAt, { skewTicks: 0, strictFills: true }).total.fills, 0);
+});
+
 test('priority series fill the quoting cohort before higher-volume markets', () => {
   const m = (ticker, volume) => ({ ticker, status: 'active', yes_bid_dollars: '.48', yes_ask_dollars: '.52', yes_bid_size_fp: '5', yes_ask_size_fp: '10', volume_24h_fp: String(volume),
     close_time: new Date(start + 86400000).toISOString() });

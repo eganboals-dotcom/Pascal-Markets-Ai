@@ -22,7 +22,7 @@ export function contextKeys(rows, i, side, mm = {}) {
 // Per-decision rewards for one market under flat inventory, using the simulator's own quote and fill rules.
 // shortcut: ignores inventory skew and the per-side cap, which change prices only after a fill; model them if the policy sizes up.
 export function marketSamples(rows, tape, mm = {}) {
-  const maxAge = mm.maxQuoteAgeMs ?? 30000, samples = [];
+  const maxAge = mm.maxQuoteAgeMs ?? 30000, samples = [], slack = mm.strictFills ? -1e-9 : 1e-9; // the simulator's strict rule when set
   const open = rows.filter(r => r.time < quoteEnd(r, mm)), close = open.at(-1);
   if (!close) return samples;
   const closeMid = (close.yesBid + close.yesAsk) / 2;
@@ -36,10 +36,10 @@ export function marketSamples(rows, tape, mm = {}) {
     const live = after.time - s.time <= maxAge && after.time < quoteEnd(after, mm);
     let soldInto = false, boughtFrom = false;
     for (let k = next; live && k < tape.length && tape[k].time <= after.time; k++) {
-      if (tape[k].takerSide === 'no' && prices.buy != null && tape[k].price <= prices.buy + 1e-9) soldInto = true;
-      if (tape[k].takerSide === 'yes' && prices.sell != null && tape[k].price >= prices.sell - 1e-9) boughtFrom = true;
+      if (tape[k].takerSide === 'no' && prices.buy != null && tape[k].price <= prices.buy + slack) soldInto = true;
+      if (tape[k].takerSide === 'yes' && prices.sell != null && tape[k].price >= prices.sell - slack) boughtFrom = true;
     }
-    for (const [side, p, filled] of [['buy', prices.buy, soldInto || after.yesAsk <= (prices.buy ?? -1) + 1e-9], ['sell', prices.sell, boughtFrom || after.yesBid >= (prices.sell ?? 2) - 1e-9]]) {
+    for (const [side, p, filled] of [['buy', prices.buy, soldInto || after.yesAsk <= (prices.buy ?? -1) + slack], ['sell', prices.sell, boughtFrom || after.yesBid >= (prices.sell ?? 2) - slack]]) {
       if (p == null) continue;
       const reward = live && filled ? (side === 'buy' ? closeMid - p : p - closeMid) - kalshiFee(1, p, prices.rate) : 0;
       samples.push({ keys: contextKeys(rows, i, side, mm), reward });

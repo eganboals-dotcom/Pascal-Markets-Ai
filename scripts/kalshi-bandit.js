@@ -11,8 +11,10 @@ import { profitToRisk } from '../src/tuner.js';
 
 const root = process.argv.slice(2).find(a => !a.startsWith('--')) ?? 'data/history';
 const final = process.argv.includes('--final');
+// --strict: fills only on prints strictly through the quote (a lower bound), written to bandit-*-strict files beside the usual ones.
+const strict = process.argv.includes('--strict'), out = name => `${root}/${name}${strict ? '-strict' : ''}`;
 const config = readResearch('config/scan.json', {});
-const mm = { ...config.mm, makerFeeRate: config.makerFeeRate ?? 0.0175, takerFeeRate: config.feeRate ?? 0.07, maxQuoteAgeMs: HEARTBEAT_MS + 60000, maxMarkoutDelayMs: HEARTBEAT_MS + 60000 };
+const mm = { ...config.mm, makerFeeRate: config.makerFeeRate ?? 0.0175, takerFeeRate: config.feeRate ?? 0.07, maxQuoteAgeMs: HEARTBEAT_MS + 60000, maxMarkoutDelayMs: HEARTBEAT_MS + 60000, strictFills: strict };
 
 // Only finished, quotable markets: others cannot fill. A restarted backfill can repeat one market's rows, so rows dedupe by time and trades by id.
 async function loadDay(dir) {
@@ -91,12 +93,12 @@ summary.gate0 = { fixed: passes(summary.fixed), learned: passes(summary.learned)
 
 const money = x => (x < 0 ? '−$' : '$') + Math.abs(x).toFixed(2);
 const range = r => `${money(r.total)} (${money(r.low)} to ${money(r.high)})`;
-writeProjectFile(`${root}/bandit-model.json`, JSON.stringify(model) + '\n');
-writeProjectFile(`${root}/bandit-report.json`, JSON.stringify({ generatedAt: Date.now(), summary, days: daily,
+writeProjectFile(`${out('bandit-model')}.json`, JSON.stringify(model) + '\n');
+writeProjectFile(`${out('bandit-report')}.json`, JSON.stringify({ generatedAt: Date.now(), summary, days: daily,
   // The fixed rules quote for the department scoreboard until the learned policy passes Gate 0; markets without fills are left out.
   markets: fixedMarkets.filter(m => m.fills).map(m => ({ day: m.day, ticker: m.ticker, fills: m.fills, clv: m.clv, pnl: m.netPnl })) }, null, 2) + '\n');
-writeProjectFile(`${root}/bandit-report.md`, ['# Quoting policy, walk-forward', '',
-  'Research only. Each day is traded by a model trained only on days at least two before it (markets quote up to 48 hours before their close day, so the day just before overlaps it), then added to its training a day later. Fixed: the configured quoting rules. Learned: the same rules, minus quotes declined where at least 30 earlier events show a negative closing-line value. One contract per quote; candle books without depth.', '',
+writeProjectFile(`${out('bandit-report')}.md`, ['# Quoting policy, walk-forward', '',
+  'Research only. Each day is traded by a model trained only on days at least two before it (markets quote up to 48 hours before their close day, so the day just before overlaps it), then added to its training a day later. Fixed: the configured quoting rules. Learned: the same rules, minus quotes declined where at least 30 earlier events show a negative closing-line value. One contract per quote; candle books without depth.' + (strict ? ' Strict fills: a quote fills only on a print or a book strictly through its price, never at it, so a queue at its own price cannot flatter it (a lower bound).' : ''), '',
   'Closing-line value: each fill against the last mid before quoting stopped, after fees. Low noise, but it flatters in thin markets. Settled P&L: the $1/$0 outcome. The truth, but noisy. Ranges are 90%, resampling whole events (all markets of a game together).', '',
   locked.length ? (final ? `The locked final exam (${locked[0]} to ${locked.at(-1)}) is included in this run.` : `Locked final exam, not run: ${locked[0]} to ${locked.at(-1)}.`) : `No locked exam yet: fewer than ${minDaysToLock} days downloaded.`, '',
   daily.length ? markdownTable(['', 'Fills', 'Closing-line value', 'Settled P&L', 'Capacity per day'], [

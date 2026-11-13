@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { fillBid, fillPnl, netYes, parseBook, programPerDay, referencePrice, restingBid, sideShare, snapshotShare } from '../src/agents/reward-maker.js';
+import { eventKey, fillBid, fillPnl, netYes, toxicEvents, parseBook, programPerDay, referencePrice, restingBid, sideShare, snapshotShare } from '../src/agents/reward-maker.js';
 
 const near = (a, b) => assert.ok(Math.abs(a - b) < 1e-9, `${a} != ${b}`);
 const yes = [[0.40, 100], [0.39, 300], [0.38, 1000]];
@@ -62,4 +62,15 @@ test('fills settle at $1 for the winning side, less the fee, and a Yes and a No 
   assert.equal(netYes([{ side: 'yes', contracts: 10 }, { side: 'no', contracts: 4 }]), 6);
   near(programPerDay({ period_reward: 1800000, start_date: '2026-11-12T00:00:00Z', end_date: '2026-11-19T00:00:00Z' }), 180 / 7);
   assert.deepEqual(parseBook({ orderbook_fp: { yes_dollars: [['0.3800', '5.00'], ['0.4000', '2.00']], no_dollars: null } }), { yes: [[0.4, 2], [0.38, 5]], no: [] });
+});
+
+test('the toxicity stop blocks an event whose fills cost more than its rewards, across all its strikes', () => {
+  assert.equal(eventKey('KXRT-EBE-47'), 'KXRT-EBE');
+  const programs = [{ ticker: 'KXRT-EBE-47', accrued: 0.5 }, { ticker: 'KXRT-EBE-50', accrued: 0.3 }, { ticker: 'KXRT-HEX-60', accrued: 0.2 }];
+  // Yes bids at 40¢ on two strikes, now marked at a 20¢ mid: 10 x −20¢ each, −$4 against $0.80 of rewards.
+  const fills = [{ ticker: 'KXRT-EBE-47', side: 'yes', price: 0.4, contracts: 10, fee: 0 }, { ticker: 'KXRT-EBE-50', side: 'yes', price: 0.4, contracts: 10, fee: 0 },
+    { ticker: 'KXRT-HEX-60', side: 'no', price: 0.5, contracts: 1, fee: 0 }, { ticker: 'KXRT-ZZZ-1', side: 'yes', price: 0.5, contracts: 9, fee: 0 }];
+  const marks = { 'KXRT-EBE-47': 0.2, 'KXRT-EBE-50': 0.2, 'KXRT-HEX-60': 0.9 }; // HEX loses 40¢ net of 20¢; ZZZ has no mark yet
+  assert.deepEqual([...toxicEvents(fills, programs, t => marks[t], 1)], ['KXRT-EBE']);
+  assert.equal(toxicEvents(fills, programs, t => marks[t], 5).size, 0);
 });
