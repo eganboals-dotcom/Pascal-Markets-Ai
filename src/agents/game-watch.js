@@ -33,7 +33,7 @@ export const SERIES = {
   KXNCAAWBTOTAL: total('ncaawb'),
 };
 export const WATCHED_LEAGUES = [...new Set(Object.values(SERIES).map(s => s.league))];
-export const COMPACT_VERSION = 4;
+export const COMPACT_VERSION = 5;
 // The last regulation period: a half or quarter count that ends before it is final once a later period starts.
 const LAST_PERIOD = { nba: 4, nfl: 4, ncaaf: 4, ncaab: 2, ncaawb: 4, nhl: 3 };
 
@@ -136,8 +136,11 @@ export function compactGame(summary, eventId, league = 'nba', newer = []) {
       assisters: scoring ? (typed ? people.filter(x => x.type === 'assister') : people.slice(1, 2)).map(id).filter(Boolean) : [],
       rebounder: /rebound/i.test(p.type?.text ?? '') ? id(people[0]) : null, ...(/^end (of )?game$/i.test(p.type?.text ?? '') ? { end: true } : {}) };
   }).filter(p => Number.isFinite(p.t) && Number.isFinite(p.away) && Number.isFinite(p.home));
-  const own = compact(raw), plays = [...own, ...compact(extra)];
+  const own = compact(raw), plays = [...own, ...compact(extra)], status = summary.header?.competitions?.[0]?.status;
+  // The line score, points per period (index 0 is the first): what Kalshi settles half and quarter totals on.
+  const lines = Object.fromEntries(['away', 'home'].map(s => [s, (side(s)?.linescores ?? []).map(l => Number(l.value ?? l.displayValue))]));
   return { version: COMPACT_VERSION, league, eventId, start: summary.header?.competitions?.[0]?.date ?? null, shootout, checkedPlays: own.length,
+    lines, statusPeriod: Number(status?.period) || 0, completed: Boolean(status?.type?.completed),
     away: { code: side('away')?.team?.abbreviation, score: Number(side('away')?.score) },
     home: { code: side('home')?.team?.abbreviation, score: Number(side('home')?.score) }, roster, box, plays };
 }
@@ -161,8 +164,8 @@ function playerSeries(game, id, stat) {
 
 // How the plays decide a market: { side: 'yes' | 'no', at } with the wall-clock time of the deciding play, or null while
 // undecided (or when it cannot be read). Yes: the play that took a count to its threshold. No, for a game total or team total
-// still short at the end-of-game play, or a half or quarter total still short when a later period starts (only for periods that
-// end before the last regulation one, since those counts leave overtime out). Winners and spreads: by the final margin at the
+// still short at the end-of-game play. Half and quarter totals wait for their periods to end and must agree with the line score
+// (periodDecision). Winners and spreads: by the final margin at the
 // end-of-game play; a tie is left alone. Player counts are Yes only. Hockey games settled in a shootout are skipped, since whether
 // a total counts the shootout goal is not checked.
 // Known risk: ESPN's log can show points that never happened (Buffalo at Miami (OH), Nov 3, on a run and a timeout), and a market
@@ -198,11 +201,25 @@ export function decision(market, game, { current = false } = {}) {
     const gain = side ? p[side] - prev[side] : p.away + p.home - prev.away - prev.home;
     if (!market.periods || market.periods.includes(p.period)) count += gain; // a correction (overturned basket) takes points back
     prev = p;
-    if (!current && count >= market.threshold) return { side: 'yes', at: p.t };
+    if (!market.periods && !current && count >= market.threshold) return { side: 'yes', at: p.t };
   }
+  if (market.periods) return periodDecision(market, game, side, count, closed ?? (lastPeriod >= LAST_PERIOD[market.league] ? end : null), lastPeriod);
   if (current && count >= market.threshold) return { side: 'yes', at: game.plays.at(-1).t };
-  if (!market.periods) return end ? { side: 'no', at: end.t } : null;
-  return closed && lastPeriod < LAST_PERIOD[market.league] ? { side: 'no', at: closed.t } : null;
+  return end ? { side: 'no', at: end.t } : null;
+}
+
+// Half and quarter totals settle on the official line score, which ESPN's play log does not always match: on Nov 12 the log ended
+// DET at WSH's first quarter 33-34 while the line score and Kalshi had 33-32, and paper trades on the log lost 49 of 51. So one is
+// decided only once its periods are over (`over`: the first play after them, or the end of the game for the last regulation
+// period), once the summary's own status has moved past them too (its line score is then final), and only when the plays and the
+// line score land on the same side of the line. No needs a period before the last regulation one, since the counts leave overtime out.
+function periodDecision(market, game, side, count, over, lastPeriod) {
+  const points = s => market.periods.reduce((a, n) => a + (game.lines?.[s]?.[n - 1] ?? NaN), 0);
+  const official = side ? points(side) : points('away') + points('home');
+  if (!over || !(game.completed || game.statusPeriod > lastPeriod) || !Number.isFinite(official)) return null;
+  const yes = count >= market.threshold;
+  if (yes !== official >= market.threshold || (!yes && lastPeriod >= LAST_PERIOD[market.league])) return null;
+  return { side: yes ? 'yes' : 'no', at: over.t };
 }
 
 // Wall-clock time of the play that decided the market Yes, or null.

@@ -6,8 +6,9 @@ import { gameIndex } from '../src/agents/fair-odds.js';
 const t0 = Date.parse('2026-11-06T03:00:00Z'), at = s => new Date(t0 + s * 1000).toISOString();
 // A tiny ESPN summary: Miami at Golden State, final 3-2 (the 2-0 basket is recorded, taken back, then given again).
 const summary = {
-  header: { competitions: [{ date: '2026-11-06T03:00Z', status: { type: { completed: true } }, competitors: [
-    { homeAway: 'home', score: '2', team: { abbreviation: 'GS' } }, { homeAway: 'away', score: '3', team: { abbreviation: 'MIA' } }] }] },
+  header: { competitions: [{ date: '2026-11-06T03:00Z', status: { period: 4, type: { completed: true } }, competitors: [
+    { homeAway: 'home', score: '2', team: { abbreviation: 'GS' }, linescores: [{ value: 2 }, { value: 0 }, { value: 0 }, { value: 0 }] },
+    { homeAway: 'away', score: '3', team: { abbreviation: 'MIA' }, linescores: [{ value: 0 }, { value: 3 }, { value: 0 }, { value: 0 }] }] }] },
   boxscore: { players: [{ statistics: [{ names: ['MIN', 'PTS', 'FG', '3PT', 'FT', 'REB', 'AST'], athletes: [
     { athlete: { id: '1', displayName: 'Wendell Carter Jr.', jersey: '34' }, stats: ['30', '3', '1-1', '1-1', '0-0', '0', '0'] },
     { athlete: { id: '2', displayName: 'Draymond Green', jersey: '23' }, stats: ['30', '2', '1-2', '0-0', '0-0', '1', '0'] },
@@ -62,7 +63,8 @@ test('a market is decided by the play that reaches its line, after corrections',
 });
 
 test('hockey plays name scorer and assisters, football plays come from drives, shootouts are skipped', () => {
-  const header = (away, home) => ({ competitions: [{ competitors: [{ homeAway: 'away', score: String(away), team: { abbreviation: 'SJ' } }, { homeAway: 'home', score: String(home), team: { abbreviation: 'LA' } }] }] });
+  const header = (away, home) => ({ competitions: [{ status: { period: 3, type: { completed: true } }, competitors: [{ homeAway: 'away', score: String(away), team: { abbreviation: 'SJ' }, linescores: [{ value: 0 }] },
+    { homeAway: 'home', score: String(home), team: { abbreviation: 'LA' }, linescores: [{ value: 1 }, { value: 0 }, { value: 1 }] }] }] });
   const goal = (s, away, home, period, scorer, ...assisters) => ({ wallclock: at(s), awayScore: away, homeScore: home, period: { number: period }, scoringPlay: true, scoreValue: 1,
     participants: [{ athlete: { id: scorer }, type: 'scorer' }, ...assisters.map(id => ({ athlete: { id }, type: 'assister' }))] });
   const hockey = {
@@ -76,7 +78,7 @@ test('hockey plays name scorer and assisters, football plays come from drives, s
   assert.deepEqual(nhl.box['8'], { goals: 2, ast: 0 }); // assists still check the play log against the box score
   assert.equal(nhl.box['31'], undefined); // goalies have no goal or assist columns
   assert.equal(decidedAt(parseMarket('KXNHLGOAL-26NOV04SJLA-LADDOUGHTY8-2'), nhl), t0 + 20000);
-  assert.equal(decidedAt(parseMarket('KXNHL1PTOTAL-26NOV04SJLA-1'), nhl), t0 + 10000);
+  assert.equal(decidedAt(parseMarket('KXNHL1PTOTAL-26NOV04SJLA-1'), nhl), t0 + 20000); // once the first period is over
   assert.equal(parseMarket('KXNHLAST-26NOV04SJLA-LADDOUGHTY8-1'), null); // assists are not watched
   const shootout = compactGame({ ...hockey, header: header(1, 3), plays: [...hockey.plays, goal(30, 1, 2, 4, '9'), goal(40, 1, 3, 5, '8')] }, '1', 'nhl');
   assert.equal(shootout.shootout, true);
@@ -90,19 +92,22 @@ test('hockey plays name scorer and assisters, football plays come from drives, s
 });
 
 test('college football plays come from drives and basketball halves count only their own points', () => {
-  const header = { competitions: [{ competitors: [{ homeAway: 'away', score: '3', team: { abbreviation: 'MIA' } }, { homeAway: 'home', score: '7', team: { abbreviation: 'ND' } }] }] };
-  const football = compactGame({ header, drives: {
+  const header = (away, home) => ({ competitions: [{ status: { period: 4, type: { completed: true } }, competitors: [{ homeAway: 'away', score: '3', team: { abbreviation: 'MIA' }, linescores: away.map(value => ({ value })) },
+    { homeAway: 'home', score: '7', team: { abbreviation: 'ND' }, linescores: home.map(value => ({ value })) }] }] });
+  const football = compactGame({ header: header([3, 0, 0, 0], [0, 0, 7, 0]), drives: {
     previous: [{ plays: [{ id: 'a', sequenceNumber: '1', wallclock: at(5), awayScore: 3, homeScore: 0, period: { number: 1 }, scoringPlay: true }] }],
-    current: { plays: [{ id: 'b', sequenceNumber: '2', wallclock: at(15), awayScore: 3, homeScore: 7, period: { number: 3 }, scoringPlay: true }] } } }, '3', 'ncaaf');
+    current: { plays: [{ id: 'b', sequenceNumber: '2', wallclock: at(15), awayScore: 3, homeScore: 7, period: { number: 3 }, scoringPlay: true },
+      { id: 'c', sequenceNumber: '3', wallclock: at(25), awayScore: 3, homeScore: 7, period: { number: 4 }, type: { text: 'End Game' } }] } } }, '3', 'ncaaf');
   assert.equal(decidedAt(parseMarket('KXNCAAFTOTAL-26NOV07MIAND-10'), football), t0 + 15000);
-  assert.equal(decidedAt(parseMarket('KXNCAAF2HTOTAL-26NOV07MIAND-7'), football), t0 + 15000);
+  assert.equal(decidedAt(parseMarket('KXNCAAF2HTOTAL-26NOV07MIAND-7'), football), t0 + 25000); // the last half waits for the end of the game
   assert.equal(decidedAt(parseMarket('KXNCAAF1HTOTAL-26NOV07MIAND-4'), football), null);
   assert.equal(decidedAt(parseMarket('KXNCAAFTEAMTOTAL-26NOV07MIAND-ND7'), football), t0 + 15000);
-  const basketball = compactGame({ header, plays: [
-    { wallclock: at(5), awayScore: 3, homeScore: 0, period: { number: 1 } }, { wallclock: at(15), awayScore: 3, homeScore: 7, period: { number: 2 } }] }, '4', 'ncaab');
+  const basketball = compactGame({ header: header([3, 0], [0, 7]), plays: [
+    { wallclock: at(5), awayScore: 3, homeScore: 0, period: { number: 1 } }, { wallclock: at(15), awayScore: 3, homeScore: 7, period: { number: 2 } },
+    { wallclock: at(25), awayScore: 3, homeScore: 7, period: { number: 2 }, type: { text: 'End of Game' } }] }, '4', 'ncaab');
   assert.deepEqual(parseMarket('KXNCAAMB1HTOTAL-26NOV07MIAND-3').periods, [1]);
   assert.equal(decidedAt(parseMarket('KXNCAAMB1HTOTAL-26NOV07MIAND-4'), basketball), null);
-  assert.equal(decidedAt(parseMarket('KXNCAAMB2HTOTAL-26NOV07MIAND-7'), basketball), t0 + 15000);
+  assert.equal(decidedAt(parseMarket('KXNCAAMB2HTOTAL-26NOV07MIAND-7'), basketball), t0 + 25000);
 });
 
 test('fresher core-API plays extend the summary, and the box score is checked against the summary part only', () => {
@@ -173,4 +178,21 @@ test('current decisions wait through a recovered score and reject historical cro
   assert.equal(decision(prop, game, { current: true }), null);
   const ended = { ...game, plays: [...game.plays, { ...game.plays.at(-1), end: true, scorer: null, assisters: [], rebounder: null, value: 0, t: t0 + 60000 }], checkedPlays: game.plays.length + 1 };
   assert.equal(decision(prop, ended, { current: true }).side, 'no');
+});
+
+test('half and quarter totals wait for their periods to end and must agree with the line score', () => {
+  // DET at WSH, Nov 12: the play log ended the first quarter at 67 points, the line score (and Kalshi) at 65.
+  const play = (s, away, home, period) => ({ wallclock: at(s), awayScore: away, homeScore: home, period: { number: period } });
+  const game = (lines, status, plays) => compactGame({ header: { competitions: [{ status, competitors: [
+    { homeAway: 'away', score: String(plays.at(-1).awayScore), team: { abbreviation: 'DET' }, linescores: lines[0].map(value => ({ value })) },
+    { homeAway: 'home', score: String(plays.at(-1).homeScore), team: { abbreviation: 'WSH' }, linescores: lines[1].map(value => ({ value })) }] }] }, plays }, '1');
+  const plays = [play(10, 33, 34, 1), play(20, 35, 34, 2)], q1 = t => parseMarket(`KXNBA1QTOTAL-26NOV12DETWAS-${t}`);
+  const off = game([[33, 2], [32, 0]], { period: 2 }, plays);
+  assert.equal(decision(q1(66), off), null); // the log says Over 65.5, the line score says not: no call either way
+  assert.equal(decision(q1(66), off, { current: true }), null);
+  const agreed = game([[33, 2], [34, 0]], { period: 2 }, plays);
+  assert.deepEqual(decision(q1(66), agreed), { side: 'yes', at: t0 + 20000 }); // decided when the second quarter starts, not mid-quarter
+  assert.deepEqual(decision(q1(68), agreed), { side: 'no', at: t0 + 20000 });
+  assert.equal(decision(q1(66), game([[33], [34]], { period: 1 }, plays)), null); // the summary still shows the first quarter: its line score may move
+  assert.equal(decision(q1(66), game([[33, 2], [34, 0]], { period: 2 }, [play(10, 33, 34, 1)])), null); // the quarter is not over in the plays
 });
