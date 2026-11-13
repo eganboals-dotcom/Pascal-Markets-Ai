@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { simulate as simulateFresh, sizedFill } from '../src/mm.js';
+import { budgetedFills, simulate as simulateFresh, sizedFill } from '../src/mm.js';
 import { kalshiFee } from '../src/kalshi.js';
 
 test('sizedFill takes the smaller of the size and the whole contracts traded, at least one, and charges the fee on the whole order', () => {
@@ -213,4 +213,17 @@ test('cohort takes named leagues minus excluded series, plus any certified marke
   const mm = { maxMarkets: 10, pullBeforeExpiryMinutes: 240, seriesPrefixes: ['KXEPL', 'KXLALIGA'], excludeSeriesPattern: '^KXLALIGA2(?!H)', nearTermHours: 48 };
   assert.deepEqual(quotingCandidates(events, series, { mm }, start).map(b => b.ticker).sort(), ['KXCPI-NEAR', 'KXEPLGAME-A', 'KXLALIGA2HTOTAL-C']);
   assert.throws(() => quotingCandidates(events, series, { mm: { ...mm, nearTermHours: -1 } }, start), /Invalid MM market selection/);
+});
+
+test('budgetedFills cuts fills to the cash left, skips what does not fit, and frees cash after the market expires', () => {
+  const f = (time, ticker, price, expiresAt = 10_000) => ({ ticker, time, side: 'buy', price, fee: 0, feeRate: 0, available: 100, clv: 0, expiresAt });
+  // $3 budget at 5 a quote: 5 x 0.40 = $2.00, then only 2 of 5 at 0.50 fit ($1.00), then nothing until the first market expires.
+  const fills = [f(1, 'A', 0.4), f(2, 'B', 0.5), f(3, 'C', 0.5), f(20_000, 'D', 0.6, 50_000)];
+  const t = budgetedFills(fills, 5, 3, { A: 1, B: 0 }, { now: 30_000, settleMs: 0 });
+  assert.equal(t.taken, 3);
+  assert.equal(t.skipped, 1);
+  assert.equal(t.contracts, 5 + 2 + 5);
+  assert.equal(t.settledFills, 2);
+  assert.ok(Math.abs(t.settledPnl - (5 * 0.6 - 2 * 0.5)) < 1e-9);
+  assert.ok(Math.abs(t.held - 3) < 1e-9); // D is still open at now
 });

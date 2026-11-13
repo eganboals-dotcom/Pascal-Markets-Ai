@@ -1,4 +1,4 @@
-import { createReadStream, existsSync, readFileSync } from 'node:fs';
+import { appendFileSync, createReadStream, existsSync, readFileSync } from 'node:fs';
 import { createInterface } from 'node:readline';
 import { simulate, sizedFill } from '../src/mm.js';
 import { fetchMarkets } from '../src/kalshi.js';
@@ -52,6 +52,14 @@ const result = { generatedAt: Date.now(), ...simulate(books, options) };
 const MODEL = 'data/history/bandit-model.json';
 const learnedRun = existsSync(projectPath(MODEL)) ? simulate(books, { ...options, allow: policy(JSON.parse(readFileSync(projectPath(MODEL), 'utf8')), config.mm ?? {}) }) : null;
 result.learned = learnedRun?.total ?? null;
+// The learned policy's fills, kept for good as the replay window slides, for the paper test's quoting tally (scripts/paper-portfolio.js).
+// shortcut: only fills later than the last one kept are added, so a trade print that arrives after a later fill was kept is missed.
+if (!history && learnedRun) {
+  const path = `${out}/quoting-fills.jsonl`, kept = existsSync(projectPath(path)) ? readFileSync(projectPath(path), 'utf8').split('\n').filter(Boolean).map(l => JSON.parse(l)) : [];
+  const after = kept.reduce((a, r) => Math.max(a, r.time), 0), expires = new Map(books.map(b => [b.ticker, Date.parse(b.expected_expiration_time ?? b.close_time)]));
+  const fresh = learnedRun.markets.flatMap(m => m.fillLog.filter(f => f.time > after).map(f => ({ ticker: m.ticker, ...f, expiresAt: expires.get(m.ticker) ?? null })));
+  if (fresh.length) appendFileSync(projectPath(path), fresh.map(r => JSON.stringify(r)).join('\n') + '\n');
+}
 // Quote size (mm.quoteSize, 5: the largest size whose low end stays positive under both fill rules in kalshi-bandit.js): every one-contract fill re-scored at the size, held to settlement.
 const quoteSize = config.mm?.quoteSize ?? 1;
 const sizedTotal = markets => {

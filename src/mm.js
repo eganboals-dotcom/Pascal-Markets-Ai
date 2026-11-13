@@ -14,6 +14,28 @@ export function sizedFill(fill, size, outcome) {
     settled: outcome === 0 || outcome === 1 ? n * dir * (outcome - fill.price) - fee : null };
 }
 
+// The paper test's cash cap for quoting: fills in time order at `size`, each cut to what `budget` (dollars) leaves room for, and
+// skipped when not one contract fits. A fill's cash is freed settleMs after its market's expected expiration (expiresAt).
+// shortcut: a buy and a sell in one market are not netted, so the cash held is overstated; fine while mm.maxInventory caps a market.
+export function budgetedFills(fills, size, budget, outcomes = {}, { now = Date.now(), settleMs = 3600000 } = {}) {
+  const open = [], t = { taken: 0, skipped: 0, contracts: 0, settledFills: 0, settledPnl: 0, held: 0 };
+  let held = 0;
+  for (const f of [...fills].sort((a, b) => a.time - b.time)) {
+    for (let i = open.length - 1; i >= 0; i--) if (open[i].at <= f.time) { held -= open[i].cash; open.splice(i, 1); }
+    let r = sizedFill(f, size, outcomes[f.ticker]);
+    if (held + r.stake > budget + 1e-9) {
+      const fits = Math.floor((budget - held) / (r.stake / r.contracts) + 1e-9);
+      if (fits < 1) { t.skipped++; continue; }
+      r = sizedFill(f, fits, outcomes[f.ticker]);
+    }
+    open.push({ at: Number.isFinite(f.expiresAt) ? f.expiresAt + settleMs : Infinity, cash: r.stake }); held += r.stake;
+    t.taken++; t.contracts += r.contracts;
+    if (r.settled !== null) { t.settledFills++; t.settledPnl += r.settled; }
+  }
+  t.held = open.filter(o => o.at > now).reduce((a, o) => a + o.cash, 0);
+  return t;
+}
+
 // One tick inside the touch, skewed against inventory, kept only where the edge over mid beats the maker fee.
 // Returns null when no side can be quoted (outside the mid band or no room inside the spread).
 export function quotePrices(s, inventory, { maxInventory = 10, skewTicks = 1, makerFeeRate = 0.0175, minQuoteEdge = 0.005, minMid = 0, maxMid = 1 } = {}) {
