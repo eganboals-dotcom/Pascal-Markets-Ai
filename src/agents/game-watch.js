@@ -5,7 +5,7 @@ import { LEAGUES, codeSimilarity, matchGame, teamCode } from './fair-odds.js';
 
 // Series -> what they count. Totals and team totals are points (goals in hockey), over the whole game or the listed periods
 // (overtime counts only for whole-game markets); player markets are a game stat. "N" in the ticker means N or more (219 paid on 220
-// points, 221 did not). NFL player yards can fall on a lost-yardage play, so only NFL scores are watched. NHL assists (and so
+// points, 221 did not). NFL player yards can fall on a lost-yardage play, so NFL player markets are counts only: receptions, touchdowns, passing touchdowns, rush attempts and completions. NHL assists (and so
 // points) are often changed after the game: on Nov 4 to 7, three assists ESPN credited settled No on Kalshi, so only goals count.
 const total = (league, periods) => ({ league, kind: 'total', ...(periods ? { periods } : {}) });
 const team = (league, periods) => ({ league, kind: 'team', ...(periods ? { periods } : {}) });
@@ -22,6 +22,7 @@ export const SERIES = {
   KXNBAPTS: player('nba', 'pts'), KXNBAREB: player('nba', 'reb'), KXNBAAST: player('nba', 'ast'), KXNBA3PT: player('nba', 'threes'), KXNBAPRA: player('nba', 'pra'),
   KXNFLTOTAL: total('nfl'), KXNFL1HTOTAL: total('nfl', [1, 2]), KXNFL1QTOTAL: total('nfl', [1]), KXNFL2QTOTAL: total('nfl', [2]),
   KXNFL3QTOTAL: total('nfl', [3]), KXNFLTEAMTOTAL: team('nfl'), KXNFL1HTEAMTOTAL: team('nfl', [1, 2]),
+  KXNFLREC: player('nfl', 'rec'), KXNFLTD: player('nfl', 'td'), KXNFLPASSTDS: player('nfl', 'passTd'), KXNFLRSHATT: player('nfl', 'car'), KXNFLPASSCOMP: player('nfl', 'comp'),
   KXNHLTOTAL: total('nhl'), KXNHL1PTOTAL: total('nhl', [1]), KXNHL2PTOTAL: total('nhl', [2]), KXNHL3PTOTAL: total('nhl', [3]),
   KXNHLTEAMTOTAL: team('nhl'), KXNHLGOAL: player('nhl', 'goals'),
   // College: football in quarters, men's basketball in two halves, women's basketball (game totals only) in quarters. A half or quarter count leaves overtime out, so it can only
@@ -33,7 +34,10 @@ export const SERIES = {
   KXNCAAWBTOTAL: total('ncaawb'),
 };
 export const WATCHED_LEAGUES = [...new Set(Object.values(SERIES).map(s => s.league))];
-export const COMPACT_VERSION = 5;
+// Series the history test reads and the live agent does not trade yet (scripts/game-watch.js leaves them out).
+export const HISTORY_ONLY = new Set(['KXNFLREC', 'KXNFLTD', 'KXNFLPASSTDS', 'KXNFLRSHATT', 'KXNFLPASSCOMP']);
+// The cache version of a compacted game. NFL games are at 6: their plays name who caught, threw, ran and scored.
+export const compactVersion = league => league === 'nfl' ? 6 : 5;
 // The last regulation period: a half or quarter count that ends before it is final once a later period starts.
 const LAST_PERIOD = { nba: 4, nfl: 4, ncaaf: 4, ncaab: 2, ncaawb: 4, nhl: 3 };
 
@@ -103,6 +107,10 @@ export function sideOf(code, game) {
 
 // Box-score columns per league for the stats the plays are checked against.
 const BOX = { nba: { pts: 'PTS', reb: 'REB', ast: 'AST', threes: '3PT' }, nhl: { goals: 'G', ast: 'A' }, nfl: {} };
+// The NFL box score repeats its column names across groups (TD under passing, rushing, receiving and the returns), so each stat
+// names its group. A player's touchdowns are the ones he scored: every group's TD column but passing's.
+const NFL_BOX = { passing: { passTd: 'TD', comp: 'C/ATT' }, rushing: { car: 'CAR' }, receiving: { rec: 'REC' } };
+const NFL_TD_GROUPS = ['rushing', 'receiving', 'kickReturns', 'puntReturns', 'defensive'];
 
 // One play from ESPN's core API (fresher than the summary) in the summary's shape: athlete ids come from $ref links, and
 // basketball's typed participants (shooter, assister) drop their types, since the summary lists them untyped in that order.
@@ -127,25 +135,36 @@ export function compactGame(summary, eventId, league = 'nba', newer = []) {
       if (!roster.some(p => p.id === id)) roster.push({ id, name: a.athlete?.displayName, jersey: a.athlete?.jersey });
       const stats = Object.entries(columns).filter(([, c]) => col(c) >= 0);
       if (a.stats?.length && stats.length) box[id] = { ...box[id], ...Object.fromEntries(stats.map(([k, c]) => [k, Number(String(a.stats[col(c)]).split('-')[0])])) };
+      if (league !== 'nfl' || !a.stats?.length) continue;
+      const b = box[id] ??= {}, num = c => Number(String(a.stats[col(c)]).split('/')[0]);
+      for (const [k, c] of Object.entries(NFL_BOX[s.name] ?? {})) if (col(c) >= 0) b[k] = num(c);
+      if (NFL_TD_GROUPS.includes(s.name) && col('TD') >= 0) b.td = (b.td ?? 0) + num('TD');
     }
   }
   const drives = summary.drives ? [...(summary.drives.previous ?? []), summary.drives.current].flatMap(d => d?.plays ?? []) : [];
-  const raw = LEAGUES[league]?.site.startsWith('football/') ? [...new Map(drives.map(p => [p.id, p])).values()].sort((a, b) => Number(a.sequenceNumber) - Number(b.sequenceNumber)) : summary.plays ?? [];
+  const football = Boolean(LEAGUES[league]?.site.startsWith('football/'));
+  const raw = football ? [...new Map(drives.map(p => [p.id, p])).values()].sort((a, b) => Number(a.sequenceNumber) - Number(b.sequenceNumber)) : summary.plays ?? [];
+  // The summary's football plays name nobody; the same play in `newer` (matched by id) does.
+  const named = new Map(football ? newer.map(p => [String(p.id), p.participants ?? []]) : []);
   const seq = p => Number(p.sequenceNumber) || 0, lastSeq = raw.reduce((m, p) => Math.max(m, seq(p)), 0);
   const extra = newer.filter(p => seq(p) > lastSeq).sort((a, b) => seq(a) - seq(b));
   const shootout = league === 'nhl' && [...raw, ...extra].some(p => (p.period?.number ?? 0) >= 5);
   const compact = list => list.map(p => {
-    const scoring = Boolean(p.scoringPlay) && !(league === 'nhl' && (p.period?.number ?? 0) >= 5), people = p.participants ?? [];
-    const typed = people.some(x => x.type), id = x => x?.athlete?.id ?? null;
+    const scoring = Boolean(p.scoringPlay) && !(league === 'nhl' && (p.period?.number ?? 0) >= 5), people = p.participants ?? named.get(String(p.id)) ?? [];
+    const typed = people.some(x => x.type), id = x => x?.athlete?.id ?? null, role = t => id(people.find(x => x.type === t));
+    // Football counts: a catch (and its completion) on a reception or touchdown pass, a carry on a rush, a touchdown for its scorer.
+    const kind = p.type?.text ?? '', caught = /^(Pass Reception|Passing Touchdown)$/.test(kind);
+    const roles = football && typed ? { receiver: caught ? role('receiver') : null, passer: caught ? role('passer') : null, passTd: kind === 'Passing Touchdown' ? role('passer') : null,
+      rusher: /^(Rush|Rushing Touchdown)$/.test(kind) ? role('rusher') : null, td: scoring && /Touchdown/.test(kind) ? role('scorer') : null } : {};
     return { t: Date.parse(p.wallclock), away: Number(p.awayScore), home: Number(p.homeScore), period: p.period?.number ?? 0,
       scorer: scoring ? id(typed ? people.find(x => x.type === 'scorer') : people[0]) : null, value: scoring ? Number(p.scoreValue) || 0 : 0,
       assisters: scoring ? (typed ? people.filter(x => x.type === 'assister') : people.slice(1, 2)).map(id).filter(Boolean) : [],
-      rebounder: /rebound/i.test(p.type?.text ?? '') ? id(people[0]) : null, ...(/^end (of )?game$/i.test(p.type?.text ?? '') ? { end: true } : {}) };
+      rebounder: /rebound/i.test(kind) ? id(people[0]) : null, ...roles, ...(/^end (of )?game$/i.test(kind) ? { end: true } : {}) };
   }).filter(p => Number.isFinite(p.t) && Number.isFinite(p.away) && Number.isFinite(p.home));
   const own = compact(raw), plays = [...own, ...compact(extra)], status = summary.header?.competitions?.[0]?.status;
   // The line score, points per period (index 0 is the first): what Kalshi settles half and quarter totals on.
   const lines = Object.fromEntries(['away', 'home'].map(s => [s, (side(s)?.linescores ?? []).map(l => Number(l.value ?? l.displayValue))]));
-  return { version: COMPACT_VERSION, league, eventId, start: summary.header?.competitions?.[0]?.date ?? null, shootout, checkedPlays: own.length,
+  return { version: compactVersion(league), league, eventId, start: summary.header?.competitions?.[0]?.date ?? null, shootout, checkedPlays: own.length,
     lines, statusPeriod: Number(status?.period) || 0, completed: Boolean(status?.type?.completed),
     away: { code: side('away')?.team?.abbreviation, score: Number(side('away')?.score) },
     home: { code: side('home')?.team?.abbreviation, score: Number(side('home')?.score) }, roster, box, plays };
@@ -153,12 +172,13 @@ export function compactGame(summary, eventId, league = 'nba', newer = []) {
 
 // Player stat tallies from the plays; a player whose tallies disagree with the box score is not trusted (returns null).
 function playerSeries(game, id, stat) {
-  const tally = { pts: 0, reb: 0, ast: 0, threes: 0, goals: 0 }, out = [], checked = game.checkedPlays ?? game.plays.length;
+  const tally = { pts: 0, reb: 0, ast: 0, threes: 0, goals: 0, rec: 0, comp: 0, passTd: 0, car: 0, td: 0 }, out = [], checked = game.checkedPlays ?? game.plays.length;
   let atBox = { ...tally };
   for (const [i, p] of game.plays.entries()) {
     if (p.scorer === id) { tally.pts += p.value; tally.goals++; if (p.value === 3) tally.threes++; }
     if (p.assisters.includes(id)) tally.ast++;
     if (p.rebounder === id) tally.reb++;
+    for (const [role, stat] of [['receiver', 'rec'], ['passer', 'comp'], ['passTd', 'passTd'], ['rusher', 'car'], ['td', 'td']]) if (p[role] === id) tally[stat]++;
     const value = stat === 'pra' ? tally.pts + tally.reb + tally.ast : tally[stat];
     out.push({ t: p.t, value });
     if (i === checked - 1) atBox = { ...tally };

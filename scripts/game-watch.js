@@ -17,7 +17,7 @@
 import { setTimeout as sleep } from 'node:timers/promises';
 import { fetchMarkets, fetchOpenEvents } from '../src/kalshi.js';
 import { LEAGUES, gameIndex, usDate } from '../src/agents/fair-odds.js';
-import { SERIES, WATCHED_LEAGUES, breakerGroup, compactGame, corePlay, decision, matchEvent, parseMarket } from '../src/agents/game-watch.js';
+import { HISTORY_ONLY, SERIES, WATCHED_LEAGUES, breakerGroup, compactGame, corePlay, decision, matchEvent, parseMarket } from '../src/agents/game-watch.js';
 import { take } from '../src/takers.js';
 import { TUNE_REPORT, pickedMargin } from '../src/tuner.js';
 import { fetchJson } from '../src/odds.js';
@@ -108,7 +108,7 @@ let listed = { at: 0, markets: [] };
 async function openMarkets() {
   if (Date.now() - listed.at < LIST_MS) return listed.markets;
   const markets = [];
-  for (const series of Object.keys(SERIES)) {
+  for (const series of Object.keys(SERIES).filter(s => !HISTORY_ONLY.has(s))) { // NFL player counts wait for their live feed
     try { for (const event of await fetchOpenEvents({ seriesTicker: series })) for (const m of event.markets ?? []) markets.push({ ticker: m.ticker, series }); }
     catch (error) { warn({ series, error: error.message }); }
     await sleep(250);
@@ -208,7 +208,7 @@ async function pass() {
   return everyMs;
 }
 
-say({ started: true, everySeconds: everyMs / 1000, margin, maxContracts, playerContracts, playerMinPrice, perGame, series: Object.keys(SERIES).length });
+say({ started: true, everySeconds: everyMs / 1000, margin, maxContracts, playerContracts, playerMinPrice, perGame, series: Object.keys(SERIES).length - HISTORY_ONLY.size });
 for (;;) {
   const started = Date.now();
   let wait = everyMs;

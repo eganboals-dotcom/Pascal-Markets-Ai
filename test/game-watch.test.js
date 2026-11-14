@@ -209,3 +209,30 @@ test('a loss on a buy under today\'s price floor pauses no group, and still coun
   assert.equal(s.paused.has('KXNBAPTS yes'), false);
   assert.equal(breakerState(trades, trades.map(t => lost(t.ticker)), breakerGroup, { dailyLimit: 96, now: 3 }).stopped, true); // all four losses count
 });
+
+test('NFL player counts come from the core plays\' named roles and must agree with the box score', () => {
+  const play = (id, s, type, away, extra = {}) => ({ id, sequenceNumber: String(id), wallclock: at(s), type: { text: type }, awayScore: away, homeScore: 0, period: { number: 1 }, ...extra });
+  const who = (...roles) => ({ participants: roles.map(([type, a], order) => ({ type, order, athlete: { $ref: `http://x/athletes/${a}?lang=en` } })) });
+  const plays = [play(1, 10, 'Pass Reception', 0), play(2, 20, 'Rush', 0), play(3, 30, 'Pass Incompletion', 0), play(4, 40, 'Passing Touchdown', 6, { scoringPlay: true, scoreValue: 6 }),
+    play(5, 50, 'Penalty', 6)];
+  const core = [{ id: 1, ...who(['passer', 8], ['receiver', 4]) }, { id: 2, ...who(['rusher', 30]) }, { id: 3, ...who(['passer', 8], ['receiver', 4]) },
+    { id: 4, ...who(['passer', 8], ['receiver', 4], ['scorer', 4], ['kicker', 9]) }, { id: 5, ...who(['penalized', 70], ['passer', 8], ['receiver', 4]) }].map(p => corePlay(p, 'nfl'));
+  const group = (name, labels, athletes) => ({ name, labels, athletes: athletes.map(([id, displayName, jersey, stats]) => ({ athlete: { id: String(id), displayName, jersey: String(jersey) }, stats })) });
+  const summary = receptions => ({ header: { competitions: [{ competitors: [{ homeAway: 'away', score: '6', team: { abbreviation: 'PIT' } }, { homeAway: 'home', score: '0', team: { abbreviation: 'CLE' } }] }] },
+    drives: { previous: [{ plays }] }, boxscore: { players: [{ statistics: [
+      group('passing', ['C/ATT', 'YDS', 'AVG', 'TD', 'INT'], [[8, 'Aaron Rodgers', 8, ['2/3', '30', '10.0', '1', '0']]]),
+      group('rushing', ['CAR', 'YDS', 'AVG', 'TD', 'LONG'], [[30, 'Jaylen Warren', 30, ['1', '4', '4.0', '0', '4']]]),
+      group('receiving', ['REC', 'YDS', 'AVG', 'TD', 'LONG', 'TGTS'], [[4, 'DK Metcalf', 4, [String(receptions), '30', '15.0', '1', '20', '3']]])] }] } });
+  const game = compactGame(summary(2), '7', 'nfl', core), m = t => parseMarket(`KX${t}`);
+  assert.equal(game.version, 6);
+  assert.deepEqual(game.box, { 8: { passTd: 1, comp: 2 }, 30: { car: 1, td: 0 }, 4: { rec: 2, td: 1 } });
+  assert.deepEqual(decision(m('NFLREC-26OCT01PITCLE-PITDMETCALF4-2'), game), { side: 'yes', at: t0 + 40000 }); // the incompletion and the penalty are no catch
+  assert.equal(decision(m('NFLREC-26OCT01PITCLE-PITDMETCALF4-3'), game), null);
+  assert.deepEqual(decision(m('NFLTD-26OCT01PITCLE-PITDMETCALF4-1'), game), { side: 'yes', at: t0 + 40000 });
+  assert.deepEqual(decision(m('NFLPASSTDS-26OCT01PITCLE-PITARODGERS8-1'), game), { side: 'yes', at: t0 + 40000 }); // the passer threw it and did not score it
+  assert.equal(decision(m('NFLTD-26OCT01PITCLE-PITARODGERS8-1'), game), null);
+  assert.deepEqual(decision(m('NFLPASSCOMP-26OCT01PITCLE-PITARODGERS8-2'), game), { side: 'yes', at: t0 + 40000 });
+  assert.deepEqual(decision(m('NFLRSHATT-26OCT01PITCLE-PITJWARREN30-1'), game), { side: 'yes', at: t0 + 20000 });
+  assert.equal(decision(m('NFLREC-26OCT01PITCLE-PITDMETCALF4-2'), compactGame(summary(3), '7', 'nfl', core)), null); // the box score has a catch the plays lack
+  assert.equal(decision(m('NFLREC-26OCT01PITCLE-PITDMETCALF4-2'), compactGame(summary(2), '7', 'nfl')), null); // the summary alone names nobody
+});
