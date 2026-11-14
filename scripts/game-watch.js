@@ -35,7 +35,10 @@ const budgetOption = option('budget', 'off'), budget = () => budgetOption === 's
 // the buy (Nov 14: a 4th rebound bought at 97¢, then removed at the final whistle), which the corrected play logs of the history
 // test cannot show. Replayed with 1 prop buy in 100 corrected, a larger prop cap adds swings and no profit.
 const maxContracts = Number(option('contracts', 25)), playerContracts = Number(option('player-contracts', maxContracts)), perGame = option('per-game', 'off') === 'off' ? Infinity : Number(option('per-game')), dailyLimit = Number(option('daily-loss', 100));
-const minPrice = Number(option('min-price', 0.9));
+// --player-min-price: a decided player market still offered at a discount is the market pricing a review. Live to Nov 14, player
+// buys under 98¢ took 2 full losses in 27 (a three re-ruled a two at 95¢ with 500 offered, a rebound removed at 97¢) for −$35;
+// at 98¢, 1 in 150 for +$30.
+const minPrice = Number(option('min-price', 0.9)), playerMinPrice = Number(option('player-min-price', minPrice));
 const everyMs = Number(option('every-seconds', 10)) * 1000, margin = Number(option('margin', 0.01)), feeRate = readResearch('config/scan.json', {}).feeRate ?? 0.07;
 const AGENT = 'game-watch', ESPN = 'https://site.api.espn.com/apis/site/v2/sports', CORE = 'https://sports.core.api.espn.com/v2/sports';
 const RECENT_MS = 3600000, SETTLE_AFTER_MS = 3 * 3600000, LIST_MS = 2 * 60000, PAGE = 50, PARALLEL = 4;
@@ -166,7 +169,7 @@ async function trade(games, departments) {
     const fair = side === 'yes' ? 1 : 0, pick = take(fair, book, { feeRate, margin: chosen }), offered = side === 'yes' ? book.yesAskSize : book.yesBidSize; // No is bought by selling into the Yes bid
     // A decided side still offered under --min-price (90¢) usually means the play log is wrong (a goal overturned, a stat moved to
     // another player): live, those buys won 3 of 8 for −$12.29, while buys at 90¢ or more won 113 of 113.
-    if (pick && pick.side === side && offered > 0 && pick.price >= minPrice) picks.push({ ticker, series, g, side, at, fair, pick, offered, player });
+    if (pick && pick.side === side && offered > 0 && pick.price >= (player ? playerMinPrice : minPrice)) picks.push({ ticker, series, g, side, at, fair, pick, offered, player });
   }
   for (const { ticker, series, g, side, at, fair, pick, offered, player } of picks.sort((a, b) => b.pick.edge - a.pick.edge)) {
     const gameId = `${g.row.league}-${g.row.eventId}`, contracts = Math.floor(Math.min(player ? playerContracts : maxContracts, offered, perGame - (held.get(gameId) ?? 0),
@@ -174,7 +177,10 @@ async function trade(games, departments) {
     if (contracts < 1) continue;
     const row = { time: Date.now(), ticker, league: series, department: departmentOf(series, departments),
       game: `${g.name}, decided at ${new Date(at).toISOString().slice(11, 19)} UTC`, gameId, start: g.row.start, side, price: pick.price, fee: pick.fee,
-      edge: pick.edge, fair, books: null, offered, contracts, decidedAt: at };
+      edge: pick.edge, fair, books: null, offered, contracts, decidedAt: at,
+      // Whether the deciding play is among the summary's own plays, which its box score describes; false means it came from the
+      // fresher feed alone (Nov 14: a 10th assist bought there was never in the final log). Recorded to measure, not yet a rule.
+      boxed: at <= (g.game.plays[(g.game.checkedPlays ?? g.game.plays.length) - 1]?.t ?? -Infinity) };
     ledger.record(row); taken.add(ticker); held.set(gameId, (held.get(gameId) ?? 0) + contracts); counts.take++;
     say({ take: ticker, side, contracts, price: pick.price, edge: Number(pick.edge.toFixed(4)), offered, secondsAfterPlay: Math.round((row.time - at) / 1000) });
   }
@@ -197,7 +203,7 @@ async function pass() {
   return everyMs;
 }
 
-say({ started: true, everySeconds: everyMs / 1000, margin, maxContracts, playerContracts, perGame, series: Object.keys(SERIES).length });
+say({ started: true, everySeconds: everyMs / 1000, margin, maxContracts, playerContracts, playerMinPrice, perGame, series: Object.keys(SERIES).length });
 for (;;) {
   const started = Date.now();
   let wait = everyMs;

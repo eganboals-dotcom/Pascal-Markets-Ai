@@ -4,9 +4,10 @@ import { PROJECT_ROOT, projectPath } from './files.js';
 
 // The paper agents Start engine runs beside the scanner, as [script name, arguments]; each logs to data/paper/<name>.log and
 // <name>.err.log. Paper only; none places an order. Game-watch's cap is 2% of the $10,000 bankroll in dollars on team markets
-// (one wrong call costs the cap) and 50 on player markets, where stat corrections reverse buys. Reward-maker runs outside the
+// (one wrong call costs the cap) and 50 on player markets, where stat corrections reverse buys; player buys need 98¢ or more,
+// since a discount on a decided player market is the market pricing a review. Reward-maker runs outside the
 // split until its rewards beat its fills. Longshot-watch is off: the favorite-longshot fade fails on four years of data and lost live.
-export const PAPER_AGENTS = [['game-watch', ['--budget=split', '--contracts=200', '--player-contracts=50']], ['station-watch', ['--budget=split', '--contracts=10']],
+export const PAPER_AGENTS = [['game-watch', ['--budget=split', '--contracts=200', '--player-contracts=50', '--player-min-price=0.98']], ['station-watch', ['--budget=split', '--contracts=10']],
   ['reward-maker', ['--size=25', '--markets=12']], ['score-watch', ['--budget=split', '--contracts=50']], ['rebalance', []]];
 function spawnAgent(name, args) {
   mkdirSync(projectPath('data/paper'), { recursive: true });
