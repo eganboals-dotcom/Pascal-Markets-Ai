@@ -73,6 +73,7 @@ test('Start engine also starts every paper agent once, Stop stops them, and an a
   assert.deepEqual(launched.map(([name]) => name), PAPER_AGENTS.map(([name]) => name));
   for (const agent of ['game-watch', 'station-watch', 'score-watch']) assert.ok(PAPER_AGENTS.find(([name]) => name === agent)[1].includes('--budget=split'));
   assert.ok(PAPER_AGENTS.find(([name]) => name === 'game-watch')[1].includes('--player-min-price=0.98')); // a discount on a decided player market is a review being priced
+  for (const arg of ['--player-contracts=100', '--daily-loss=300']) assert.ok(PAPER_AGENTS.find(([name]) => name === 'game-watch')[1].includes(arg)); // the daily limit is three player losses at the cap
   assert.ok(PAPER_AGENTS.some(([name]) => name === 'rebalance'));
   assert.equal(runner.snapshot().agents.length, PAPER_AGENTS.length);
   assert.ok(!PAPER_AGENTS.some(([name]) => name === 'longshot-watch')); // off: it fails its history test

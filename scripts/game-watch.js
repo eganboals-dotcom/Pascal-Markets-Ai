@@ -33,7 +33,8 @@ const flag = name => process.argv.includes(`--${name}`);
 const budgetOption = option('budget', 'off'), budget = () => budgetOption === 'split' ? budgetOf('game-watch') : budgetOption === 'off' ? Infinity : Number(budgetOption);
 // --player-contracts caps player markets apart from --contracts: a stat correction can take a rebound, assist or goal back after
 // the buy (Nov 14: a 4th rebound bought at 97¢, then removed at the final whistle), which the corrected play logs of the history
-// test cannot show. Replayed with 1 prop buy in 100 corrected, a larger prop cap adds swings and no profit.
+// test cannot show. Replayed with the 98¢ floor, 1 player buy in 182 corrected (the live rate to Nov 14) and --daily-loss at three
+// losses, a cap of 100 made $47.00 a day against $35.30 at 50; at 1 in 53, where a 98¢ buy breaks even, $24.50 against $21.80.
 const maxContracts = Number(option('contracts', 25)), playerContracts = Number(option('player-contracts', maxContracts)), perGame = option('per-game', 'off') === 'off' ? Infinity : Number(option('per-game')), dailyLimit = Number(option('daily-loss', 100));
 // --player-min-price: a decided player market still offered at a discount is the market pricing a review. Live to Nov 14, player
 // buys under 98¢ took 2 full losses in 27 (a three re-ruled a two at 95¢ with 500 offered, a rebound removed at 97¢) for −$35;
