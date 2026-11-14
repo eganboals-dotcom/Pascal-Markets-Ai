@@ -60,7 +60,7 @@ if (!history && learnedRun) {
   const fresh = learnedRun.markets.flatMap(m => m.fillLog.filter(f => f.time > after).map(f => ({ ticker: m.ticker, ...f, expiresAt: expires.get(m.ticker) ?? null })));
   if (fresh.length) appendFileSync(projectPath(path), fresh.map(r => JSON.stringify(r)).join('\n') + '\n');
 }
-// Quote size (mm.quoteSize, 5: the largest size whose low end stays positive under both fill rules in kalshi-bandit.js): every one-contract fill re-scored at the size, held to settlement.
+// Quote size (mm.quoteSize, 10 with weather no longer quoted: the largest size whose low end stays positive under both fill rules in kalshi-bandit.js): every one-contract fill re-scored at the size, held to settlement.
 const quoteSize = config.mm?.quoteSize ?? 1;
 const sizedTotal = markets => {
   const t = { contracts: 0, clv: 0, settledFills: 0, settledPnl: 0 };

@@ -99,7 +99,12 @@ writeProjectFile(`${out('bandit-report')}.json`, JSON.stringify({ generatedAt: D
   markets: fixedMarkets.filter(m => m.fills).map(m => ({ day: m.day, ticker: m.ticker, fills: m.fills, clv: m.clv, pnl: m.netPnl })),
   // The learned policy per market, which the paper loop quotes; `sized` is settled P&L at the configured quote size, for the check by department.
   learnedMarkets: learnedMarkets.filter(m => m.fills).map(m => ({ day: m.day, ticker: m.ticker, fills: m.fills, clv: m.clv, pnl: m.netPnl,
-    sized: m.fillLog.reduce((n, f) => n + (sizedFill(f, mm.quoteSize ?? 1, m.outcome).settled ?? 0), 0) })) }, null, 2) + '\n');
+    sized: m.fillLog.reduce((n, f) => n + (sizedFill(f, mm.quoteSize ?? 1, m.outcome).settled ?? 0), 0),
+    // Settled P&L and money staked at each size, for picking a size per department.
+    sizes: Object.fromEntries([1, 2, 5, 10, 25].map(size => [size, m.fillLog.reduce((a, f) => {
+      const r = sizedFill(f, size, m.outcome);
+      return { pnl: a.pnl + (r.settled ?? 0), stake: a.stake + r.stake };
+    }, { pnl: 0, stake: 0 })])) })) }) + '\n');
 writeProjectFile(`${out('bandit-report')}.md`, ['# Quoting policy, walk-forward', '',
   'Research only. Each day is traded by a model trained only on days at least two before it (markets quote up to 48 hours before their close day, so the day just before overlaps it), then added to its training a day later. Fixed: the configured quoting rules. Learned: the same rules, minus quotes declined where at least 30 earlier events show a negative closing-line value. One contract per quote; candle books without depth.' + (strict ? ' Strict fills: a quote fills only on a print or a book strictly through its price, never at it, so a queue at its own price cannot flatter it (a lower bound).' : ''), '',
   'Closing-line value: each fill against the last mid before quoting stopped, after fees. Low noise, but it flatters in thin markets. Settled P&L: the $1/$0 outcome. The truth, but noisy. Ranges are 90%, resampling whole events (all markets of a game together).', '',

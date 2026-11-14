@@ -9,10 +9,10 @@ import { projectPath } from './files.js';
 
 export const START = Date.parse('2026-11-12T22:27:00Z'), SWITCH = Date.parse('2026-11-13T03:10:00Z'); // quoting counts from SWITCH
 // The bankroll was $2,000 until Nov 14, 02:45 UTC and is $10,000 since; P&L still counts from START. The shares follow the review
-// in README: quoting at 5 contracts needs about $1,400, score-watch joins with $300, station-watch rarely finds a trade live, 7.5%
+// in README: quoting at 10 contracts needs about $2,800 (since Nov 14, taken from game-watch, which never used more than $3,066), score-watch joins with $300, station-watch rarely finds a trade live, 7.5%
 // stays in reserve, and the rest goes to game-watch, whose books hold far more than its old 25-contract cap. Reward-maker runs
 // outside the split until its rewards are shown to beat its fills.
-export const BASE = 10000, SPLIT = { 'game-watch': 7450, quoting: 1400, 'score-watch': 300, 'station-watch': 100, reserve: 750 };
+export const BASE = 10000, SPLIT = { 'game-watch': 6050, quoting: 2800, 'score-watch': 300, 'station-watch': 100, reserve: 750 };
 // An agent that joined later counts its P&L and cash from then, not from START.
 export const JOINED = { 'score-watch': Date.parse('2026-11-14T02:45:00Z') };
 // Quoting's contracts a quote at time t: each budgets row records mm.quoteSize; 5 before rows carried it.
