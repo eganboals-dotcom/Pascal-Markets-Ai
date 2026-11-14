@@ -38,7 +38,7 @@ const maxContracts = Number(option('contracts', 25)), playerContracts = Number(o
 // --player-min-price: a decided player market still offered at a discount is the market pricing a review. Live to Nov 14, player
 // buys under 98¢ took 2 full losses in 27 (a three re-ruled a two at 95¢ with 500 offered, a rebound removed at 97¢) for −$35;
 // at 98¢, 1 in 150 for +$30.
-const minPrice = Number(option('min-price', 0.9)), playerMinPrice = Number(option('player-min-price', minPrice));
+const minPrice = Number(option('min-price', 0.9)), playerMinPrice = Number(option('player-min-price', 0.98)); // the default too, so it holds whatever list the dashboard server launched with
 const everyMs = Number(option('every-seconds', 10)) * 1000, margin = Number(option('margin', 0.01)), feeRate = readResearch('config/scan.json', {}).feeRate ?? 0.07;
 const AGENT = 'game-watch', ESPN = 'https://site.api.espn.com/apis/site/v2/sports', CORE = 'https://sports.core.api.espn.com/v2/sports';
 const RECENT_MS = 3600000, SETTLE_AFTER_MS = 3 * 3600000, LIST_MS = 2 * 60000, PAGE = 50, PARALLEL = 4;
