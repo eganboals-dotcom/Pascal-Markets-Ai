@@ -3,7 +3,7 @@
 // every pass (budgetOf), so a rebalance needs no restart. Paper only; no orders.
 import { existsSync, readFileSync } from 'node:fs';
 import { openLedger, PAPER_DIR } from './paper.js';
-import { budgetedFills } from './mm.js';
+import { budgetedFills, quoteSizeFor } from './mm.js';
 import { readResearch } from './report.js';
 import { projectPath } from './files.js';
 
@@ -15,8 +15,12 @@ export const START = Date.parse('2026-11-12T22:27:00Z'), SWITCH = Date.parse('20
 export const BASE = 10000, SPLIT = { 'game-watch': 6050, quoting: 2800, 'score-watch': 300, 'station-watch': 100, reserve: 750 };
 // An agent that joined later counts its P&L and cash from then, not from START.
 export const JOINED = { 'score-watch': Date.parse('2026-11-14T02:45:00Z') };
-// Quoting's contracts a quote at time t: each budgets row records mm.quoteSize; 5 before rows carried it.
-export const quoteSizeAt = (rows, t) => rows.filter(r => r.time <= t).at(-1)?.quoteSize ?? 5;
+// Quoting's contracts a quote at time t (for a ticker, when given): each budgets row records mm.quoteSize and mm.seriesSizes; 5
+// before rows carried a size.
+export function quoteSizeAt(rows, t, ticker) {
+  const row = rows.filter(r => r.time <= t).at(-1);
+  return quoteSizeFor({ quoteSize: row?.quoteSize ?? 5, seriesSizes: row?.seriesSizes }, ticker);
+}
 const MOVABLE = ['game-watch', 'quoting', 'station-watch', 'score-watch'], DAY_MS = 86400000;
 export const BUDGETS = `${PAPER_DIR}/budgets.jsonl`, HELD = `${PAPER_DIR}/held.jsonl`;
 
@@ -61,8 +65,9 @@ export function tally(now = Date.now()) {
     return { agent, budget: current(agent), trades: trades.length, contracts: trades.reduce((a, t) => a + (t.contracts ?? 1), 0), settled: settled.length, pnl, open };
   });
   const fills = readRows('data/maker/quoting-fills.jsonl').filter(f => f.time >= SWITCH), size = quoteSizeAt(rows, now);
-  const q = budgetedFills(fills, t => quoteSizeAt(rows, t), t => budgetAt(rows, 'quoting', t), readResearch('data/maker/settlements.json', {}), { now });
+  const q = budgetedFills(fills, (t, ticker) => quoteSizeAt(rows, t, ticker), t => budgetAt(rows, 'quoting', t), readResearch('data/maker/settlements.json', {}), { now });
+  const larger = (rows.filter(r => r.time <= now).at(-1)?.seriesSizes ?? []).map(s => ` (${s.size} on ${s.label ?? s.pattern})`).join('');
   out.push({ agent: 'quoting', budget: current('quoting'), trades: q.taken, contracts: q.contracts, settled: q.settledFills, pnl: q.settledPnl, open: q.held,
-    note: `learned policy at ${size} a quote, since ${new Date(SWITCH).toISOString().slice(0, 16)}; ${q.skipped} fills skipped for cash; first in line (an upper bound)` });
+    note: `learned policy at ${size} a quote${larger}, since ${new Date(SWITCH).toISOString().slice(0, 16)}; ${q.skipped} fills skipped for cash; first in line (an upper bound)` });
   return { rows: out, total: out.reduce((a, r) => a + r.pnl, 0), reserve: current('reserve') };
 }

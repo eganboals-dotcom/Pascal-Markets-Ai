@@ -1,6 +1,6 @@
 import { appendFileSync, createReadStream, existsSync, readFileSync } from 'node:fs';
 import { createInterface } from 'node:readline';
-import { simulate, sizedFill } from '../src/mm.js';
+import { quoteSizeFor, simulate, sizedFill } from '../src/mm.js';
 import { fetchMarkets } from '../src/kalshi.js';
 import { readResearch, markdownTable } from '../src/report.js';
 import { projectPath, recordingFiles, writeProjectFile } from '../src/files.js';
@@ -60,12 +60,13 @@ if (!history && learnedRun) {
   const fresh = learnedRun.markets.flatMap(m => m.fillLog.filter(f => f.time > after).map(f => ({ ticker: m.ticker, ...f, expiresAt: expires.get(m.ticker) ?? null })));
   if (fresh.length) appendFileSync(projectPath(path), fresh.map(r => JSON.stringify(r)).join('\n') + '\n');
 }
-// Quote size (mm.quoteSize, 10 with weather no longer quoted: the largest size whose low end stays positive under both fill rules in kalshi-bandit.js): every one-contract fill re-scored at the size, held to settlement.
-const quoteSize = config.mm?.quoteSize ?? 1;
+// Quote size (mm.quoteSize, 10 with weather no longer quoted: the largest size whose low end stays positive under both fill rules in kalshi-bandit.js): every one-contract fill re-scored at its size, held to settlement.
+// mm.seriesSizes sets a larger size for series that earn it (mention markets at 25); quoteSizeFor in src/mm.js.
+const quoteSize = config.mm?.quoteSize ?? 1, larger = (config.mm?.seriesSizes ?? []).map(s => `, ${s.size} on ${s.label ?? s.pattern}`).join('');
 const sizedTotal = markets => {
   const t = { contracts: 0, clv: 0, settledFills: 0, settledPnl: 0 };
   for (const m of markets) for (const f of m.fillLog) {
-    const r = sizedFill(f, quoteSize, settlements[m.ticker]);
+    const r = sizedFill(f, quoteSizeFor(config.mm, m.ticker), settlements[m.ticker]);
     t.contracts += r.contracts; t.clv += r.clv;
     if (r.settled !== null) { t.settledFills++; t.settledPnl += r.settled; }
   }
@@ -77,13 +78,13 @@ const sizedLine = t => `${t.contracts} contracts, ${money(t.settledPnl)} settled
 try {
   // 'quoting', never 'waiting': the live agents read a fresh 'waiting' maker row as the model run waiting for the download (src/paper.js).
   beat('maker', 'quoting', `Paper quoting on ${result.markets.length} markets over ${history ? 'the replayed day' : `${config.mm?.replayDays ?? 7} days`}: fixed rules ${line(result.total)}`
-    + (result.learned ? `; learned policy ${line(result.learned)}` : '') + `; at ${quoteSize} a quote, ${sizedLine(result.sized.learned ?? result.sized.fixed)}`, { nextWithinMs: 30 * 60000 });
+    + (result.learned ? `; learned policy ${line(result.learned)}` : '') + `; at ${quoteSize} a quote${larger}, ${sizedLine(result.sized.learned ?? result.sized.fixed)}`, { nextWithinMs: 30 * 60000 });
 } catch (error) { console.error(JSON.stringify({ heartbeat: error.message })); }
 const rows = [...result.markets, { ticker: 'TOTAL', ...result.total }];
 writeProjectFile(`${out}/mm-sim.md`, ['# Market-making simulation', '', 'Research only. One-contract quotes, replaced at each snapshot, re-scored at the quote size below. Quotes stop before a game starts, after a mid jump, and outside the mid-price band.', '',
   `Settled markets: ${result.markets.filter(m => m.settled).length} of ${result.markets.length}, valued at their $1/$0 outcome. Recorded trades: ${trades.length}; fills from trades: ${result.total.tradeFills}.`, '',
   result.learned ? `Learned policy on the same books: ${line(result.learned)}, against the fixed rules' ${line(result.total)}.` : 'No learned model found (data/history/bandit-model.json).', '',
-  `At ${quoteSize} contracts a quote (each fill at the smaller of the size and the contracts traded through it, held to settlement, as if first in line: an upper bound): fixed rules ${sizedLine(result.sized.fixed)}`
+  `At ${quoteSize} contracts a quote${larger} (each fill at the smaller of the size and the contracts traded through it, held to settlement, as if first in line: an upper bound): fixed rules ${sizedLine(result.sized.fixed)}`
     + (result.sized.learned ? `; learned policy ${sizedLine(result.sized.learned)}.` : '.'), '',
   `Quote lifetime: ${config.mm?.maxQuoteAgeMs ?? 30000} ms. Expired quote intervals: ${result.total.staleIntervals}. Sparse intervals cannot establish fills.`, '',
   'Net P&L is cash plus final inventory at its exit side (bid for a long, ask for a short) less the taker fee to flatten it, after fees. Spread captured measures quote improvement versus the posting mid. Signed adverse-selection loss measures fill price against the first observed mid at least 15 minutes later; negative values are favorable. This diagnostic is not subtracted from net P&L again. Unmarked fills lack a later observation. Realized P&L is closed inventory profit less all incurred fees. Unrealized P&L is the remaining inventory at that exit value against average entry cost. A settled market has no unrealized P&L: its inventory is valued at the outcome, without an exit fee. Liquidation depth is not simulated.', '',

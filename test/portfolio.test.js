@@ -44,4 +44,13 @@ test('budgets and quote size in force at a moment come from the last rebalance b
   const f = (time, ticker) => ({ ticker, time, side: 'buy', price: 0.5, fee: 0, feeRate: 0, available: 100, clv: 0, expiresAt: null });
   const t = budgetedFills([f(150, 'A'), f(250, 'B')], time => quoteSizeAt(rows, time), time => budgetAt(rows, 'quoting', time));
   assert.equal(t.contracts, 2 + 2); // $1 fits 2 at 50¢; at $3 the $2 left would fit 4, but B quotes 2
+  // A series with its own size (mention markets) runs it from the row that set it; other markets keep the row's quote size.
+  const sized = [...rows, { time: 300, budgets: { quoting: 100 }, quoteSize: 2, seriesSizes: [{ pattern: '^KX[A-Z0-9]*MENTION(?!DURATION)', size: 7 }] }];
+  const mention = 'KXTRUMPMENTION-26OCT09-CRYP', game = 'KXNBAGAME-26OCT09AB-A';
+  assert.equal(quoteSizeAt(sized, 350, mention), 7);
+  assert.equal(quoteSizeAt(sized, 350, 'KXTRUMPMENTIONDURATION-26OCT09-30'), 2);
+  assert.equal(quoteSizeAt(sized, 350, game), 2);
+  assert.equal(quoteSizeAt(sized, 350), 2);
+  assert.equal(quoteSizeAt(sized, 250, mention), 2);
+  assert.equal(budgetedFills([f(350, mention), f(360, game)], (time, ticker) => quoteSizeAt(sized, time, ticker), 100).contracts, 7 + 2);
 });

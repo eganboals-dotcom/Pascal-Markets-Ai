@@ -14,7 +14,11 @@ export function sizedFill(fill, size, outcome) {
     settled: outcome === 0 || outcome === 1 ? n * dir * (outcome - fill.price) - fee : null };
 }
 
-// The paper test's cash cap for quoting: fills in time order at `size` (contracts, or a function of the fill's time), each cut to what `budget` (dollars, or a function of the
+// Contracts a quote for a market: the first mm.seriesSizes entry whose pattern fits the ticker, else mm.quoteSize. "What will they
+// say" markets run larger: takers there overpay for Yes (README, Nov 14), and the learned policy's low end stays positive at 25.
+export const quoteSizeFor = (mm, ticker) => mm?.seriesSizes?.find(s => new RegExp(s.pattern).test(ticker ?? ''))?.size ?? mm?.quoteSize ?? 1;
+
+// The paper test's cash cap for quoting: fills in time order at `size` (contracts, or a function of the fill's time and ticker), each cut to what `budget` (dollars, or a function of the
 // fill's time) leaves room for, and
 // skipped when not one contract fits. A fill's cash is freed settleMs after its market's expected expiration (expiresAt).
 // shortcut: a buy and a sell in one market are not netted, so the cash held is overstated; fine while mm.maxInventory caps a market.
@@ -25,7 +29,7 @@ export function budgetedFills(fills, size, budget, outcomes = {}, { now = Date.n
   for (const f of [...fills].sort((a, b) => a.time - b.time)) {
     const limit = cap(f.time);
     for (let i = open.length - 1; i >= 0; i--) if (open[i].at <= f.time) { held -= open[i].cash; open.splice(i, 1); }
-    let r = sizedFill(f, sizeAt(f.time), outcomes[f.ticker]);
+    let r = sizedFill(f, sizeAt(f.time, f.ticker), outcomes[f.ticker]);
     if (held + r.stake > limit + 1e-9) {
       const fits = Math.floor((limit - held) / (r.stake / r.contracts) + 1e-9);
       if (fits < 1) { t.skipped++; continue; }

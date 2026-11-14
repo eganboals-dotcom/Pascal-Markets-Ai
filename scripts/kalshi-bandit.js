@@ -1,7 +1,7 @@
 // Walk-forward test of the learned quoting policy on backfilled history: each day is first traded by a model trained only on
 // days at least two before it, scored against the fixed rules on the same day, and learned from a day later. Research only; no orders.
 // The newest 10 days are a locked final exam: skipped unless --final is passed, which should happen once, at the very end.
-import { simulate, sizedFill } from '../src/mm.js';
+import { quoteSizeFor, simulate, sizedFill } from '../src/mm.js';
 import { addTrained, emptyModel, marketSamples, policy, train } from '../src/bandit.js';
 import { HEARTBEAT_MS, historyDays, jsonLines, settlementValue } from '../src/history.js';
 import { bootstrapTotal, eventOf, pairedDifference, sumByEvent } from '../src/stats.js';
@@ -99,7 +99,7 @@ writeProjectFile(`${out('bandit-report')}.json`, JSON.stringify({ generatedAt: D
   markets: fixedMarkets.filter(m => m.fills).map(m => ({ day: m.day, ticker: m.ticker, fills: m.fills, clv: m.clv, pnl: m.netPnl })),
   // The learned policy per market, which the paper loop quotes; `sized` is settled P&L at the configured quote size, for the check by department.
   learnedMarkets: learnedMarkets.filter(m => m.fills).map(m => ({ day: m.day, ticker: m.ticker, fills: m.fills, clv: m.clv, pnl: m.netPnl,
-    sized: m.fillLog.reduce((n, f) => n + (sizedFill(f, mm.quoteSize ?? 1, m.outcome).settled ?? 0), 0),
+    sized: m.fillLog.reduce((n, f) => n + (sizedFill(f, quoteSizeFor(mm, m.ticker), m.outcome).settled ?? 0), 0),
     // Settled P&L and money staked at each size, for picking a size per department.
     sizes: Object.fromEntries([1, 2, 5, 10, 25].map(size => [size, m.fillLog.reduce((a, f) => {
       const r = sizedFill(f, size, m.outcome);

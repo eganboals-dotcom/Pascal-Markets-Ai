@@ -22,8 +22,9 @@ function pass(now = Date.now()) {
   const last = budgetRows().at(-1), day = pacificDay(now);
   if (last?.day === day) return say({ held });
   const bankroll = Math.round((BASE + t.total) * 100) / 100, r = rebalance({ bankroll, previous: last?.budgets ?? SPLIT, samples: heldRows(), now });
-  // quoteSize: the quoting tally sizes each fill by the row in force when it filled (quoteSizeAt in src/portfolio.js).
-  append(BUDGETS, { time: now, day, bankroll, budgets: r.budgets, quoteSize: readResearch('config/scan.json', {}).mm?.quoteSize ?? 1, notes: r.notes });
+  // quoteSize and seriesSizes: the quoting tally sizes each fill by the row in force when it filled (quoteSizeAt in src/portfolio.js).
+  const mm = readResearch('config/scan.json', {}).mm ?? {};
+  append(BUDGETS, { time: now, day, bankroll, budgets: r.budgets, quoteSize: mm.quoteSize ?? 1, ...(mm.seriesSizes ? { seriesSizes: mm.seriesSizes } : {}), notes: r.notes });
   say({ rebalanced: day, bankroll, budgets: r.budgets, notes: r.notes });
 }
 
