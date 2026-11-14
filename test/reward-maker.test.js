@@ -1,6 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { eventKey, fillBid, fillPnl, netYes, toxicEvents, parseBook, programPerDay, referencePrice, restingBid, sideShare, snapshotShare } from '../src/agents/reward-maker.js';
+import { canPay, eventKey, fillBid, fillPnl, netYes, payingPrograms, toxicEvents, parseBook, programPerDay, referencePrice, restingBid, sideShare, snapshotShare } from '../src/agents/reward-maker.js';
+
+test('a program is bid only when it can still reach the $1 minimum, and one that ended short counts as nothing', () => {
+  const DAY = 86400000, now = 10 * DAY;
+  assert.equal(canPay({ perDay: 1.4, end: now + DAY, now }), true); // a fresh day at $1.40 a day pays $1.40
+  assert.equal(canPay({ perDay: 1.4, end: now + DAY / 2, now }), false); // half a day left: $0.70
+  assert.equal(canPay({ accrued: 0.8, perDay: 1.4, end: now + DAY / 2, now }), true); // already $0.80 in: reaches $1.50
+  const [ended, short, live] = payingPrograms([{ end: now - 1, accrued: 1.2 }, { end: now - 1, accrued: 0.6 }, { end: now + 1, accrued: 0.6 }], now);
+  assert.deepEqual([ended.accrued, short.accrued, live.accrued], [1.2, 0, 0.6]);
+});
 
 const near = (a, b) => assert.ok(Math.abs(a - b) < 1e-9, `${a} != ${b}`);
 const yes = [[0.40, 100], [0.39, 300], [0.38, 1000]];

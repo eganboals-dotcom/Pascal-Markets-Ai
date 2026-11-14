@@ -15,7 +15,7 @@ import { setTimeout as sleep } from 'node:timers/promises';
 import { appendFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { fetchIncentivePrograms, fetchMarkets, fetchOrderbook, fetchTrades, getJson, kalshiFee } from '../src/kalshi.js';
 import { recordTape } from '../src/mm-recorder.js';
-import { DAY_MS, eventKey, fillBid, fillPnl, netYes, toxicEvents, parseBook, programDiscount, programPerDay, programTarget, restingBid, snapshotShare } from '../src/agents/reward-maker.js';
+import { DAY_MS, MIN_PAYOUT, canPay, eventKey, fillBid, fillPnl, netYes, payingPrograms, toxicEvents, parseBook, programDiscount, programPerDay, programTarget, restingBid, snapshotShare } from '../src/agents/reward-maker.js';
 import { departmentOf, loadDepartments, readSwitches, seriesOf } from '../src/departments.js';
 import { settlementValue } from '../src/history.js';
 import { beat } from '../src/heartbeat.js';
@@ -44,7 +44,7 @@ const state = { startedAt: saved.startedAt ?? Date.now(), programs: saved.progra
   outcomes: saved.outcomes ?? {}, marks: saved.marks ?? {}, listedAt: saved.listedAt ?? 0, lastPass: saved.lastPass ?? 0 };
 let tape = saved.tape ? { time: saved.tape.time, ids: new Set(saved.tape.ids) } : null, settledAt = 0;
 const save = () => writeProjectFile(STATE, JSON.stringify({ ...state, tape: tape && { time: tape.time, ids: [...tape.ids] } }) + '\n');
-const toxic = () => toxicEvents(fills, Object.values(state.programs), t => state.outcomes[t] ?? state.marks[t], TOXIC);
+const toxic = () => toxicEvents(fills, payingPrograms(Object.values(state.programs), Date.now()), t => state.outcomes[t] ?? state.marks[t], TOXIC);
 const programOf = ticker => Object.entries(state.programs).find(([, p]) => p.ticker === ticker && p.chosen);
 
 // Lists the programs and keeps the markets where fresh bids would earn the most. Accrued rewards stay with their program ids.
@@ -60,9 +60,11 @@ async function choose(now) {
     try { book = parseBook(await fetchOrderbook(p.market_ticker, paced)); } catch (error) { warn({ book: p.market_ticker, error: error.message }); continue; }
     const target = programTarget(p), bids = { yes: restingBid(book.yes, target, null, SIZE, now), no: restingBid(book.no, target, null, SIZE, now) };
     const share = bids.yes && bids.no ? snapshotShare(book, target, programDiscount(p), bids) : 0;
-    if (share > 0) scored.push({ p, perDay: programPerDay(p) * share });
+    const perDay = programPerDay(p) * share, accrued = state.programs[p.id]?.accrued ?? 0;
+    if (share > 0 && canPay({ accrued, perDay, end: Date.parse(p.end_date), now })) scored.push({ p, perDay, accrued });
   }
-  scored.sort((a, b) => b.perDay - a.perDay);
+  // Programs already under way keep their place, so accrued rewards are not left short of the $1 minimum; then best per day.
+  scored.sort((a, b) => (b.accrued > 0) - (a.accrued > 0) || b.perDay - a.perDay);
   const kept = scored.slice(0, MARKETS);
   for (const entry of Object.values(state.programs)) entry.chosen = false;
   for (const { p } of kept) {
@@ -102,7 +104,7 @@ async function settle(now) {
 
 function totals(now) {
   let accrued = 0, forfeited = 0;
-  for (const p of Object.values(state.programs)) if (p.end <= now && p.accrued < 1) forfeited += p.accrued; else accrued += p.accrued;
+  for (const p of Object.values(state.programs)) if (p.end <= now && p.accrued < MIN_PAYOUT) forfeited += p.accrued; else accrued += p.accrued;
   let settledPnl = 0, openMarked = 0, openCost = 0, contracts = 0;
   const settledMarkets = new Set();
   for (const f of fills) {

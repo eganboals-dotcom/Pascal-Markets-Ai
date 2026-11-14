@@ -13,6 +13,14 @@ export const programPerDay = p => p.period_reward / 10000 / Math.max(programDays
 export const programTarget = p => Number(p.target_size_fp);
 export const programDiscount = p => (p.discount_factor_bps ?? 10000) / 10000;
 
+// A program that ends with under $1 accrued pays nothing. On Nov 13 all 80 programs that ended forfeited: 10-contract bids moved
+// between markets every half hour earned $0.24 to $0.61 each. A program is worth bidding only when what it has accrued plus what
+// the bids would earn in its time left reaches the minimum with a margin, since a share can fall as others join.
+export const MIN_PAYOUT = 1;
+export const canPay = ({ accrued = 0, perDay, end, now, margin = 1.25 }) => accrued + perDay * Math.max(0, end - now) / DAY_MS >= MIN_PAYOUT * margin;
+// Programs with what they will pay: one that ended under the minimum counts as nothing.
+export const payingPrograms = (programs, now) => programs.map(p => p.end <= now && (p.accrued ?? 0) < MIN_PAYOUT ? { ...p, accrued: 0 } : p);
+
 // One side of the public book ([priceString, sizeString] bids) as [[price, size]], best (highest) price first.
 export const parseSide = side => (side ?? []).map(([p, q]) => [Number(p), Number(q)]).filter(([p, q]) => p > 0 && p < 1 && q > 0)
   .sort((a, b) => b[0] - a[0]);
