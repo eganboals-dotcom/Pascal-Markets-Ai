@@ -7,6 +7,7 @@ import { setTimeout as sleep } from 'node:timers/promises';
 import { projectPath } from '../src/files.js';
 import { PAPER_DIR } from '../src/paper.js';
 import { BASE, BUDGETS, HELD, SPLIT, budgetRows, heldRows, rebalance, tally } from '../src/portfolio.js';
+import { readResearch } from '../src/report.js';
 
 const option = (name, fallback) => Number(process.argv.find(a => a.startsWith(`--${name}=`))?.split('=')[1] ?? fallback);
 const everyMs = option('every-minutes', 5) * 60000, once = process.argv.includes('--once');
@@ -21,7 +22,8 @@ function pass(now = Date.now()) {
   const last = budgetRows().at(-1), day = pacificDay(now);
   if (last?.day === day) return say({ held });
   const bankroll = Math.round((BASE + t.total) * 100) / 100, r = rebalance({ bankroll, previous: last?.budgets ?? SPLIT, samples: heldRows(), now });
-  append(BUDGETS, { time: now, day, bankroll, budgets: r.budgets, notes: r.notes });
+  // quoteSize: the quoting tally sizes each fill by the row in force when it filled (quoteSizeAt in src/portfolio.js).
+  append(BUDGETS, { time: now, day, bankroll, budgets: r.budgets, quoteSize: readResearch('config/scan.json', {}).mm?.quoteSize ?? 1, notes: r.notes });
   say({ rebalanced: day, bankroll, budgets: r.budgets, notes: r.notes });
 }
 

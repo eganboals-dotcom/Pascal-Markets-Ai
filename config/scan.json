@@ -75,7 +75,7 @@
     "minMid": 0.05,
     "maxMid": 0.95,
     "maxQuoteAgeMs": 90000, "maxMarkoutDelayMs": 90000,
-    "quoteSize": 5,
+    "quoteSize": 2,
     "minQuoteEdge": 0.005
   },
   "trading": {

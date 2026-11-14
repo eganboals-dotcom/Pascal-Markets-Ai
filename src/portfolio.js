@@ -8,7 +8,11 @@ import { readResearch } from './report.js';
 import { projectPath } from './files.js';
 
 export const START = Date.parse('2026-11-12T22:27:00Z'), SWITCH = Date.parse('2026-11-13T03:10:00Z'); // quoting counts from SWITCH
-export const BASE = 2000, SPLIT = { 'game-watch': 850, quoting: 350, 'reward-maker': 500, 'station-watch': 150, reserve: 150 };
+// The shares since Nov 14 (the map in README): each agent filled until its next $100 earns less than another's, on the history
+// tests. Game-watch past ~$600 and quoting past 2 contracts ($593 of cash) earn the least per dollar; station-watch never used $120.
+export const BASE = 2000, SPLIT = { 'game-watch': 640, quoting: 590, 'reward-maker': 500, 'station-watch': 120, reserve: 150 };
+// Quoting's contracts a quote at time t: each budgets row records mm.quoteSize; 5 before rows carried it.
+export const quoteSizeAt = (rows, t) => rows.filter(r => r.time <= t).at(-1)?.quoteSize ?? 5;
 // Reward-maker is not moved: its cash is set by its --size and --markets, not by a budget.
 const MOVABLE = ['game-watch', 'quoting', 'station-watch'], DAY_MS = 86400000;
 export const BUDGETS = `${PAPER_DIR}/budgets.jsonl`, HELD = `${PAPER_DIR}/held.jsonl`;
@@ -55,8 +59,8 @@ export function tally(now = Date.now()) {
     const open = trades.filter(t => !ledger.settled.has(t.ticker)).reduce((a, t) => a + (t.price + t.fee) * (t.contracts ?? 1), 0);
     return { agent, budget: current(agent), trades: trades.length, contracts: trades.reduce((a, t) => a + (t.contracts ?? 1), 0), settled: settled.length, pnl, open };
   });
-  const fills = readRows('data/maker/quoting-fills.jsonl').filter(f => f.time >= SWITCH), size = readResearch('config/scan.json', {}).mm?.quoteSize ?? 1;
-  const q = budgetedFills(fills, size, t => budgetAt(rows, 'quoting', t), readResearch('data/maker/settlements.json', {}), { now });
+  const fills = readRows('data/maker/quoting-fills.jsonl').filter(f => f.time >= SWITCH), size = quoteSizeAt(rows, now);
+  const q = budgetedFills(fills, t => quoteSizeAt(rows, t), t => budgetAt(rows, 'quoting', t), readResearch('data/maker/settlements.json', {}), { now });
   out.push({ agent: 'quoting', budget: current('quoting'), trades: q.taken, contracts: q.contracts, settled: q.settledFills, pnl: q.settledPnl, open: q.held,
     note: `learned policy at ${size} a quote, since ${new Date(SWITCH).toISOString().slice(0, 16)}; ${q.skipped} fills skipped for cash; first in line (an upper bound)` });
   const reward = lastLogLine(`${PAPER_DIR}/reward-maker.log`), money = x => (x < 0 ? '−$' : '$') + Math.abs(x).toFixed(2);

@@ -3,9 +3,10 @@ import { closeSync, mkdirSync, openSync } from 'node:fs';
 import { PROJECT_ROOT, projectPath } from './files.js';
 
 // The paper agents Start engine runs beside the scanner, as [script name, arguments]; each logs to data/paper/<name>.log and
-// <name>.err.log. Paper only; none places an order.
+// <name>.err.log. Paper only; none places an order. Score-watch is paused since Nov 14: −$88 in its first day, nearly all on
+// soccer goals that were overturned or buys under 90¢; it returns once it has a price floor and a longer hold after goals.
 export const PAPER_AGENTS = [['game-watch', ['--budget=split']], ['station-watch', ['--budget=split', '--contracts=10']], ['reward-maker', []],
-  ['longshot-watch', []], ['score-watch', []], ['rebalance', []]];
+  ['longshot-watch', []], ['rebalance', []]];
 function spawnAgent(name, args) {
   mkdirSync(projectPath('data/paper'), { recursive: true });
   const out = openSync(projectPath(`data/paper/${name}.log`), 'a'), err = openSync(projectPath(`data/paper/${name}.err.log`), 'a');
