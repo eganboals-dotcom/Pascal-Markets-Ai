@@ -35,7 +35,7 @@ export function createDashboardServer({ runner = createDashboardRunner(),
       checks: localChecks.length ? localChecks : recentRecords('research/kalshi/dryrun.jsonl'), mm,
       budget: readJson('config/scan.json', {}).budget ?? {} }) };
   },
-  // The live paper test of the $2,000 split (src/portfolio.js), the same tally scripts/paper-portfolio.js writes.
+  // The live paper test of the split (src/portfolio.js), the same tally scripts/paper-portfolio.js writes.
   portfolio = () => ({ ...tally(), start: START, base: BASE, rebalance: budgetRows().at(-1) ?? null }),
   now = Date.now, leaseMs = LEASE_MS, departmentsRoot = 'data/history', switchesPath = SWITCHES_PATH, heartbeatDir = HEARTBEAT_DIR, paperDir = PAPER_DIR } = {}) {
   // One department's page: each agent's latest heartbeat (the live scanner reports through the runner), its part of the history

@@ -394,19 +394,21 @@ async function load() {
   } catch (error) { el('status').textContent = error.message; }
   finally { fetching = false; }
 }
-// The top P&L card shows the $2,000 split's P&L (settled trades plus reward-maker's estimated rewards), refreshed with the panel.
+// The top P&L card shows the paper split's settled P&L, refreshed with the panel. The split's size comes from the server (base).
 let portfolio = null;
+const wholeDollars = n => '$' + Math.round(n).toLocaleString('en-US');
 function renderSplitPnl() {
   const pnl = portfolio?.total;
   el('pnl').textContent = money(pnl); el('pnl').className = Number.isFinite(pnl) ? pnl >= 0 ? 'positive' : 'negative' : '';
-  el('pnl-note').textContent = portfolio ? `$2,000 split · settled · bankroll ${money(portfolio.base + pnl)}` : 'Reading the paper test';
+  el('pnl-note').textContent = portfolio ? `${wholeDollars(portfolio.base)} split · settled · bankroll ${money(portfolio.base + pnl)}` : 'Reading the paper test';
 }
-// The live paper test of the $2,000 split: each agent's budget tonight, its trades and settled P&L, the cash it holds, and whether it runs.
+// The live paper test of the split: each agent's budget tonight, its trades and settled P&L, the cash it holds, and whether it runs.
 async function loadPortfolio() {
   try {
     const response = await fetch('/api/portfolio');
     if (!response.ok) throw new Error('Paper test unavailable');
     const p = portfolio = await response.json(), days = Math.max((Date.now() - p.start) / 86400000, 1 / 24);
+    el('paper-title').textContent = `The ${wholeDollars(p.base)} split`;
     el('paper-total').textContent = `Bankroll ${money(p.base + p.total)} · ${signedText(p.total)} since ${new Date(p.start).toLocaleDateString()} · ${signedText(p.total / days)} a day · reserve ${money(p.reserve)}`
       + (p.rebalance ? ` · last rebalance ${p.rebalance.day}` : '');
     const runs = r => r.agent === 'quoting' ? p.engine : p.running.includes(r.agent);

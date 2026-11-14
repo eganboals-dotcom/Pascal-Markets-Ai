@@ -1,4 +1,4 @@
-// The paper test's $2,000 split: the shares, the nightly rebalance (scripts/rebalance.js) and the tally (scripts/paper-portfolio.js).
+// The paper test's split: the shares, the nightly rebalance (scripts/rebalance.js) and the tally (scripts/paper-portfolio.js).
 // Budgets live in data/paper/budgets.jsonl, one row per rebalance; an agent started with --budget=split reads the latest row on
 // every pass (budgetOf), so a rebalance needs no restart. Paper only; no orders.
 import { existsSync, readFileSync } from 'node:fs';
@@ -8,13 +8,16 @@ import { readResearch } from './report.js';
 import { projectPath } from './files.js';
 
 export const START = Date.parse('2026-11-12T22:27:00Z'), SWITCH = Date.parse('2026-11-13T03:10:00Z'); // quoting counts from SWITCH
-// The shares since Nov 14 (the map in README): each agent filled until its next $100 earns less than another's, on the history
-// tests. Game-watch past ~$600 and quoting past 2 contracts ($593 of cash) earn the least per dollar; station-watch never used $120.
-export const BASE = 2000, SPLIT = { 'game-watch': 640, quoting: 590, 'reward-maker': 500, 'station-watch': 120, reserve: 150 };
+// The bankroll was $2,000 until Nov 14, 02:45 UTC and is $10,000 since; P&L still counts from START. The shares follow the review
+// in README: quoting at 5 contracts needs about $1,400, score-watch joins with $300, station-watch rarely finds a trade live, 7.5%
+// stays in reserve, and the rest goes to game-watch, whose books hold far more than its old 25-contract cap. Reward-maker runs
+// outside the split until its rewards are shown to beat its fills.
+export const BASE = 10000, SPLIT = { 'game-watch': 7450, quoting: 1400, 'score-watch': 300, 'station-watch': 100, reserve: 750 };
+// An agent that joined later counts its P&L and cash from then, not from START.
+export const JOINED = { 'score-watch': Date.parse('2026-11-14T02:45:00Z') };
 // Quoting's contracts a quote at time t: each budgets row records mm.quoteSize; 5 before rows carried it.
 export const quoteSizeAt = (rows, t) => rows.filter(r => r.time <= t).at(-1)?.quoteSize ?? 5;
-// Reward-maker is not moved: its cash is set by its --size and --markets, not by a budget.
-const MOVABLE = ['game-watch', 'quoting', 'station-watch'], DAY_MS = 86400000;
+const MOVABLE = ['game-watch', 'quoting', 'station-watch', 'score-watch'], DAY_MS = 86400000;
 export const BUDGETS = `${PAPER_DIR}/budgets.jsonl`, HELD = `${PAPER_DIR}/held.jsonl`;
 
 const readRows = path => existsSync(projectPath(path)) ? readFileSync(projectPath(path), 'utf8').split('\n').filter(Boolean).map(l => JSON.parse(l)) : [];
@@ -48,13 +51,11 @@ export function rebalance({ bankroll, previous = SPLIT, samples = [], now = Date
   return { budgets: round(), notes };
 }
 
-const lastLogLine = path => { try { return JSON.parse(readFileSync(projectPath(path), 'utf8').trim().split('\n').filter(l => l.startsWith('{')).at(-1)); } catch { return null; } };
-
 // What each agent made since START and the cash it holds now, under the budgets in force at each moment.
 export function tally(now = Date.now()) {
   const rows = budgetRows(), current = agent => budgetAt(rows, agent, now);
-  const out = ['game-watch', 'station-watch'].map(agent => {
-    const ledger = openLedger(agent), trades = ledger.trades.filter(t => t.time >= START);
+  const out = ['game-watch', 'station-watch', 'score-watch'].map(agent => {
+    const ledger = openLedger(agent), trades = ledger.trades.filter(t => t.time >= (JOINED[agent] ?? START));
     const settled = trades.filter(t => ledger.settled.has(t.ticker)), pnl = settled.reduce((a, t) => a + ledger.settled.get(t.ticker), 0);
     const open = trades.filter(t => !ledger.settled.has(t.ticker)).reduce((a, t) => a + (t.price + t.fee) * (t.contracts ?? 1), 0);
     return { agent, budget: current(agent), trades: trades.length, contracts: trades.reduce((a, t) => a + (t.contracts ?? 1), 0), settled: settled.length, pnl, open };
@@ -63,9 +64,5 @@ export function tally(now = Date.now()) {
   const q = budgetedFills(fills, t => quoteSizeAt(rows, t), t => budgetAt(rows, 'quoting', t), readResearch('data/maker/settlements.json', {}), { now });
   out.push({ agent: 'quoting', budget: current('quoting'), trades: q.taken, contracts: q.contracts, settled: q.settledFills, pnl: q.settledPnl, open: q.held,
     note: `learned policy at ${size} a quote, since ${new Date(SWITCH).toISOString().slice(0, 16)}; ${q.skipped} fills skipped for cash; first in line (an upper bound)` });
-  const reward = lastLogLine(`${PAPER_DIR}/reward-maker.log`), money = x => (x < 0 ? '−$' : '$') + Math.abs(x).toFixed(2);
-  out.push({ agent: 'reward-maker', budget: current('reward-maker'), trades: reward?.fills ?? 0, contracts: null, settled: null,
-    pnl: reward ? reward.accrued + reward.settledPnl : 0, open: reward?.cash ?? 0,
-    note: reward ? `rewards ${money(reward.accrued)} (paper estimate), fills settled ${money(reward.settledPnl)}, open marked ${money(reward.openMarked)}` : 'no log' });
   return { rows: out, total: out.reduce((a, r) => a + r.pnl, 0), reserve: current('reserve') };
 }

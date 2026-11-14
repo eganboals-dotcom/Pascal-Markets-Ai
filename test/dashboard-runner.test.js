@@ -71,13 +71,14 @@ test('Start engine also starts every paper agent once, Stop stops them, and an a
   const runner = createDashboardRunner({ launch: () => scanner, launchAgent: fake });
   runner.start(); runner.start();
   assert.deepEqual(launched.map(([name]) => name), PAPER_AGENTS.map(([name]) => name));
-  assert.deepEqual(PAPER_AGENTS.find(([name]) => name === 'game-watch')[1], ['--budget=split']);
+  for (const agent of ['game-watch', 'station-watch', 'score-watch']) assert.ok(PAPER_AGENTS.find(([name]) => name === agent)[1].includes('--budget=split'));
   assert.ok(PAPER_AGENTS.some(([name]) => name === 'rebalance'));
   assert.equal(runner.snapshot().agents.length, PAPER_AGENTS.length);
-  const [, dying] = launched.find(([name]) => name === 'longshot-watch');
+  assert.ok(!PAPER_AGENTS.some(([name]) => name === 'longshot-watch')); // off: it fails its history test
+  const [, dying] = launched.find(([name]) => name === 'reward-maker');
   dying.exitCode = 1; dying.emit('exit', 1);
-  assert.equal(runner.snapshot().agents.includes('longshot-watch'), false);
-  assert.match(runner.snapshot().agentErrors[0], /longshot-watch exited/);
+  assert.equal(runner.snapshot().agents.includes('reward-maker'), false);
+  assert.match(runner.snapshot().agentErrors[0], /reward-maker exited/);
   await runner.stop();
   assert.deepEqual(runner.snapshot().agents, []);
   assert.ok(launched.every(([, p]) => p.exitCode !== null));

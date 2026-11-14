@@ -21,11 +21,14 @@ import { beat } from '../src/heartbeat.js';
 import { downloadBusy, openLedger } from '../src/paper.js';
 import { projectPath } from '../src/files.js';
 import { readResearch } from '../src/report.js';
+import { budgetOf } from '../src/portfolio.js';
 
 const option = (name, fallback) => process.argv.find(a => a.startsWith(`--${name}=`))?.split('=')[1] ?? fallback;
 const flag = name => process.argv.includes(`--${name}`);
 const everyMs = Number(option('every-seconds', 10)) * 1000, margin = Number(option('margin', 0.01)), maxContracts = Number(option('contracts', 25));
-const budget = option('budget', 'off') === 'off' ? Infinity : Number(option('budget')), dailyLimit = Number(option('daily-loss', 50));
+// --budget=split reads tonight's budget from the paper split on every pass (src/portfolio.js), so a rebalance needs no restart.
+const budgetOption = option('budget', 'off'), budget = () => budgetOption === 'split' ? budgetOf(AGENT) : budgetOption === 'off' ? Infinity : Number(budgetOption);
+const dailyLimit = Number(option('daily-loss', 50));
 const holdMs = Number(option('hold-seconds', 180)) * 1000, soccerMinPrice = Number(option('soccer-min-price', 0.9)), feeRate = readResearch('config/scan.json', {}).feeRate ?? 0.07;
 const AGENT = 'score-watch', BASE = 'https://api.elections.kalshi.com/trade-api/v2', HOUR = 3600000;
 const LIST_MS = 2 * 60000, LOOKBACK_MS = 8 * HOUR, DONE_KEEP_MS = HOUR, SETTLE_AFTER_MS = 3 * HOUR, EVENTS_PER_PASS = 30, IDLE_MS = 5 * 60000;
@@ -134,7 +137,7 @@ async function trade(running, scores, departments, now) {
     if (pick && pick.side === d.side && offered > 0 && pick.price >= floor) picks.push({ ...d, pick, offered });
   }
   for (const { market, series, side, m, pick, offered } of picks.sort((a, b) => b.pick.edge - a.pick.edge)) {
-    const contracts = Math.floor(Math.min(maxContracts, offered, (budget - ledger.openCost()) / (pick.price + pick.fee)));
+    const contracts = Math.floor(Math.min(maxContracts, offered, (budget() - ledger.openCost()) / (pick.price + pick.fee)));
     if (contracts < 1) continue;
     const row = { time: Date.now(), ticker: market.ticker, event: market.event_ticker, league: series, department: departmentOf(series, departments),
       game: m.title ?? m.details?.main_game_event_ticker ?? m.id, milestone: m.id, start: m.start_date, side, price: pick.price, fee: pick.fee,
@@ -161,7 +164,7 @@ async function pass() {
   return everyMs;
 }
 
-say({ started: true, everySeconds: everyMs / 1000, margin, maxContracts, budget: Number.isFinite(budget) ? budget : 'off', holdSeconds: holdMs / 1000, soccerMinPrice });
+say({ started: true, everySeconds: everyMs / 1000, margin, maxContracts, budget: budgetOption, holdSeconds: holdMs / 1000, soccerMinPrice });
 for (;;) {
   const started = Date.now();
   let wait = everyMs;

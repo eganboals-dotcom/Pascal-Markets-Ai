@@ -31,7 +31,10 @@ const option = (name, fallback) => process.argv.find(a => a.startsWith(`--${name
 const flag = name => process.argv.includes(`--${name}`);
 // dollars of open positions at most; 'split' reads the paper split's latest budget (src/portfolio.js) on every pass
 const budgetOption = option('budget', 'off'), budget = () => budgetOption === 'split' ? budgetOf('game-watch') : budgetOption === 'off' ? Infinity : Number(budgetOption);
-const maxContracts = Number(option('contracts', 25)), perGame = option('per-game', 'off') === 'off' ? Infinity : Number(option('per-game')), dailyLimit = Number(option('daily-loss', 100));
+// --player-contracts caps player markets apart from --contracts: a stat correction can take a rebound, assist or goal back after
+// the buy (Nov 14: a 4th rebound bought at 97¢, then removed at the final whistle), which the corrected play logs of the history
+// test cannot show. Replayed with 1 prop buy in 100 corrected, a larger prop cap adds swings and no profit.
+const maxContracts = Number(option('contracts', 25)), playerContracts = Number(option('player-contracts', maxContracts)), perGame = option('per-game', 'off') === 'off' ? Infinity : Number(option('per-game')), dailyLimit = Number(option('daily-loss', 100));
 const minPrice = Number(option('min-price', 0.9));
 const everyMs = Number(option('every-seconds', 10)) * 1000, margin = Number(option('margin', 0.01)), feeRate = readResearch('config/scan.json', {}).feeRate ?? 0.07;
 const AGENT = 'game-watch', ESPN = 'https://site.api.espn.com/apis/site/v2/sports', CORE = 'https://sports.core.api.espn.com/v2/sports';
@@ -136,7 +139,7 @@ async function trade(games, departments) {
     if (!g) continue;
     counts.checked++;
     const d = decision(market, g.game, { current: true });
-    if (d && !(market.kind === 'player' && d.side === 'no') && !paused.has(`${series} ${d.side}`)) decided.push({ ticker, series, g, ...d });
+    if (d && !(market.kind === 'player' && d.side === 'no') && !paused.has(`${series} ${d.side}`)) decided.push({ ticker, series, g, player: market.kind === 'player', ...d });
   }
   counts.decided = decided.length;
   if (!decided.length && !grim.length) return counts;
@@ -155,7 +158,7 @@ async function trade(games, departments) {
   counts.stopped = afterExits.stopped;
   if (afterExits.stopped) return counts;
   const picks = [], report = readResearch(TUNE_REPORT, null);
-  for (const { ticker, series, g, side, at } of decided) {
+  for (const { ticker, series, g, side, at, player } of decided) {
     const m = books.get(ticker), chosen = pickedMargin(report, AGENT, `${series} ${side}`, margin);
     if (!m || chosen === null || afterExits.paused.has(series + ' ' + side)) continue;
     const book = { yesBid: Number(m.yes_bid_dollars ?? 0), yesAsk: Number(m.yes_ask_dollars ?? 1), yesAskSize: Number(m.yes_ask_size_fp ?? 0),
@@ -163,10 +166,10 @@ async function trade(games, departments) {
     const fair = side === 'yes' ? 1 : 0, pick = take(fair, book, { feeRate, margin: chosen }), offered = side === 'yes' ? book.yesAskSize : book.yesBidSize; // No is bought by selling into the Yes bid
     // A decided side still offered under --min-price (90¢) usually means the play log is wrong (a goal overturned, a stat moved to
     // another player): live, those buys won 3 of 8 for −$12.29, while buys at 90¢ or more won 113 of 113.
-    if (pick && pick.side === side && offered > 0 && pick.price >= minPrice) picks.push({ ticker, series, g, side, at, fair, pick, offered });
+    if (pick && pick.side === side && offered > 0 && pick.price >= minPrice) picks.push({ ticker, series, g, side, at, fair, pick, offered, player });
   }
-  for (const { ticker, series, g, side, at, fair, pick, offered } of picks.sort((a, b) => b.pick.edge - a.pick.edge)) {
-    const gameId = `${g.row.league}-${g.row.eventId}`, contracts = Math.floor(Math.min(maxContracts, offered, perGame - (held.get(gameId) ?? 0),
+  for (const { ticker, series, g, side, at, fair, pick, offered, player } of picks.sort((a, b) => b.pick.edge - a.pick.edge)) {
+    const gameId = `${g.row.league}-${g.row.eventId}`, contracts = Math.floor(Math.min(player ? playerContracts : maxContracts, offered, perGame - (held.get(gameId) ?? 0),
       (budget() - ledger.openCost()) / (pick.price + pick.fee)));
     if (contracts < 1) continue;
     const row = { time: Date.now(), ticker, league: series, department: departmentOf(series, departments),
@@ -194,7 +197,7 @@ async function pass() {
   return everyMs;
 }
 
-say({ started: true, everySeconds: everyMs / 1000, margin, maxContracts, perGame, series: Object.keys(SERIES).length });
+say({ started: true, everySeconds: everyMs / 1000, margin, maxContracts, playerContracts, perGame, series: Object.keys(SERIES).length });
 for (;;) {
   const started = Date.now();
   let wait = everyMs;
