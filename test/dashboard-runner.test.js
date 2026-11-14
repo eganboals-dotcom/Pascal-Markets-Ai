@@ -74,7 +74,6 @@ test('Start engine also starts every paper agent once, Stop stops them, and an a
   assert.deepEqual(PAPER_AGENTS.find(([name]) => name === 'game-watch')[1], ['--budget=split']);
   assert.ok(PAPER_AGENTS.some(([name]) => name === 'rebalance'));
   assert.equal(runner.snapshot().agents.length, PAPER_AGENTS.length);
-  assert.ok(!PAPER_AGENTS.some(([name]) => name === 'score-watch')); // paused
   const [, dying] = launched.find(([name]) => name === 'longshot-watch');
   dying.exitCode = 1; dying.emit('exit', 1);
   assert.equal(runner.snapshot().agents.includes('longshot-watch'), false);

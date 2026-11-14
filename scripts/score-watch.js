@@ -5,7 +5,9 @@
 // markets are listed once from its events, a few events a pass. A decided market is bought on paper, held to settlement, when its
 // edge after the taker fee beats --margin (1¢) and something is offered at that price: as many contracts as are offered, up to
 // --contracts (25) a market and what --budget (dollars held in open positions, off by default) leaves room for. Soccer decisions
-// must hold for --hold-seconds (60), since a video review can take a goal back. A series and side with a loss in the last day is
+// must hold for --hold-seconds (180), since a video review can take a goal back, and soccer buys need a price of at least
+// --soccer-min-price (90¢): on Nov 13 every losing soccer buy came on a goal taken back 10 to 104 seconds after it was first shown,
+// most at prices under 90¢, while the market still priced the review. A series and side with a loss in the last day is
 // paused, and gross losses reaching --daily-loss ($50) in a rolling day stop new trades for 24 hours. Each score change is logged
 // to data/scores/<day>.jsonl for a later history test. Trades go to data/paper/score-watch.jsonl and results to
 // score-settled.jsonl (src/paper.js). Department switches on the leaderboard apply. --once runs one pass. No orders.
@@ -24,7 +26,7 @@ const option = (name, fallback) => process.argv.find(a => a.startsWith(`--${name
 const flag = name => process.argv.includes(`--${name}`);
 const everyMs = Number(option('every-seconds', 10)) * 1000, margin = Number(option('margin', 0.01)), maxContracts = Number(option('contracts', 25));
 const budget = option('budget', 'off') === 'off' ? Infinity : Number(option('budget')), dailyLimit = Number(option('daily-loss', 50));
-const holdMs = Number(option('hold-seconds', 60)) * 1000, feeRate = readResearch('config/scan.json', {}).feeRate ?? 0.07;
+const holdMs = Number(option('hold-seconds', 180)) * 1000, soccerMinPrice = Number(option('soccer-min-price', 0.9)), feeRate = readResearch('config/scan.json', {}).feeRate ?? 0.07;
 const AGENT = 'score-watch', BASE = 'https://api.elections.kalshi.com/trade-api/v2', HOUR = 3600000;
 const LIST_MS = 2 * 60000, LOOKBACK_MS = 8 * HOUR, DONE_KEEP_MS = HOUR, SETTLE_AFTER_MS = 3 * HOUR, EVENTS_PER_PASS = 30, IDLE_MS = 5 * 60000;
 const NEXT_MS = 3 * everyMs + 5 * 60000;
@@ -128,7 +130,8 @@ async function trade(running, scores, departments, now) {
     if (!x || x.status !== 'active') continue;
     const book = { yesBid: Number(x.yes_bid_dollars ?? 0), yesAsk: Number(x.yes_ask_dollars ?? 1), fee_multiplier: x.fee_multiplier ?? 1 };
     const pick = take(d.side === 'yes' ? 1 : 0, book, { feeRate, margin }), offered = Number(d.side === 'yes' ? x.yes_ask_size_fp : x.yes_bid_size_fp) || 0;
-    if (pick && pick.side === d.side && offered > 0) picks.push({ ...d, pick, offered });
+    const floor = SPORTS[d.m.type].holds ? soccerMinPrice : 0; // soccer only: the other sports' buys under 90¢ won 7 of 7 on Nov 13
+    if (pick && pick.side === d.side && offered > 0 && pick.price >= floor) picks.push({ ...d, pick, offered });
   }
   for (const { market, series, side, m, pick, offered } of picks.sort((a, b) => b.pick.edge - a.pick.edge)) {
     const contracts = Math.floor(Math.min(maxContracts, offered, (budget - ledger.openCost()) / (pick.price + pick.fee)));
@@ -158,7 +161,7 @@ async function pass() {
   return everyMs;
 }
 
-say({ started: true, everySeconds: everyMs / 1000, margin, maxContracts, budget: Number.isFinite(budget) ? budget : 'off', holdSeconds: holdMs / 1000 });
+say({ started: true, everySeconds: everyMs / 1000, margin, maxContracts, budget: Number.isFinite(budget) ? budget : 'off', holdSeconds: holdMs / 1000, soccerMinPrice });
 for (;;) {
   const started = Date.now();
   let wait = everyMs;
