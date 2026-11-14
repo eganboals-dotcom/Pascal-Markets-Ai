@@ -12,12 +12,12 @@
 // Each series and side runs the margin the walk-forward picker chose (data/history/agents/tune-report.json, scripts/agent-tune.js),
 // --margin where it had too few events to say, and none at all where it found no margin that pays. A position is sold before
 // settlement only when the plays, on two passes in a row, decide the other side; a falling price alone never sells it. A series
-// and side with a loss in the last day is paused, and gross losses reaching --daily-loss ($100; the history's worst day was −$12) in a rolling day pause new trades for 24 hours. Trades go to data/paper/game-watch.jsonl and results to game-settled.jsonl (src/paper.js). The Sports US
+// and side with a loss in the last day is paused (a buy under the price floor now in force pauses nothing), and gross losses reaching --daily-loss ($100; the history's worst day was −$12) in a rolling day pause new trades for 24 hours. Trades go to data/paper/game-watch.jsonl and results to game-settled.jsonl (src/paper.js). The Sports US
 // switch on the leaderboard turns the Kalshi part off. --once runs one pass. No orders.
 import { setTimeout as sleep } from 'node:timers/promises';
 import { fetchMarkets, fetchOpenEvents } from '../src/kalshi.js';
 import { LEAGUES, gameIndex, usDate } from '../src/agents/fair-odds.js';
-import { SERIES, WATCHED_LEAGUES, compactGame, corePlay, decision, matchEvent, parseMarket } from '../src/agents/game-watch.js';
+import { SERIES, WATCHED_LEAGUES, breakerGroup, compactGame, corePlay, decision, matchEvent, parseMarket } from '../src/agents/game-watch.js';
 import { take } from '../src/takers.js';
 import { TUNE_REPORT, pickedMargin } from '../src/tuner.js';
 import { fetchJson } from '../src/odds.js';
@@ -39,6 +39,7 @@ const maxContracts = Number(option('contracts', 25)), playerContracts = Number(o
 // buys under 98¢ took 2 full losses in 27 (a three re-ruled a two at 95¢ with 500 offered, a rebound removed at 97¢) for −$35;
 // at 98¢, 1 in 150 for +$30.
 const minPrice = Number(option('min-price', 0.9)), playerMinPrice = Number(option('player-min-price', 0.98)); // the default too, so it holds whatever list the dashboard server launched with
+const groupOf = t => breakerGroup(t, { minPrice, playerMinPrice });
 const everyMs = Number(option('every-seconds', 10)) * 1000, margin = Number(option('margin', 0.01)), feeRate = readResearch('config/scan.json', {}).feeRate ?? 0.07;
 const AGENT = 'game-watch', ESPN = 'https://site.api.espn.com/apis/site/v2/sports', CORE = 'https://sports.core.api.espn.com/v2/sports';
 const RECENT_MS = 3600000, SETTLE_AFTER_MS = 3 * 3600000, LIST_MS = 2 * 60000, PAGE = 50, PARALLEL = 4;
@@ -131,10 +132,12 @@ function grimPositions(byId) {
 
 async function trade(games, departments) {
   const switches = readSwitches(departments), index = gameIndex(games.map(g => g.row)), byId = new Map(games.map(g => [`${g.row.league}-${g.row.eventId}`, g]));
-  const counts = { checked: 0, decided: 0, take: 0, exits: 0 }, decided = [], grim = grimPositions(byId);
+  // noEdge, empty and underFloor count the decided markets passed over: no price that beats the margin, nothing offered, or a
+  // price under the floor.
+  const counts = { checked: 0, decided: 0, take: 0, exits: 0, noEdge: 0, empty: 0, underFloor: 0 }, decided = [], grim = grimPositions(byId);
   // The circuit breaker: a series and side that lost in the last day is paused, and a day that lost more than --daily-loss stops
   // new trades (exits go on).
-  const { paused, stopped } = ledger.breaker(t => `${t.league} ${t.side}`, { dailyLimit });
+  const { paused, stopped } = ledger.breaker(groupOf, { dailyLimit });
   counts.stopped = stopped;
   for (const { ticker, series } of stopped ? [] : await openMarkets()) {
     if (taken.has(ticker) || switches[departmentOf(series, departments)] === false) continue;
@@ -157,7 +160,7 @@ async function trade(games, departments) {
     flips.delete(t.ticker); counts.exits++;
     say({ exit: t.ticker, side: t.side, contracts: t.contracts ?? 1, value, paid: t.price });
   }
-  const afterExits = ledger.breaker(t => t.league + ' ' + t.side, { dailyLimit });
+  const afterExits = ledger.breaker(groupOf, { dailyLimit });
   counts.stopped = afterExits.stopped;
   if (afterExits.stopped) return counts;
   const picks = [], report = readResearch(TUNE_REPORT, null);
@@ -170,6 +173,7 @@ async function trade(games, departments) {
     // A decided side still offered under --min-price (90¢) usually means the play log is wrong (a goal overturned, a stat moved to
     // another player): live, those buys won 3 of 8 for −$12.29, while buys at 90¢ or more won 113 of 113.
     if (pick && pick.side === side && offered > 0 && pick.price >= (player ? playerMinPrice : minPrice)) picks.push({ ticker, series, g, side, at, fair, pick, offered, player });
+    else counts[!pick || pick.side !== side ? 'noEdge' : offered > 0 ? 'underFloor' : 'empty']++;
   }
   for (const { ticker, series, g, side, at, fair, pick, offered, player } of picks.sort((a, b) => b.pick.edge - a.pick.edge)) {
     const gameId = `${g.row.league}-${g.row.eventId}`, contracts = Math.floor(Math.min(player ? playerContracts : maxContracts, offered, perGame - (held.get(gameId) ?? 0),

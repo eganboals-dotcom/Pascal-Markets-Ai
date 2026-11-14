@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { compactGame, corePlay, decidedAt, decision, findPlayer, matchEvent, parseMarket, sideOf } from '../src/agents/game-watch.js';
+import { breakerGroup, compactGame, corePlay, decidedAt, decision, findPlayer, matchEvent, parseMarket, sideOf } from '../src/agents/game-watch.js';
+import { breakerState } from '../src/paper.js';
 import { gameIndex } from '../src/agents/fair-odds.js';
 
 const t0 = Date.parse('2026-11-06T03:00:00Z'), at = s => new Date(t0 + s * 1000).toISOString();
@@ -195,4 +196,16 @@ test('half and quarter totals wait for their periods to end and must agree with 
   assert.deepEqual(decision(q1(68), agreed), { side: 'no', at: t0 + 20000 });
   assert.equal(decision(q1(66), game([[33], [34]], { period: 1 }, plays)), null); // the summary still shows the first quarter: its line score may move
   assert.equal(decision(q1(66), game([[33, 2], [34, 0]], { period: 2 }, [play(10, 33, 34, 1)])), null); // the quarter is not over in the plays
+});
+
+test('a loss on a buy under today\'s price floor pauses no group, and still counts toward the daily limit', () => {
+  const buy = (ticker, league, price) => ({ time: 1, ticker, league, side: 'yes', price }), lost = ticker => ({ time: 2, ticker, pnl: -24 });
+  const trades = [buy('KXNBAPTS-26NOV13MILORL-MILMTURNER3-15', 'KXNBAPTS', 0.95), buy('KXNBAAST-26NOV13MEMNOP-MEMTJEROME2-10', 'KXNBAAST', 0.98),
+    buy('KXNBATEAMTOTAL-26NOV13OKCLAC-LAC112', 'KXNBATEAMTOTAL', 0.95), buy('KXNBATOTAL-26NOV13OKCLAC-217', 'KXNBATOTAL', 0.85)];
+  assert.deepEqual(trades.map(t => breakerGroup(t)), ['KXNBAPTS yes under the floor', 'KXNBAAST yes', 'KXNBATEAMTOTAL yes', 'KXNBATOTAL yes under the floor']);
+  assert.equal(breakerGroup(trades[0], { playerMinPrice: 0.9 }), 'KXNBAPTS yes'); // the floor in force decides, not the one at the buy
+  const s = breakerState(trades, trades.map(t => lost(t.ticker)), breakerGroup, { dailyLimit: 100, now: 3 });
+  assert.deepEqual([...s.paused].sort(), ['KXNBAAST yes', 'KXNBAPTS yes under the floor', 'KXNBATEAMTOTAL yes', 'KXNBATOTAL yes under the floor']);
+  assert.equal(s.paused.has('KXNBAPTS yes'), false);
+  assert.equal(breakerState(trades, trades.map(t => lost(t.ticker)), breakerGroup, { dailyLimit: 96, now: 3 }).stopped, true); // all four losses count
 });

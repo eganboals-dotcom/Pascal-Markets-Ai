@@ -49,6 +49,12 @@ export function parseMarket(ticker) {
   return /^[A-Z]+\d+$/.test(a ?? '') && /^\d+$/.test(b ?? '') ? { ...base, player: a, threshold: Number(b) } : null;
 }
 
+// The loss breaker's group for a trade: its series and side. A buy under the price floor now in force gets a group of its own, so
+// its loss pauses nothing (it still counts toward the daily loss limit): a loss on a buy today's floor would refuse says nothing
+// about today's rules. On Nov 14 two such losses, at 95¢ and 97¢, had NBA points and rebounds paused for the next night's games.
+export const breakerGroup = (t, { minPrice = 0.9, playerMinPrice = 0.98 } = {}) =>
+  `${t.league} ${t.side}${t.price < (parseMarket(t.ticker)?.kind === 'player' ? playerMinPrice : minPrice) - 1e-9 ? ' under the floor' : ''}`;
+
 // The ESPN game (from a gameIndex of { league, date, awayCode, homeCode, eventId } rows) of a parsed market's event code such as
 // 26NOV05MIAGSW: the away code is its first 2 to 4 letters, so each split is tried; null unless one matches. The game's two codes
 // must also spell the event code well (a fit of 4 of 6): on Nov 3 to 7 every weaker fit that was checked, such as BEL+LIND for
