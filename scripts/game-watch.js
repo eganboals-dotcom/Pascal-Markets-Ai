@@ -32,6 +32,7 @@ const flag = name => process.argv.includes(`--${name}`);
 // dollars of open positions at most; 'split' reads the paper split's latest budget (src/portfolio.js) on every pass
 const budgetOption = option('budget', 'off'), budget = () => budgetOption === 'split' ? budgetOf('game-watch') : budgetOption === 'off' ? Infinity : Number(budgetOption);
 const maxContracts = Number(option('contracts', 25)), perGame = option('per-game', 'off') === 'off' ? Infinity : Number(option('per-game')), dailyLimit = Number(option('daily-loss', 100));
+const minPrice = Number(option('min-price', 0.9));
 const everyMs = Number(option('every-seconds', 10)) * 1000, margin = Number(option('margin', 0.01)), feeRate = readResearch('config/scan.json', {}).feeRate ?? 0.07;
 const AGENT = 'game-watch', ESPN = 'https://site.api.espn.com/apis/site/v2/sports', CORE = 'https://sports.core.api.espn.com/v2/sports';
 const RECENT_MS = 3600000, SETTLE_AFTER_MS = 3 * 3600000, LIST_MS = 2 * 60000, PAGE = 50, PARALLEL = 4;
@@ -160,7 +161,9 @@ async function trade(games, departments) {
     const book = { yesBid: Number(m.yes_bid_dollars ?? 0), yesAsk: Number(m.yes_ask_dollars ?? 1), yesAskSize: Number(m.yes_ask_size_fp ?? 0),
       yesBidSize: Number(m.yes_bid_size_fp ?? 0), fee_multiplier: m.fee_multiplier ?? 1 };
     const fair = side === 'yes' ? 1 : 0, pick = take(fair, book, { feeRate, margin: chosen }), offered = side === 'yes' ? book.yesAskSize : book.yesBidSize; // No is bought by selling into the Yes bid
-    if (pick && pick.side === side && offered > 0) picks.push({ ticker, series, g, side, at, fair, pick, offered });
+    // A decided side still offered under --min-price (90¢) usually means the play log is wrong (a goal overturned, a stat moved to
+    // another player): live, those buys won 3 of 8 for −$12.29, while buys at 90¢ or more won 113 of 113.
+    if (pick && pick.side === side && offered > 0 && pick.price >= minPrice) picks.push({ ticker, series, g, side, at, fair, pick, offered });
   }
   for (const { ticker, series, g, side, at, fair, pick, offered } of picks.sort((a, b) => b.pick.edge - a.pick.edge)) {
     const gameId = `${g.row.league}-${g.row.eventId}`, contracts = Math.floor(Math.min(maxContracts, offered, perGame - (held.get(gameId) ?? 0),
