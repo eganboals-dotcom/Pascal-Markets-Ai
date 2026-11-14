@@ -46,6 +46,10 @@ test('loss breaker triggers at $25 gross despite winners and lasts 24 hours acro
     assert.equal(ledger.breaker(group, { now: 46 * hour }).stopped, true);
     assert.equal(openLedger('game-watch', { dir }).breaker(group, { now: 46 * hour }).stopped, true);
     assert.equal(ledger.breaker(group, { now: 47 * hour }).stopped, false);
+    // Trades placed before `since` (results under rules since changed) count for neither the stop nor the pause.
+    const fresh = ledger.breaker(group, { now: 23 * hour, since: Date.now() + 1 });
+    assert.equal(fresh.stopped, false);
+    assert.equal(fresh.paused.size, 0);
     assert.equal(ledger.breaker(group, { now: 3 * hour }).paused.has('loss2'), false); // no future leakage
     assert.equal(ledger.breaker(group, { now: 3 * hour }).paused.has('winner'), true); // any exit pauses
     const pnl = ledger.pnl();

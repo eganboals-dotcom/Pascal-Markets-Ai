@@ -21,7 +21,7 @@ import { beat } from '../src/heartbeat.js';
 import { downloadBusy, openLedger } from '../src/paper.js';
 import { projectPath } from '../src/files.js';
 import { readResearch } from '../src/report.js';
-import { budgetOf } from '../src/portfolio.js';
+import { JOINED, budgetOf } from '../src/portfolio.js';
 
 const option = (name, fallback) => process.argv.find(a => a.startsWith(`--${name}=`))?.split('=')[1] ?? fallback;
 const flag = name => process.argv.includes(`--${name}`);
@@ -107,7 +107,8 @@ async function liveScores(now) {
 
 async function trade(running, scores, departments, now) {
   const switches = readSwitches(departments), counts = { checked: 0, decided: 0, take: 0 }, decided = [];
-  const { paused, stopped } = ledger.breaker(t => `${t.league} ${t.side}`, { dailyLimit });
+  // Counted from when it joined the split (src/portfolio.js JOINED): the losses before it came from soccer rules since replaced.
+  const { paused, stopped } = ledger.breaker(t => `${t.league} ${t.side}`, { dailyLimit, since: JOINED[AGENT] });
   counts.stopped = stopped;
   if (stopped) return counts;
   for (const m of running) {
