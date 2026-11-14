@@ -52,5 +52,7 @@ test('budgets and quote size in force at a moment come from the last rebalance b
   assert.equal(quoteSizeAt(sized, 350, game), 2);
   assert.equal(quoteSizeAt(sized, 350), 2);
   assert.equal(quoteSizeAt(sized, 250, mention), 2);
+  assert.equal(quoteSizeAt([...sized, { time: 400, budgets: {}, quoteSize: 3 }], 450, mention), 7); // a later row without series sizes keeps them
+  assert.equal(quoteSizeAt([...sized, { time: 400, budgets: {}, quoteSize: 3, seriesSizes: [] }], 450, mention), 3); // an empty list clears them
   assert.equal(budgetedFills([f(350, mention), f(360, game)], (time, ticker) => quoteSizeAt(sized, time, ticker), 100).contracts, 7 + 2);
 });

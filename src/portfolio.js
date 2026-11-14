@@ -17,9 +17,11 @@ export const BASE = 10000, SPLIT = { 'game-watch': 6050, quoting: 2800, 'score-w
 export const JOINED = { 'score-watch': Date.parse('2026-11-14T02:45:00Z') };
 // Quoting's contracts a quote at time t (for a ticker, when given): each budgets row records mm.quoteSize and mm.seriesSizes; 5
 // before rows carried a size.
+// The series sizes come from the last row that recorded any, so a row written by a rebalance started before they existed does
+// not drop them.
+const seriesSizesAt = (rows, t) => rows.filter(r => r.time <= t && r.seriesSizes).at(-1)?.seriesSizes;
 export function quoteSizeAt(rows, t, ticker) {
-  const row = rows.filter(r => r.time <= t).at(-1);
-  return quoteSizeFor({ quoteSize: row?.quoteSize ?? 5, seriesSizes: row?.seriesSizes }, ticker);
+  return quoteSizeFor({ quoteSize: rows.filter(r => r.time <= t).at(-1)?.quoteSize ?? 5, seriesSizes: seriesSizesAt(rows, t) }, ticker);
 }
 const MOVABLE = ['game-watch', 'quoting', 'station-watch', 'score-watch'], DAY_MS = 86400000;
 export const BUDGETS = `${PAPER_DIR}/budgets.jsonl`, HELD = `${PAPER_DIR}/held.jsonl`;
@@ -66,7 +68,7 @@ export function tally(now = Date.now()) {
   });
   const fills = readRows('data/maker/quoting-fills.jsonl').filter(f => f.time >= SWITCH), size = quoteSizeAt(rows, now);
   const q = budgetedFills(fills, (t, ticker) => quoteSizeAt(rows, t, ticker), t => budgetAt(rows, 'quoting', t), readResearch('data/maker/settlements.json', {}), { now });
-  const larger = (rows.filter(r => r.time <= now).at(-1)?.seriesSizes ?? []).map(s => ` (${s.size} on ${s.label ?? s.pattern})`).join('');
+  const larger = (seriesSizesAt(rows, now) ?? []).map(s => ` (${s.size} on ${s.label ?? s.pattern})`).join('');
   out.push({ agent: 'quoting', budget: current('quoting'), trades: q.taken, contracts: q.contracts, settled: q.settledFills, pnl: q.settledPnl, open: q.held,
     note: `learned policy at ${size} a quote${larger}, since ${new Date(SWITCH).toISOString().slice(0, 16)}; ${q.skipped} fills skipped for cash; first in line (an upper bound)` });
   return { rows: out, total: out.reduce((a, r) => a + r.pnl, 0), reserve: current('reserve') };

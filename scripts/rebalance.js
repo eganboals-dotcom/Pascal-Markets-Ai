@@ -24,7 +24,7 @@ function pass(now = Date.now()) {
   const bankroll = Math.round((BASE + t.total) * 100) / 100, r = rebalance({ bankroll, previous: last?.budgets ?? SPLIT, samples: heldRows(), now });
   // quoteSize and seriesSizes: the quoting tally sizes each fill by the row in force when it filled (quoteSizeAt in src/portfolio.js).
   const mm = readResearch('config/scan.json', {}).mm ?? {};
-  append(BUDGETS, { time: now, day, bankroll, budgets: r.budgets, quoteSize: mm.quoteSize ?? 1, ...(mm.seriesSizes ? { seriesSizes: mm.seriesSizes } : {}), notes: r.notes });
+  append(BUDGETS, { time: now, day, bankroll, budgets: r.budgets, quoteSize: mm.quoteSize ?? 1, seriesSizes: mm.seriesSizes ?? [], notes: r.notes }); // [] when none, so removing them from the config takes effect
   say({ rebalanced: day, bankroll, budgets: r.budgets, notes: r.notes });
 }
 
