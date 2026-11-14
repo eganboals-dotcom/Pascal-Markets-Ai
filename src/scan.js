@@ -297,8 +297,8 @@ export function quotingCandidates(events, series, config, now = Date.now()) {
   // A market picked inside the pre-game quoting window would never be quoted, so the lead covers that window plus an hour.
   const lead = Math.max(2 * 3600000, ((config.mm?.pullBeforeExpiryMinutes ?? 0) + 60) * 60000);
   if (!Number.isInteger(cap) || cap < 0) throw new Error('Invalid MM market cap');
-  // mm.seriesPrefixes names the leagues to quote (minus mm.excludeSeriesPattern, e.g. second divisions); without it, the
-  // scan focus decides. Any other certified market qualifies when it ends within mm.nearTermHours.
+  // mm.seriesPrefixes names the leagues to quote; without it, the scan focus decides. Any other certified market qualifies
+  // when it ends within mm.nearTermHours. mm.excludeSeriesPattern (second divisions, weather) is never quoted by either route.
   const leagues = config.mm?.seriesPrefixes, exclude = config.mm?.excludeSeriesPattern ? new RegExp(config.mm.excludeSeriesPattern) : null;
   const nearMs = (config.mm?.nearTermHours ?? 0) * 3600000;
   if (!(nearMs >= 0) || (leagues && !Array.isArray(leagues))) throw new Error('Invalid MM market selection');
@@ -306,7 +306,8 @@ export function quotingCandidates(events, series, config, now = Date.now()) {
   for (const event of events) {
     const s = series[event.series_ticker];
     if (!s?.contract_url?.startsWith('https://assets.kalshi.com/regulatory/product-certifications/') || !event.settlement_sources?.length) continue;
-    const league = leagues ? leagues.some(p => event.series_ticker?.startsWith(p)) && !exclude?.test(event.series_ticker) : inFocus(event, series, config.focus);
+    if (exclude?.test(event.series_ticker)) continue;
+    const league = leagues ? leagues.some(p => event.series_ticker?.startsWith(p)) : inFocus(event, series, config.focus);
     for (const m of event.markets ?? []) {
       const bid = Number(m.yes_bid_dollars), ask = Number(m.yes_ask_dollars), spread = ask - bid;
       const close = Date.parse(m.close_time), expiry = Date.parse(m.expected_expiration_time || m.close_time);
