@@ -67,7 +67,7 @@ function ledgerRow(agent, budget) {
   const open = trades.filter(t => !ledger.settled.has(t.ticker)).reduce((a, t) => a + (t.price + t.fee) * (t.contracts ?? 1), 0);
   return { agent, budget, trades: trades.length, contracts: trades.reduce((a, t) => a + (t.contracts ?? 1), 0), settled: settled.length, pnl, open };
 }
-// Agents that run beside the split with money of their own, shown on the leaderboard but kept out of the bankroll and the rebalance.
+// Agents that run beside the split with money of their own: counted in the total, kept out of the rebalance.
 // poly-signal's budget is the --budget=500 Start engine gives it (src/dashboard-runner.js).
 const POLY_BUDGET = 500, dollars = x => (x < 0 ? '−$' : '$') + Math.abs(x).toFixed(2);
 function rewardRow(now) {
@@ -86,7 +86,8 @@ export function tally(now = Date.now()) {
   const larger = (seriesSizesAt(rows, now) ?? []).map(s => ` (${s.size} on ${s.label ?? s.pattern})`).join('');
   out.push({ agent: 'quoting', budget: current('quoting'), trades: q.taken, contracts: q.contracts, settled: q.settledFills, pnl: q.settledPnl, open: q.held,
     note: `learned policy at ${size} a quote${larger}, since ${new Date(SWITCH).toISOString().slice(0, 16)}; ${q.skipped} fills skipped for cash; first in line (an upper bound)` });
-  const total = out.reduce((a, r) => a + r.pnl, 0);
+  const splitTotal = out.reduce((a, r) => a + r.pnl, 0);
   out.push({ ...ledgerRow('poly-signal', POLY_BUDGET), outside: true, note: 'outside the split, with its own paper budget' }, rewardRow(now));
-  return { rows: out, total, reserve: current('reserve') };
+  // total counts every agent, the two outside the split included; the rebalance sizes the split by splitTotal alone.
+  return { rows: out, total: out.reduce((a, r) => a + r.pnl, 0), splitTotal, reserve: current('reserve') };
 }
