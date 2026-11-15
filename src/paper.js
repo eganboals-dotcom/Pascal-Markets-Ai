@@ -78,11 +78,11 @@ export function openLedger(agent, { dir = PAPER_DIR, load = fetchMarkets } = {})
 // realized losses of at least dailyLimit in a rolling day trigger a full 24-hour agent pause from that loss. Only rows settled by
 // `now` count, so a replay can ask it at any past moment (scripts/replay-sizing.js). `since` leaves out trades placed before it
 // (by the trade's time, else the row's): results under rules that have since been changed.
-// The breaker's settings from an agent's flags: --daily-loss=<dollars> (the agent's default otherwise) and --loss-pause=<hours>
-// (24). Either can be 'off'. The paper agents run with both off (PAPER_AGENTS in src/dashboard-runner.js), so a loss never
-// costs a day of paper trades; both go back on before any real order.
-export function breakerOptions(option, dailyLoss) {
-  const limit = option('daily-loss', String(dailyLoss)), hours = option('loss-pause', '24');
+// The breaker's settings from an agent's flags: --daily-loss=<dollars> and --loss-pause=<hours>, both off unless given, so a
+// paper loss never costs a day of paper trades (whatever list a dashboard server started before Nov 15 passes). Both go back on
+// before any real order: game-watch --daily-loss=300, score-watch 50, station-watch 25, each with --loss-pause=24.
+export function breakerOptions(option) {
+  const limit = option('daily-loss', 'off'), hours = option('loss-pause', 'off');
   return { dailyLimit: limit === 'off' ? Infinity : Number(limit), pauseMs: hours === 'off' ? 0 : Number(hours) * 3600000 };
 }
 

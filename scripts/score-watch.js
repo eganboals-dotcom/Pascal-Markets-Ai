@@ -28,7 +28,7 @@ const flag = name => process.argv.includes(`--${name}`);
 const everyMs = Number(option('every-seconds', 10)) * 1000, margin = Number(option('margin', 0.01)), maxContracts = Number(option('contracts', 25));
 // --budget=split reads tonight's budget from the paper split on every pass (src/portfolio.js), so a rebalance needs no restart.
 const budgetOption = option('budget', 'off'), budget = () => budgetOption === 'split' ? budgetOf(AGENT) : budgetOption === 'off' ? Infinity : Number(budgetOption);
-const breakerSettings = breakerOptions(option, 50); // --daily-loss and --loss-pause, either 'off'
+const breakerSettings = breakerOptions(option); // --daily-loss and --loss-pause, off unless given
 const holdMs = Number(option('hold-seconds', 180)) * 1000, soccerMinPrice = Number(option('soccer-min-price', 0.9)), feeRate = readResearch('config/scan.json', {}).feeRate ?? 0.07;
 const AGENT = 'score-watch', BASE = 'https://api.elections.kalshi.com/trade-api/v2', HOUR = 3600000;
 const LIST_MS = 2 * 60000, LOOKBACK_MS = 8 * HOUR, DONE_KEEP_MS = HOUR, SETTLE_AFTER_MS = 3 * HOUR, EVENTS_PER_PASS = 30, IDLE_MS = 5 * 60000;

@@ -29,7 +29,7 @@ import { budgetOf } from '../src/portfolio.js';
 
 const option = (name, fallback) => process.argv.find(a => a.startsWith(`--${name}=`))?.split('=')[1] ?? fallback;
 const flag = name => process.argv.includes(`--${name}`);
-const minutes = Number(option('minutes', 10)), everyMs = Number(option('every-seconds', 30)) * 1000, margin = Number(option('margin', 0.01)), maxContracts = Number(option('contracts', 25)), perDay = Number(option('per-day', 25)), breakerSettings = breakerOptions(option, 25), feeRate = readResearch('config/scan.json', {}).feeRate ?? 0.07;
+const minutes = Number(option('minutes', 10)), everyMs = Number(option('every-seconds', 30)) * 1000, margin = Number(option('margin', 0.01)), maxContracts = Number(option('contracts', 25)), perDay = Number(option('per-day', 25)), breakerSettings = breakerOptions(option), feeRate = readResearch('config/scan.json', {}).feeRate ?? 0.07;
 // dollars of open positions at most; 'split' reads the paper split's latest budget (src/portfolio.js) on every pass
 const budgetOption = option('budget', 'off'), budget = () => budgetOption === 'split' ? budgetOf('station-watch') : budgetOption === 'off' ? Infinity : Number(budgetOption);
 const AGENT = 'station-watch', PAUSE_MS = 3000, DAY_MS = 86400000, SETTLE_AFTER_MS = 6 * 3600000, NEXT_MS = 2 * minutes * 60000 + 5 * 60000, OVERLAP_MS = 15 * 60000, LIST_MS = 5 * 60000;

@@ -258,10 +258,11 @@ test('NFL player counts come from the core plays\' named roles and must agree wi
   assert.equal(decision(m('NFLREC-26OCT01PITCLE-PITDMETCALF4-2'), compactGame(summary(2), '7', 'nfl')), null); // the summary alone names nobody
 });
 
-test('the breaker pauses turn off with --daily-loss=off and --loss-pause=off, and keep their defaults otherwise', () => {
+test('the breaker pauses are off unless --daily-loss and --loss-pause are given', () => {
   const flags = args => (name, fallback) => args.find(a => a.startsWith(`--${name}=`))?.split('=')[1] ?? fallback;
-  assert.deepEqual(breakerOptions(flags([]), 100), { dailyLimit: 100, pauseMs: 86400000 });
-  const off = breakerOptions(flags(['--daily-loss=off', '--loss-pause=off']), 100);
+  assert.deepEqual(breakerOptions(flags(['--daily-loss=100', '--loss-pause=24'])), { dailyLimit: 100, pauseMs: 86400000 });
+  assert.deepEqual(breakerOptions(flags(['--budget=split'])), { dailyLimit: Infinity, pauseMs: 0 }); // an older server's list
+  const off = breakerOptions(flags(['--daily-loss=off', '--loss-pause=off']));
   assert.deepEqual(off, { dailyLimit: Infinity, pauseMs: 0 });
   const now = Date.parse('2026-11-15T00:00:00Z');
   const trades = [{ ticker: 'A', league: 'KXNCAAFTOTAL', side: 'no', time: now - 3600000 }];
