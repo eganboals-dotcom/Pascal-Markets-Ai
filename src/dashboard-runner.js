@@ -3,8 +3,8 @@ import { closeSync, mkdirSync, openSync } from 'node:fs';
 import { PROJECT_ROOT, projectPath } from './files.js';
 
 // The paper agents Start engine runs beside the scanner, as [script name, arguments]; each logs to data/paper/<name>.log and
-// <name>.err.log. Paper only; none places an order. Game-watch's cap is 2% of the $10,000 bankroll in dollars on team markets
-// (one wrong call costs the cap) and 100 on player markets (50 until Nov 14), where stat corrections reverse buys; player buys
+// <name>.err.log. Paper only; none places an order. Game-watch's cap is 4% of the $10,000 bankroll in dollars on team markets
+// (one wrong call costs the cap; 2% until Nov 15, when 12 of 230 buys were cut by it) and 100 on player markets (50 until Nov 14), where stat corrections reverse buys; player buys
 // need 98¢ or more, since a discount on a decided player market is the market pricing a review. The loss breaker's two 24-hour
 // pauses (a day's losses past --daily-loss, and a series and side after a loss) are off for every paper agent since Nov 15, so a
 // loss never costs a day of paper trades; they go back on (game-watch --daily-loss=300, score-watch 50, station-watch 25) before
@@ -12,7 +12,7 @@ import { PROJECT_ROOT, projectPath } from './files.js';
 // split until its rewards beat its fills. Poly-signal (Kalshi winners priced off Polymarket US) runs
 // outside the split on its own $500 until its live results and offered sizes say how much it can carry. Longshot-watch is off: the favorite-longshot fade fails on four years of data and lost live.
 const NO_PAUSE = ['--daily-loss=off', '--loss-pause=off'];
-export const PAPER_AGENTS = [['game-watch', ['--budget=split', '--contracts=200', '--player-contracts=100', '--player-min-price=0.98', ...NO_PAUSE]], ['station-watch', ['--budget=split', '--contracts=10', ...NO_PAUSE]],
+export const PAPER_AGENTS = [['game-watch', ['--budget=split', '--contracts=400', '--player-contracts=100', '--player-min-price=0.98', ...NO_PAUSE]], ['station-watch', ['--budget=split', '--contracts=10', ...NO_PAUSE]],
   ['reward-maker', ['--size=25', '--markets=12']], ['score-watch', ['--budget=split', '--contracts=50', ...NO_PAUSE]],
   ['poly-signal', ['--budget=500', '--contracts=25', ...NO_PAUSE]], ['rebalance', []]];
 function spawnAgent(name, args) {
