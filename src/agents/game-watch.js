@@ -94,7 +94,7 @@ export function findPlayer(code, roster) {
 
 // The side a market's team code names: where it sits in the event code (away first), and only when its letters agree (SCSTSCUS
 // names USC Upstate at home, though SCUS looks more like SC State). Games listed the other way round are skipped.
-function teamSide(market, game) {
+export function teamSide(market, game) {
   const away = market.teams.startsWith(market.team), home = market.teams.endsWith(market.team), at = away === home ? null : away ? 'away' : 'home';
   return at && sideOf(market.team, game) === at ? at : null;
 }
