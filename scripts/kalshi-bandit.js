@@ -12,6 +12,9 @@ import { profitToRisk } from '../src/tuner.js';
 const root = process.argv.slice(2).find(a => !a.startsWith('--')) ?? 'data/history';
 const final = process.argv.includes('--final');
 // --strict: fills only on prints strictly through the quote (a lower bound), written to bandit-*-strict files beside the usual ones.
+// --fills=<path>: writes the learned policy's walked-forward fills (one JSON line each) there and stops, leaving the model and the
+// reports alone, for checks such as which side of a market the fills leave.
+const fillsPath = process.argv.find(a => a.startsWith('--fills='))?.slice(8);
 const strict = process.argv.includes('--strict'), out = name => `${root}/${name}${strict ? '-strict' : ''}`;
 const config = readResearch('config/scan.json', {});
 const mm = { ...config.mm, makerFeeRate: config.makerFeeRate ?? 0.0175, takerFeeRate: config.feeRate ?? 0.07, maxQuoteAgeMs: HEARTBEAT_MS + 60000, maxMarkoutDelayMs: HEARTBEAT_MS + 60000, strictFills: strict };
@@ -38,7 +41,7 @@ for (const day of days) {
     const run = allow => simulate(snapshots, { ...mm, settlements, trades, allow }).markets;
     const fixed = run(null), learned = run(policy(model, mm));
     fixedMarkets.push(...fixed.map(m => ({ ...m, day }))); learnedMarkets.push(...learned.map(m => ({ ...m, day, outcome: settlements[m.ticker] })));
-    for (const m of learned) for (const f of m.fillLog) learnedFills.push({ ...f, event: eventOf(m.ticker), outcome: settlements[m.ticker] });
+    for (const m of learned) for (const f of m.fillLog) learnedFills.push({ ...f, ticker: m.ticker, day, event: eventOf(m.ticker), outcome: settlements[m.ticker] });
     const sum = (list, key) => list.reduce((n, m) => n + m[key], 0);
     daily.push({ day, locked: locked.includes(day), markets: books.size, fixedFills: sum(fixed, 'fills'), fixedClv: sum(fixed, 'clv'), fixedNet: sum(fixed, 'netPnl'),
       learnedFills: sum(learned, 'fills'), learnedClv: sum(learned, 'clv'), learnedNet: sum(learned, 'netPnl') });
@@ -56,6 +59,12 @@ for (const day of days) {
   heldBack = train(emptyModel(), [...events.values()], day);
 }
 if (heldBack) model = addTrained(model, heldBack); // the saved model covers every day
+if (fillsPath) {
+  const { writeFileSync } = await import('node:fs');
+  writeFileSync(fillsPath, learnedFills.map(f => JSON.stringify(f) + '\n').join(''));
+  console.log(JSON.stringify({ fills: learnedFills.length, written: fillsPath }));
+  process.exit(0);
+}
 
 const score = (list, key) => bootstrapTotal(sumByEvent(list, m => m[key]).values());
 const diff = key => bootstrapTotal(pairedDifference(sumByEvent(fixedMarkets, m => m[key]), sumByEvent(learnedMarkets, m => m[key])));
