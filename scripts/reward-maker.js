@@ -15,7 +15,7 @@ import { setTimeout as sleep } from 'node:timers/promises';
 import { appendFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { fetchIncentivePrograms, fetchMarkets, fetchOrderbook, fetchTrades, getJson, kalshiFee } from '../src/kalshi.js';
 import { recordTape } from '../src/mm-recorder.js';
-import { DAY_MS, MIN_PAYOUT, canPay, eventKey, fillBid, fillPnl, netYes, payingPrograms, toxicEvents, parseBook, programDiscount, programPerDay, programTarget, restingBid, snapshotShare } from '../src/agents/reward-maker.js';
+import { DAY_MS, MIN_PAYOUT, canPay, eventKey, fillBid, fillPnl, netYes, payingPrograms, rankPrograms, toxicEvents, parseBook, programDiscount, programPerDay, programTarget, restingBid, snapshotShare } from '../src/agents/reward-maker.js';
 import { departmentOf, loadDepartments, readSwitches, seriesOf } from '../src/departments.js';
 import { settlementValue } from '../src/history.js';
 import { beat } from '../src/heartbeat.js';
@@ -63,9 +63,9 @@ async function choose(now) {
     const perDay = programPerDay(p) * share, accrued = state.programs[p.id]?.accrued ?? 0;
     if (share > 0 && canPay({ accrued, perDay, end: Date.parse(p.end_date), now })) scored.push({ p, perDay, accrued });
   }
-  // Programs already under way keep their place, so accrued rewards are not left short of the $1 minimum; then best per day.
-  scored.sort((a, b) => (b.accrued > 0) - (a.accrued > 0) || b.perDay - a.perDay);
-  const kept = scored.slice(0, MARKETS);
+  // Programs already under way keep their place, most accrued first, so accrued rewards are not left short of the $1 minimum.
+  const ranked = rankPrograms(scored);
+  const kept = ranked.slice(0, MARKETS);
   for (const entry of Object.values(state.programs)) entry.chosen = false;
   for (const { p } of kept) {
     state.programs[p.id] = { ...(state.programs[p.id] ?? { accrued: 0 }), ticker: p.market_ticker, perDay: programPerDay(p), target: programTarget(p),

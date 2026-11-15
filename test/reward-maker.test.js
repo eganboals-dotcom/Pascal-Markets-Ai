@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { canPay, eventKey, fillBid, fillPnl, netYes, payingPrograms, toxicEvents, parseBook, programPerDay, referencePrice, restingBid, sideShare, snapshotShare } from '../src/agents/reward-maker.js';
+import { canPay, eventKey, fillBid, fillPnl, netYes, payingPrograms, rankPrograms, toxicEvents, parseBook, programPerDay, referencePrice, restingBid, sideShare, snapshotShare } from '../src/agents/reward-maker.js';
 
 test('a program is bid only when it can still reach the $1 minimum, and one that ended short counts as nothing', () => {
   const DAY = 86400000, now = 10 * DAY;
@@ -9,6 +9,14 @@ test('a program is bid only when it can still reach the $1 minimum, and one that
   assert.equal(canPay({ accrued: 0.8, perDay: 1.4, end: now + DAY / 2, now }), true); // already $0.80 in: reaches $1.50
   const [ended, short, live] = payingPrograms([{ end: now - 1, accrued: 1.2 }, { end: now - 1, accrued: 0.6 }, { end: now + 1, accrued: 0.6 }], now);
   assert.deepEqual([ended.accrued, short.accrued, live.accrued], [1.2, 0, 0.6]);
+});
+
+test('programs under way keep their slots by what they have accrued, whatever their per-day estimate says this listing', () => {
+  const scored = [{ id: 'fresh', accrued: 0, perDay: 9 }, { id: 'small', accrued: 0.2, perDay: 3 }, { id: 'held', accrued: 0.7, perDay: 1 }, { id: 'other', accrued: 0, perDay: 4 }];
+  assert.deepEqual(rankPrograms(scored).map(s => s.id), ['held', 'small', 'fresh', 'other']);
+  // Two listings whose per-day estimates swap keep the same two programs in a two-slot list.
+  const swapped = scored.map(s => ({ ...s, perDay: 10 - s.perDay }));
+  assert.deepEqual(rankPrograms(swapped).slice(0, 2).map(s => s.id), ['held', 'small']);
 });
 
 const near = (a, b) => assert.ok(Math.abs(a - b) < 1e-9, `${a} != ${b}`);

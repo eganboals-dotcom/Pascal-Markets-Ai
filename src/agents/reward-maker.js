@@ -18,6 +18,11 @@ export const programDiscount = p => (p.discount_factor_bps ?? 10000) / 10000;
 // the bids would earn in its time left reaches the minimum with a margin, since a share can fall as others join.
 export const MIN_PAYOUT = 1;
 export const canPay = ({ accrued = 0, perDay, end, now, margin = 1.25 }) => accrued + perDay * Math.max(0, end - now) / DAY_MS >= MIN_PAYOUT * margin;
+// The order markets are kept in at each listing: programs under way first, most accrued first, then the best per day. On Nov 14 and
+// 15 the under-way programs were ranked by their per-day estimate, which moves with every book, so the 12 slots rotated through about
+// 35 programs a day and 92 of 95 ended under the minimum, forfeiting $12.04 of $15.78. Ranked by what they hold, the same programs
+// keep their slots and only grow.
+export const rankPrograms = scored => [...scored].sort((a, b) => (b.accrued > 0) - (a.accrued > 0) || b.accrued - a.accrued || b.perDay - a.perDay);
 // Programs with what they will pay: one that ended under the minimum counts as nothing.
 export const payingPrograms = (programs, now) => programs.map(p => p.end <= now && (p.accrued ?? 0) < MIN_PAYOUT ? { ...p, accrued: 0 } : p);
 
