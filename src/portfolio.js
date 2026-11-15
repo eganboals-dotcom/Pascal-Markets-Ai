@@ -7,14 +7,16 @@ import { budgetedFills, quoteSizeFor } from './mm.js';
 import { readResearch } from './report.js';
 import { projectPath } from './files.js';
 
-export const START = Date.parse('2026-11-12T22:27:00Z'), SWITCH = Date.parse('2026-11-13T03:10:00Z'); // quoting counts from SWITCH
-// The bankroll was $2,000 until Nov 14, 02:45 UTC and is $10,000 since; P&L still counts from START. The shares follow the review
+// Reset on Nov 15, 16:19 UTC to $10,000 and no P&L, everyone counting from then; the results from Nov 12 on are in
+// data/archive/reset-2026-11-15T1619. Quoting counts from SWITCH.
+export const START = Date.parse('2026-11-15T16:19:32Z'), SWITCH = START;
+// The bankroll was $2,000 until Nov 14, 02:45 UTC and $10,000 since. The shares follow the review
 // in README: quoting at 10 contracts needs about $2,800 (since Nov 14, taken from game-watch, which never used more than $3,066), score-watch joins with $300, station-watch rarely finds a trade live, 7.5%
 // stays in reserve, and the rest goes to game-watch, whose books hold far more than its old 25-contract cap. Reward-maker runs
 // outside the split until its rewards are shown to beat its fills.
 export const BASE = 10000, SPLIT = { 'game-watch': 6050, quoting: 2800, 'score-watch': 300, 'station-watch': 100, reserve: 750 };
-// An agent that joined later counts its P&L and cash from then, not from START.
-export const JOINED = { 'score-watch': Date.parse('2026-11-14T02:45:00Z') };
+// An agent that joins after START counts its P&L and cash from then (score-watch joined on Nov 14, before the reset).
+export const JOINED = {};
 // Quoting's contracts a quote at time t (for a ticker, when given): each budgets row records mm.quoteSize and mm.seriesSizes; 5
 // before rows carried a size.
 // The series sizes come from the last row that recorded any, so a row written by a rebalance started before they existed does
