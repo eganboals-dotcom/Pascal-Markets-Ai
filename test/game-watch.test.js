@@ -88,7 +88,7 @@ test('hockey plays name scorer and assisters, football plays come from drives, s
     previous: [{ plays: [{ id: 'a', sequenceNumber: '1', wallclock: at(5), awayScore: 3, homeScore: 0, period: { number: 1 }, scoringPlay: true }] }],
     current: { plays: [{ id: 'b', sequenceNumber: '2', wallclock: at(15), awayScore: 3, homeScore: 7, period: { number: 2 }, scoringPlay: true }] } } }, '2', 'nfl');
   assert.equal(football.plays.length, 2);
-  assert.equal(decidedAt(parseMarket('KXNFLTOTAL-26NOV04SJLA-10'), football), t0 + 15000);
+  assert.equal(decidedAt(parseMarket('KXNFLTOTAL-26NOV04SJLA-10'), football), null); // no later play yet confirms the score
   assert.equal(decidedAt(parseMarket('KXNFL1QTOTAL-26NOV04SJLA-4'), football), null);
 });
 
@@ -99,10 +99,10 @@ test('college football plays come from drives and basketball halves count only t
     previous: [{ plays: [{ id: 'a', sequenceNumber: '1', wallclock: at(5), awayScore: 3, homeScore: 0, period: { number: 1 }, scoringPlay: true }] }],
     current: { plays: [{ id: 'b', sequenceNumber: '2', wallclock: at(15), awayScore: 3, homeScore: 7, period: { number: 3 }, scoringPlay: true },
       { id: 'c', sequenceNumber: '3', wallclock: at(25), awayScore: 3, homeScore: 7, period: { number: 4 }, type: { text: 'End Game' } }] } } }, '3', 'ncaaf');
-  assert.equal(decidedAt(parseMarket('KXNCAAFTOTAL-26NOV07MIAND-10'), football), t0 + 15000);
+  assert.equal(decidedAt(parseMarket('KXNCAAFTOTAL-26NOV07MIAND-10'), football), t0 + 25000); // a football score stands at the next play
   assert.equal(decidedAt(parseMarket('KXNCAAF2HTOTAL-26NOV07MIAND-7'), football), t0 + 25000); // the last half waits for the end of the game
   assert.equal(decidedAt(parseMarket('KXNCAAF1HTOTAL-26NOV07MIAND-4'), football), null);
-  assert.equal(decidedAt(parseMarket('KXNCAAFTEAMTOTAL-26NOV07MIAND-ND7'), football), t0 + 15000);
+  assert.equal(decidedAt(parseMarket('KXNCAAFTEAMTOTAL-26NOV07MIAND-ND7'), football), t0 + 25000);
   const basketball = compactGame({ header: header([3, 0], [0, 7]), plays: [
     { wallclock: at(5), awayScore: 3, homeScore: 0, period: { number: 1 } }, { wallclock: at(15), awayScore: 3, homeScore: 7, period: { number: 2 } },
     { wallclock: at(25), awayScore: 3, homeScore: 7, period: { number: 2 }, type: { text: 'End of Game' } }] }, '4', 'ncaab');
@@ -150,6 +150,27 @@ test('the final whistle decides winners, spreads and totals still short of their
   // An end-of-game play off the score line is not trusted.
   assert.equal(d('KXNBAGAME-26NOV05MIAGSW-MIA', { ...ended, plays: ended.plays.map(p => (p.end ? { ...p, away: 4 } : p)) }), null);
   assert.equal(decidedAt(parseMarket('KXNBATOTAL-26NOV05MIAGSW-6'), ended), null); // decidedAt stays Yes only
+});
+
+test('an end-of-game play below an earlier score is not trusted, and a football score waits for a play that scores nothing', () => {
+  // SDST at SIU, Nov 14: a 38-10 touchdown, then an "End of Game" at 31-10 with ten minutes left; it ended 52-16.
+  const p = (s, away, home, extra = {}) => ({ t: t0 + s * 1000, away, home, period: 4, value: 0, scorer: null, ...extra });
+  const game = (plays, away, home) => ({ league: 'ncaaf', away: { code: 'SDST', score: away }, home: { code: 'SIU', score: home }, plays, checkedPlays: plays.length });
+  const glitch = game([p(10, 31, 10), p(20, 38, 10, { value: 7, scorer: '1' }), p(30, 31, 10, { end: true })], 31, 10);
+  for (const ticker of ['KXNCAAFTOTAL-26NOV14SDSTSIU-59', 'KXNCAAFSPREAD-26NOV14SDSTSIU-SDST36', 'KXNCAAFGAME-26NOV14SDSTSIU-SDST', 'KXNCAAFTOTAL-26NOV14SDSTSIU-35'])
+    for (const current of [false, true]) assert.equal(decision(parseMarket(ticker), glitch, { current }), null, ticker);
+  const clean = game([p(10, 31, 10), p(20, 38, 10, { value: 7, scorer: '1' }), p(30, 38, 10, { end: true })], 38, 10);
+  assert.deepEqual(decision(parseMarket('KXNCAAFTOTAL-26NOV14SDSTSIU-59'), clean, { current: true }), { side: 'no', at: t0 + 30000 });
+  // WAKE at SMU: the touchdown that takes the total over 55 counts only once a later play that scores nothing is logged.
+  const total = parseMarket('KXNCAAFTOTAL-26NOV14SDSTSIU-45');
+  const scored = game([p(10, 31, 10), p(15, 38, 10), p(20, 38, 10, { value: 7, scorer: '1' })], 38, 10); // the score shows a row early
+  assert.equal(decision(total, scored, { current: true }), null);
+  assert.equal(decision(total, scored), null);
+  const kicked = game([...scored.plays, p(90, 38, 10)], 38, 10);
+  assert.deepEqual(decision(total, kicked, { current: true }), { side: 'yes', at: t0 + 90000 });
+  assert.deepEqual(decision(total, kicked), { side: 'yes', at: t0 + 90000 });
+  // Basketball is unchanged: the crossing play decides.
+  assert.deepEqual(decision(parseMarket('KXNBATOTAL-26NOV14SDSTSIU-45'), { ...scored, league: 'nba' }), { side: 'yes', at: t0 + 15000 });
 });
 
 test('an event code is matched only when the game codes spell it well', () => {

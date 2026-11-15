@@ -188,6 +188,18 @@ function playerSeries(game, id, stat) {
   return out;
 }
 
+// The end-of-game play, null before one, or false when it shows fewer points than the play right before it: on Nov 14 ESPN
+// logged an "End of Game" at 31-10 with 10:47 left in SDST at SIU's fourth quarter, right after a 38-10 touchdown, and the No
+// buys on that "final" score lost $311 (it ended 52-16). Such a game is left alone until the log is fixed. A basket taken back
+// earlier (its own row, then more plays) leaves the end play trusted.
+function finalWhistle(plays) {
+  const i = plays.findIndex(p => p.end);
+  if (i < 0) return null;
+  const before = plays[i - 1];
+  return before && (before.away > plays[i].away || before.home > plays[i].home) ? false : plays[i];
+}
+const FOOTBALL = new Set(['nfl', 'ncaaf']);
+
 // How the plays decide a market: { side: 'yes' | 'no', at } with the wall-clock time of the deciding play, or null while
 // undecided (or when it cannot be read). Yes: the play that took a count to its threshold. No, for a game total or team total
 // still short at the end-of-game play. Half and quarter totals wait for their periods to end and must agree with the line score
@@ -197,12 +209,14 @@ function playerSeries(game, id, stat) {
 // Known risk: ESPN's log can show points that never happened (Buffalo at Miami (OH), Nov 3, on a run and a timeout), and a market
 // bought on them settles No. Football scores often appear a row before their scoring play, so every row counts.
 export function decision(market, game, { current = false } = {}) {
+  const end = finalWhistle(game.plays);
+  if (end === false) return null;
   if (market.kind === 'player') {
     const id = findPlayer(market.player, game.roster), values = id && playerSeries(game, id, market.stat);
     if (!values?.length) return null;
     if (current) {
       if (game.shootout) return null;
-      const last = values.at(-1), end = game.plays.find(p => p.end);
+      const last = values.at(-1);
       if (last.value >= market.threshold) return { side: 'yes', at: last.t };
       const checked = game.plays[(game.checkedPlays ?? game.plays.length) - 1];
       return end && checked?.away === game.away.score && checked?.home === game.home.score && end.away === game.away.score && end.home === game.home.score ? { side: 'no', at: end.t } : null;
@@ -212,7 +226,7 @@ export function decision(market, game, { current = false } = {}) {
   }
   const side = market.kind === 'total' ? null : teamSide(market, game);
   if ((market.kind !== 'total' && !side) || game.shootout) return null;
-  const scoreLine = p => p && p.away === game.away.score && p.home === game.home.score, end = game.plays.find(p => p.end);
+  const scoreLine = p => p && p.away === game.away.score && p.home === game.home.score;
   if (!scoreLine(game.plays[(game.checkedPlays ?? game.plays.length) - 1]) || (end && !scoreLine(end))) return null; // play log disagrees with the score line
   if (market.kind === 'game' || market.kind === 'spread') {
     if (!end) return null;
@@ -221,16 +235,27 @@ export function decision(market, game, { current = false } = {}) {
     return { side: margin >= (market.kind === 'game' ? 1 : market.threshold) ? 'yes' : 'no', at: end.t };
   }
   const lastPeriod = market.periods ? Math.max(...market.periods) : Infinity;
-  let prev = { away: 0, home: 0 }, count = 0, closed = null;
-  for (const p of game.plays) {
+  // Football: a score that takes a count over its line stands once a later play that scores nothing (the kickoff, as a rule) is
+  // logged, since a review of a scoring play comes before the try and kickoff; the score often shows a row before its scoring
+  // play, so that row and the scoring play itself do not count. On Nov 14 ESPN showed WAKE at SMU over 57 to 60 and SMU at 10
+  // or more, points it later removed (49-7 final), and $71 of Yes buys lost.
+  const football = FOOTBALL.has(market.league);
+  const confirmed = i => game.plays.slice(i + 1).find(q => !q.value && !q.scorer);
+  let prev = { away: 0, home: 0 }, count = 0, closed = null, crossed = -1;
+  for (const [i, p] of game.plays.entries()) {
     if (!closed && p.period > lastPeriod) closed = p;
-    const gain = side ? p[side] - prev[side] : p.away + p.home - prev.away - prev.home;
+    const gain = side ? p[side] - prev[side] : p.away + p.home - prev.away - prev.home, was = count;
     if (!market.periods || market.periods.includes(p.period)) count += gain; // a correction (overturned basket) takes points back
+    if (was < market.threshold && count >= market.threshold) crossed = i;
     prev = p;
-    if (!market.periods && !current && count >= market.threshold) return { side: 'yes', at: p.t };
+    if (!market.periods && !current && count >= market.threshold) {
+      if (!football) return { side: 'yes', at: p.t };
+      const next = confirmed(i);
+      return next ? { side: 'yes', at: next.t } : null;
+    }
   }
   if (market.periods) return periodDecision(market, game, side, count, closed ?? (lastPeriod >= LAST_PERIOD[market.league] ? end : null), lastPeriod);
-  if (current && count >= market.threshold) return { side: 'yes', at: game.plays.at(-1).t };
+  if (current && count >= market.threshold) return football && !confirmed(crossed) ? null : { side: 'yes', at: game.plays.at(-1).t };
   return end ? { side: 'no', at: end.t } : null;
 }
 
