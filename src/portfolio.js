@@ -3,6 +3,7 @@
 // every pass (budgetOf), so a rebalance needs no restart. Paper only; no orders.
 import { existsSync, readFileSync } from 'node:fs';
 import { openLedger, PAPER_DIR } from './paper.js';
+import { rewardTotals } from './agents/reward-maker.js';
 import { budgetedFills, quoteSizeFor } from './mm.js';
 import { readResearch } from './report.js';
 import { projectPath } from './files.js';
@@ -59,19 +60,33 @@ export function rebalance({ bankroll, previous = SPLIT, samples = [], now = Date
   return { budgets: round(), notes };
 }
 
+// One ledger agent's trades since START (or since it joined), settled P&L and the cash its open trades hold.
+function ledgerRow(agent, budget) {
+  const ledger = openLedger(agent), trades = ledger.trades.filter(t => t.time >= (JOINED[agent] ?? START));
+  const settled = trades.filter(t => ledger.settled.has(t.ticker)), pnl = settled.reduce((a, t) => a + ledger.settled.get(t.ticker), 0);
+  const open = trades.filter(t => !ledger.settled.has(t.ticker)).reduce((a, t) => a + (t.price + t.fee) * (t.contracts ?? 1), 0);
+  return { agent, budget, trades: trades.length, contracts: trades.reduce((a, t) => a + (t.contracts ?? 1), 0), settled: settled.length, pnl, open };
+}
+// Agents that run beside the split with money of their own, shown on the leaderboard but kept out of the bankroll and the rebalance.
+// poly-signal's budget is the --budget=500 Start engine gives it (src/dashboard-runner.js).
+const POLY_BUDGET = 500, dollars = x => (x < 0 ? '−$' : '$') + Math.abs(x).toFixed(2);
+function rewardRow(now) {
+  const state = readResearch('data/paper/reward-maker-state.json', {});
+  const fills = readRows('data/paper/reward-maker-fills.jsonl').filter(f => f.time >= START), t = rewardTotals(state, fills, now);
+  return { agent: 'reward-maker', budget: null, trades: t.fills, contracts: t.contracts, settled: t.settledMarkets, pnl: t.settledPnl + t.accrued, open: t.cash, outside: true,
+    note: `outside the split; rewards ${dollars(t.accrued)} accrued (paid when a program ends with $1 or more) plus ${dollars(t.settledPnl)} on settled fills` };
+}
+
 // What each agent made since START and the cash it holds now, under the budgets in force at each moment.
 export function tally(now = Date.now()) {
   const rows = budgetRows(), current = agent => budgetAt(rows, agent, now);
-  const out = ['game-watch', 'station-watch', 'score-watch'].map(agent => {
-    const ledger = openLedger(agent), trades = ledger.trades.filter(t => t.time >= (JOINED[agent] ?? START));
-    const settled = trades.filter(t => ledger.settled.has(t.ticker)), pnl = settled.reduce((a, t) => a + ledger.settled.get(t.ticker), 0);
-    const open = trades.filter(t => !ledger.settled.has(t.ticker)).reduce((a, t) => a + (t.price + t.fee) * (t.contracts ?? 1), 0);
-    return { agent, budget: current(agent), trades: trades.length, contracts: trades.reduce((a, t) => a + (t.contracts ?? 1), 0), settled: settled.length, pnl, open };
-  });
+  const out = ['game-watch', 'station-watch', 'score-watch'].map(agent => ledgerRow(agent, current(agent)));
   const fills = readRows('data/maker/quoting-fills.jsonl').filter(f => f.time >= SWITCH), size = quoteSizeAt(rows, now);
   const q = budgetedFills(fills, (t, ticker) => quoteSizeAt(rows, t, ticker), t => budgetAt(rows, 'quoting', t), readResearch('data/maker/settlements.json', {}), { now });
   const larger = (seriesSizesAt(rows, now) ?? []).map(s => ` (${s.size} on ${s.label ?? s.pattern})`).join('');
   out.push({ agent: 'quoting', budget: current('quoting'), trades: q.taken, contracts: q.contracts, settled: q.settledFills, pnl: q.settledPnl, open: q.held,
     note: `learned policy at ${size} a quote${larger}, since ${new Date(SWITCH).toISOString().slice(0, 16)}; ${q.skipped} fills skipped for cash; first in line (an upper bound)` });
-  return { rows: out, total: out.reduce((a, r) => a + r.pnl, 0), reserve: current('reserve') };
+  const total = out.reduce((a, r) => a + r.pnl, 0);
+  out.push({ ...ledgerRow('poly-signal', POLY_BUDGET), outside: true, note: 'outside the split, with its own paper budget' }, rewardRow(now));
+  return { rows: out, total, reserve: current('reserve') };
 }

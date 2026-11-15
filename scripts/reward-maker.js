@@ -15,7 +15,7 @@ import { setTimeout as sleep } from 'node:timers/promises';
 import { appendFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { fetchIncentivePrograms, fetchMarkets, fetchOrderbook, fetchTrades, getJson, kalshiFee } from '../src/kalshi.js';
 import { recordTape } from '../src/mm-recorder.js';
-import { DAY_MS, MIN_PAYOUT, canPay, eventKey, fillBid, fillPnl, netYes, payingPrograms, rankPrograms, toxicEvents, parseBook, programDiscount, programPerDay, programTarget, restingBid, snapshotShare } from '../src/agents/reward-maker.js';
+import { DAY_MS, canPay, eventKey, fillBid, netYes, payingPrograms, rankPrograms, toxicEvents, parseBook, programDiscount, programPerDay, programTarget, restingBid, rewardTotals, snapshotShare } from '../src/agents/reward-maker.js';
 import { departmentOf, loadDepartments, readSwitches, seriesOf } from '../src/departments.js';
 import { settlementValue } from '../src/history.js';
 import { beat } from '../src/heartbeat.js';
@@ -102,23 +102,7 @@ async function settle(now) {
   for (const m of await fetchMarkets(due, paced)) { const v = settlementValue(m); if (v !== null) state.outcomes[m.ticker] = v; }
 }
 
-function totals(now) {
-  let accrued = 0, forfeited = 0;
-  for (const p of Object.values(state.programs)) if (p.end <= now && p.accrued < MIN_PAYOUT) forfeited += p.accrued; else accrued += p.accrued;
-  let settledPnl = 0, openMarked = 0, openCost = 0, contracts = 0;
-  const settledMarkets = new Set();
-  for (const f of fills) {
-    contracts += f.contracts;
-    const outcome = state.outcomes[f.ticker];
-    if (outcome === 0 || outcome === 1) { settledPnl += fillPnl(f, outcome, f.fee); settledMarkets.add(f.ticker); continue; }
-    openCost += f.contracts * f.price + f.fee;
-    const mid = state.marks[f.ticker];
-    if (Number.isFinite(mid)) openMarked += fillPnl(f, mid, f.fee); // valued at the Yes mid, as a fractional payout
-  }
-  let resting = 0;
-  for (const o of Object.values(state.orders)) for (const side of ['yes', 'no']) if (o[side]) resting += o[side].size * o[side].price;
-  return { accrued, forfeited, fills: fills.length, contracts, settledPnl, settledMarkets: settledMarkets.size, openMarked, cash: resting + openCost };
-}
+const totals = now => rewardTotals(state, fills, now);
 
 async function pass() {
   const now = Date.now();

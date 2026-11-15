@@ -129,3 +129,23 @@ export function toxicEvents(fills, programs, value, limit = 1) {
   for (const f of fills) { const v = value(f.ticker); if (Number.isFinite(v)) add(f.ticker, fillPnl(f, v, f.fee)); }
   return new Set([...net].filter(([, n]) => n < -limit).map(([e]) => e));
 }
+
+// The agent's running totals from its saved state ({ programs, outcomes, marks, orders }) and fills: rewards accrued (a program that
+// ended under the $1 minimum is forfeited), fills held to settlement, open fills at the Yes mid, and the cash its bids and fills hold.
+export function rewardTotals({ programs = {}, outcomes = {}, marks = {}, orders = {} }, fills, now) {
+  let accrued = 0, forfeited = 0;
+  for (const p of Object.values(programs)) if (p.end <= now && p.accrued < MIN_PAYOUT) forfeited += p.accrued; else accrued += p.accrued;
+  let settledPnl = 0, openMarked = 0, openCost = 0, contracts = 0;
+  const settledMarkets = new Set();
+  for (const f of fills) {
+    contracts += f.contracts;
+    const outcome = outcomes[f.ticker];
+    if (outcome === 0 || outcome === 1) { settledPnl += fillPnl(f, outcome, f.fee); settledMarkets.add(f.ticker); continue; }
+    openCost += f.contracts * f.price + f.fee;
+    const mid = marks[f.ticker];
+    if (Number.isFinite(mid)) openMarked += fillPnl(f, mid, f.fee); // valued at the Yes mid, as a fractional payout
+  }
+  let resting = 0;
+  for (const o of Object.values(orders)) for (const side of ['yes', 'no']) if (o[side]) resting += o[side].size * o[side].price;
+  return { accrued, forfeited, fills: fills.length, contracts, settledPnl, settledMarkets: settledMarkets.size, openMarked, cash: resting + openCost };
+}

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { canPay, eventKey, fillBid, fillPnl, netYes, payingPrograms, rankPrograms, toxicEvents, parseBook, programPerDay, referencePrice, restingBid, sideShare, snapshotShare } from '../src/agents/reward-maker.js';
+import { canPay, eventKey, fillBid, fillPnl, netYes, payingPrograms, rankPrograms, toxicEvents, parseBook, programPerDay, referencePrice, restingBid, rewardTotals, sideShare, snapshotShare } from '../src/agents/reward-maker.js';
 
 test('a program is bid only when it can still reach the $1 minimum, and one that ended short counts as nothing', () => {
   const DAY = 86400000, now = 10 * DAY;
@@ -90,4 +90,16 @@ test('the toxicity stop blocks an event whose fills cost more than its rewards, 
   const marks = { 'KXRT-EBE-47': 0.2, 'KXRT-EBE-50': 0.2, 'KXRT-HEX-60': 0.9 }; // HEX loses 40¢ net of 20¢; ZZZ has no mark yet
   assert.deepEqual([...toxicEvents(fills, programs, t => marks[t], 1)], ['KXRT-EBE']);
   assert.equal(toxicEvents(fills, programs, t => marks[t], 5).size, 0);
+});
+
+test('the totals forfeit a program that ended under $1, settle decided fills, mark open ones at the mid, and count the cash held', () => {
+  const now = 100, programs = { a: { accrued: 0.6, end: 50 }, b: { accrued: 0.4, end: 200 }, c: { accrued: 1.5, end: 50 } };
+  const fills = [{ ticker: 'X-1', side: 'yes', price: 0.4, contracts: 10, fee: 0.1 }, { ticker: 'Y-1', side: 'no', price: 0.7, contracts: 5, fee: 0.05 }];
+  const t = rewardTotals({ programs, outcomes: { 'X-1': 1 }, marks: { 'Y-1': 0.2 }, orders: { 'Z-1': { yes: { price: 0.1, size: 25 } } } }, fills, now);
+  assert.equal(+t.accrued.toFixed(2), 1.9); // b is still running, c reached the minimum, a is forfeited
+  assert.equal(+t.forfeited.toFixed(2), 0.6);
+  assert.equal(+t.settledPnl.toFixed(2), 5.9); // 10 × (1 − 0.40) − 0.10
+  assert.equal(+t.openMarked.toFixed(2), 0.45); // 5 × (0.80 − 0.70) − 0.05
+  assert.equal(+t.cash.toFixed(2), 6.05); // 25 × 0.10 resting + 5 × 0.70 + 0.05
+  assert.deepEqual([t.fills, t.contracts, t.settledMarkets], [2, 15, 1]);
 });

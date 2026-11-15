@@ -10,7 +10,7 @@ const { rows, total, reserve } = tally(), last = budgetRows().at(-1);
 
 writeProjectFile('data/paper/portfolio.md', [`# Paper test of a ${money(BASE)} split, since ${new Date(START).toISOString().slice(0, 16)} UTC (${days.toFixed(1)} days)`, '',
   markdownTable(['Agent', 'Budget', 'Trades', 'Contracts', 'Settled', 'P&L', 'Held now', 'Note'],
-    rows.map(r => [r.agent, money(r.budget), r.trades, r.contracts ?? '', r.settled ?? '', money(r.pnl), money(r.open), r.note ?? ''])), '',
+    rows.map(r => [r.agent, r.budget == null ? '—' : money(r.budget), r.trades, r.contracts ?? '', r.settled ?? '', money(r.pnl), money(r.open), r.note ?? ''])), '',
   `Reserve ${money(reserve)}. Total ${money(total)}, ${money(total / days)} a day; bankroll ${money(BASE + total)}.`,
   last ? `Last rebalance: ${last.day} (Pacific), bankroll ${money(last.bankroll)}${last.notes?.length ? `; ${last.notes.join('; ')}` : ''}.` : 'No rebalance yet: the SPLIT shares apply.', ''].join('\n'));
 console.log(JSON.stringify({ days: +days.toFixed(2), total: +total.toFixed(2), rows: rows.map(r => [r.agent, r.trades, +r.pnl.toFixed(2), +r.open.toFixed(0)]) }));
