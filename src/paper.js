@@ -78,8 +78,16 @@ export function openLedger(agent, { dir = PAPER_DIR, load = fetchMarkets } = {})
 // realized losses of at least dailyLimit in a rolling day trigger a full 24-hour agent pause from that loss. Only rows settled by
 // `now` count, so a replay can ask it at any past moment (scripts/replay-sizing.js). `since` leaves out trades placed before it
 // (by the trade's time, else the row's): results under rules that have since been changed.
+// The breaker's settings from an agent's flags: --daily-loss=<dollars> (the agent's default otherwise) and --loss-pause=<hours>
+// (24). Either can be 'off'. The paper agents run with both off (PAPER_AGENTS in src/dashboard-runner.js), so a loss never
+// costs a day of paper trades; both go back on before any real order.
+export function breakerOptions(option, dailyLoss) {
+  const limit = option('daily-loss', String(dailyLoss)), hours = option('loss-pause', '24');
+  return { dailyLimit: limit === 'off' ? Infinity : Number(limit), pauseMs: hours === 'off' ? 0 : Number(hours) * 3600000 };
+}
+
 export function breakerState(trades, rows, groupOf, { pauseMs = DAY_MS, dailyLimit = 25, now = Date.now(), since = -Infinity } = {}) {
-  if (!(Number.isFinite(dailyLimit) && dailyLimit > 0)) throw new Error('dailyLimit must be positive');
+  if (!(dailyLimit > 0) || !(pauseMs >= 0)) throw new Error('dailyLimit must be positive and pauseMs at least 0'); // Infinity and 0 turn them off
   const byTicker = new Map(trades.map(t => [t.ticker, t]));
   const placed = r => { const t = byTicker.get(r.ticker)?.time; return Number.isFinite(t) ? t : r.time; };
   const prior = rows.filter(r => Number.isFinite(r.time) && r.time <= now && placed(r) >= since).sort((a, b) => a.time - b.time);

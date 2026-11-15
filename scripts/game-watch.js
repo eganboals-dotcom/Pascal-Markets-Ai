@@ -12,7 +12,7 @@
 // Each series and side runs the margin the walk-forward picker chose (data/history/agents/tune-report.json, scripts/agent-tune.js),
 // --margin where it had too few events to say, and none at all where it found no margin that pays. A position is sold before
 // settlement only when the plays, on two passes in a row, decide the other side; a falling price alone never sells it. A series
-// and side with a loss in the last day is paused (a buy under the price floor now in force pauses nothing), and gross losses reaching --daily-loss ($100; the history's worst day was −$12) in a rolling day pause new trades for 24 hours. Trades go to data/paper/game-watch.jsonl and results to game-settled.jsonl (src/paper.js). The Sports US
+// and side with a loss in the last day is paused (a buy under the price floor now in force pauses nothing), and gross losses reaching --daily-loss ($100; the history's worst day was −$12) in a rolling day pause new trades for 24 hours (--daily-loss=off and --loss-pause=off turn the two pauses off; breakerOptions in src/paper.js). Trades go to data/paper/game-watch.jsonl and results to game-settled.jsonl (src/paper.js). The Sports US
 // switch on the leaderboard turns the Kalshi part off. --once runs one pass. No orders.
 import { setTimeout as sleep } from 'node:timers/promises';
 import { fetchMarkets, fetchOpenEvents } from '../src/kalshi.js';
@@ -23,7 +23,7 @@ import { TUNE_REPORT, pickedMargin } from '../src/tuner.js';
 import { fetchJson } from '../src/odds.js';
 import { departmentOf, loadDepartments, readSwitches } from '../src/departments.js';
 import { beat } from '../src/heartbeat.js';
-import { confirmOpposite, downloadBusy, exitQuote, openLedger } from '../src/paper.js';
+import { breakerOptions, confirmOpposite, downloadBusy, exitQuote, openLedger } from '../src/paper.js';
 import { readResearch } from '../src/report.js';
 import { budgetOf } from '../src/portfolio.js';
 
@@ -35,7 +35,7 @@ const budgetOption = option('budget', 'off'), budget = () => budgetOption === 's
 // the buy (Nov 14: a 4th rebound bought at 97¢, then removed at the final whistle), which the corrected play logs of the history
 // test cannot show. Replayed with the 98¢ floor, 1 player buy in 182 corrected (the live rate to Nov 14) and --daily-loss at three
 // losses, a cap of 100 made $47.00 a day against $35.30 at 50; at 1 in 53, where a 98¢ buy breaks even, $24.50 against $21.80.
-const maxContracts = Number(option('contracts', 25)), playerContracts = Number(option('player-contracts', maxContracts)), perGame = option('per-game', 'off') === 'off' ? Infinity : Number(option('per-game')), dailyLimit = Number(option('daily-loss', 100));
+const maxContracts = Number(option('contracts', 25)), playerContracts = Number(option('player-contracts', maxContracts)), perGame = option('per-game', 'off') === 'off' ? Infinity : Number(option('per-game')), breakerSettings = breakerOptions(option, 100);
 // --player-min-price: a decided player market still offered at a discount is the market pricing a review. Live to Nov 14, player
 // buys under 98¢ took 2 full losses in 27 (a three re-ruled a two at 95¢ with 500 offered, a rebound removed at 97¢) for −$35;
 // at 98¢, 1 in 150 for +$30.
@@ -138,7 +138,7 @@ async function trade(games, departments) {
   const counts = { checked: 0, decided: 0, take: 0, exits: 0, noEdge: 0, empty: 0, underFloor: 0 }, decided = [], grim = grimPositions(byId);
   // The circuit breaker: a series and side that lost in the last day is paused, and a day that lost more than --daily-loss stops
   // new trades (exits go on).
-  const { paused, stopped } = ledger.breaker(groupOf, { dailyLimit });
+  const { paused, stopped } = ledger.breaker(groupOf, breakerSettings);
   counts.stopped = stopped;
   for (const { ticker, series } of stopped ? [] : await openMarkets()) {
     if (taken.has(ticker) || switches[departmentOf(series, departments)] === false) continue;
@@ -161,7 +161,7 @@ async function trade(games, departments) {
     flips.delete(t.ticker); counts.exits++;
     say({ exit: t.ticker, side: t.side, contracts: t.contracts ?? 1, value, paid: t.price });
   }
-  const afterExits = ledger.breaker(groupOf, { dailyLimit });
+  const afterExits = ledger.breaker(groupOf, breakerSettings);
   counts.stopped = afterExits.stopped;
   if (afterExits.stopped) return counts;
   const picks = [], report = readResearch(TUNE_REPORT, null);

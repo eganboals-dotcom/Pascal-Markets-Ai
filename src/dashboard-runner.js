@@ -5,11 +5,14 @@ import { PROJECT_ROOT, projectPath } from './files.js';
 // The paper agents Start engine runs beside the scanner, as [script name, arguments]; each logs to data/paper/<name>.log and
 // <name>.err.log. Paper only; none places an order. Game-watch's cap is 2% of the $10,000 bankroll in dollars on team markets
 // (one wrong call costs the cap) and 100 on player markets (50 until Nov 14), where stat corrections reverse buys; player buys
-// need 98¢ or more, since a discount on a decided player market is the market pricing a review. --daily-loss is three player
-// losses at that cap; the cap goes back to 50 if 98¢ player buys run worse than 1 full loss in 53. Reward-maker runs outside the
+// need 98¢ or more, since a discount on a decided player market is the market pricing a review. The loss breaker's two 24-hour
+// pauses (a day's losses past --daily-loss, and a series and side after a loss) are off for every paper agent since Nov 15, so a
+// loss never costs a day of paper trades; they go back on (game-watch --daily-loss=300, score-watch 50, station-watch 25) before
+// any real order. The cap goes back to 50 if 98¢ player buys run worse than 1 full loss in 53. Reward-maker runs outside the
 // split until its rewards beat its fills. Longshot-watch is off: the favorite-longshot fade fails on four years of data and lost live.
-export const PAPER_AGENTS = [['game-watch', ['--budget=split', '--contracts=200', '--player-contracts=100', '--player-min-price=0.98', '--daily-loss=300']], ['station-watch', ['--budget=split', '--contracts=10']],
-  ['reward-maker', ['--size=25', '--markets=12']], ['score-watch', ['--budget=split', '--contracts=50']], ['rebalance', []]];
+const NO_PAUSE = ['--daily-loss=off', '--loss-pause=off'];
+export const PAPER_AGENTS = [['game-watch', ['--budget=split', '--contracts=200', '--player-contracts=100', '--player-min-price=0.98', ...NO_PAUSE]], ['station-watch', ['--budget=split', '--contracts=10', ...NO_PAUSE]],
+  ['reward-maker', ['--size=25', '--markets=12']], ['score-watch', ['--budget=split', '--contracts=50', ...NO_PAUSE]], ['rebalance', []]];
 function spawnAgent(name, args) {
   mkdirSync(projectPath('data/paper'), { recursive: true });
   const out = openSync(projectPath(`data/paper/${name}.log`), 'a'), err = openSync(projectPath(`data/paper/${name}.err.log`), 'a');

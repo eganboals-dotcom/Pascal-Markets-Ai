@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { breakerGroup, compactGame, corePlay, decidedAt, decision, findPlayer, matchEvent, parseMarket, sideOf } from '../src/agents/game-watch.js';
-import { breakerState } from '../src/paper.js';
+import { breakerOptions, breakerState } from '../src/paper.js';
 import { gameIndex } from '../src/agents/fair-odds.js';
 
 const t0 = Date.parse('2026-11-06T03:00:00Z'), at = s => new Date(t0 + s * 1000).toISOString();
@@ -256,4 +256,20 @@ test('NFL player counts come from the core plays\' named roles and must agree wi
   assert.deepEqual(decision(m('NFLRSHATT-26OCT01PITCLE-PITJWARREN30-1'), game), { side: 'yes', at: t0 + 20000 });
   assert.equal(decision(m('NFLREC-26OCT01PITCLE-PITDMETCALF4-2'), compactGame(summary(3), '7', 'nfl', core)), null); // the box score has a catch the plays lack
   assert.equal(decision(m('NFLREC-26OCT01PITCLE-PITDMETCALF4-2'), compactGame(summary(2), '7', 'nfl')), null); // the summary alone names nobody
+});
+
+test('the breaker pauses turn off with --daily-loss=off and --loss-pause=off, and keep their defaults otherwise', () => {
+  const flags = args => (name, fallback) => args.find(a => a.startsWith(`--${name}=`))?.split('=')[1] ?? fallback;
+  assert.deepEqual(breakerOptions(flags([]), 100), { dailyLimit: 100, pauseMs: 86400000 });
+  const off = breakerOptions(flags(['--daily-loss=off', '--loss-pause=off']), 100);
+  assert.deepEqual(off, { dailyLimit: Infinity, pauseMs: 0 });
+  const now = Date.parse('2026-11-15T00:00:00Z');
+  const trades = [{ ticker: 'A', league: 'KXNCAAFTOTAL', side: 'no', time: now - 3600000 }];
+  const rows = [{ ticker: 'A', time: now - 60000, pnl: -311 }];
+  assert.deepEqual([...breakerState(trades, rows, t => t.league, { ...off, now }).paused], []);
+  assert.equal(breakerState(trades, rows, t => t.league, { ...off, now }).stopped, false);
+  const on = breakerState(trades, rows, t => t.league, { dailyLimit: 100, now });
+  assert.equal(on.stopped, true);
+  assert.deepEqual([...on.paused], ['KXNCAAFTOTAL']);
+  assert.throws(() => breakerState(trades, rows, t => t.league, { dailyLimit: Number('x'), now }));
 });

@@ -18,7 +18,7 @@ import { SPORTS, compactScore, held, seriesOf } from '../src/agents/score-watch.
 import { take } from '../src/takers.js';
 import { departmentOf, loadDepartments, readSwitches } from '../src/departments.js';
 import { beat } from '../src/heartbeat.js';
-import { downloadBusy, openLedger } from '../src/paper.js';
+import { breakerOptions, downloadBusy, openLedger } from '../src/paper.js';
 import { projectPath } from '../src/files.js';
 import { readResearch } from '../src/report.js';
 import { JOINED, budgetOf } from '../src/portfolio.js';
@@ -28,7 +28,7 @@ const flag = name => process.argv.includes(`--${name}`);
 const everyMs = Number(option('every-seconds', 10)) * 1000, margin = Number(option('margin', 0.01)), maxContracts = Number(option('contracts', 25));
 // --budget=split reads tonight's budget from the paper split on every pass (src/portfolio.js), so a rebalance needs no restart.
 const budgetOption = option('budget', 'off'), budget = () => budgetOption === 'split' ? budgetOf(AGENT) : budgetOption === 'off' ? Infinity : Number(budgetOption);
-const dailyLimit = Number(option('daily-loss', 50));
+const breakerSettings = breakerOptions(option, 50); // --daily-loss and --loss-pause, either 'off'
 const holdMs = Number(option('hold-seconds', 180)) * 1000, soccerMinPrice = Number(option('soccer-min-price', 0.9)), feeRate = readResearch('config/scan.json', {}).feeRate ?? 0.07;
 const AGENT = 'score-watch', BASE = 'https://api.elections.kalshi.com/trade-api/v2', HOUR = 3600000;
 const LIST_MS = 2 * 60000, LOOKBACK_MS = 8 * HOUR, DONE_KEEP_MS = HOUR, SETTLE_AFTER_MS = 3 * HOUR, EVENTS_PER_PASS = 30, IDLE_MS = 5 * 60000;
@@ -108,7 +108,7 @@ async function liveScores(now) {
 async function trade(running, scores, departments, now) {
   const switches = readSwitches(departments), counts = { checked: 0, decided: 0, take: 0 }, decided = [];
   // Counted from when it joined the split (src/portfolio.js JOINED): the losses before it came from soccer rules since replaced.
-  const { paused, stopped } = ledger.breaker(t => `${t.league} ${t.side}`, { dailyLimit, since: JOINED[AGENT] });
+  const { paused, stopped } = ledger.breaker(t => `${t.league} ${t.side}`, { ...breakerSettings, since: JOINED[AGENT] });
   counts.stopped = stopped;
   if (stopped) return counts;
   for (const m of running) {

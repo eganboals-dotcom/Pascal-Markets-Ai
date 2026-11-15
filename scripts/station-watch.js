@@ -22,14 +22,14 @@ import { take } from '../src/takers.js';
 import { TUNE_REPORT, pickedMargin } from '../src/tuner.js';
 import { departmentOf, loadDepartments, readSwitches } from '../src/departments.js';
 import { beat } from '../src/heartbeat.js';
-import { downloadBusy, eventOf, openLedger } from '../src/paper.js';
+import { breakerOptions, downloadBusy, eventOf, openLedger } from '../src/paper.js';
 import { projectPath } from '../src/files.js';
 import { readResearch } from '../src/report.js';
 import { budgetOf } from '../src/portfolio.js';
 
 const option = (name, fallback) => process.argv.find(a => a.startsWith(`--${name}=`))?.split('=')[1] ?? fallback;
 const flag = name => process.argv.includes(`--${name}`);
-const minutes = Number(option('minutes', 10)), everyMs = Number(option('every-seconds', 30)) * 1000, margin = Number(option('margin', 0.01)), maxContracts = Number(option('contracts', 25)), perDay = Number(option('per-day', 25)), dailyLimit = Number(option('daily-loss', 25)), feeRate = readResearch('config/scan.json', {}).feeRate ?? 0.07;
+const minutes = Number(option('minutes', 10)), everyMs = Number(option('every-seconds', 30)) * 1000, margin = Number(option('margin', 0.01)), maxContracts = Number(option('contracts', 25)), perDay = Number(option('per-day', 25)), breakerSettings = breakerOptions(option, 25), feeRate = readResearch('config/scan.json', {}).feeRate ?? 0.07;
 // dollars of open positions at most; 'split' reads the paper split's latest budget (src/portfolio.js) on every pass
 const budgetOption = option('budget', 'off'), budget = () => budgetOption === 'split' ? budgetOf('station-watch') : budgetOption === 'off' ? Infinity : Number(budgetOption);
 const AGENT = 'station-watch', PAUSE_MS = 3000, DAY_MS = 86400000, SETTLE_AFTER_MS = 6 * 3600000, NEXT_MS = 2 * minutes * 60000 + 5 * 60000, OVERLAP_MS = 15 * 60000, LIST_MS = 5 * 60000;
@@ -119,7 +119,7 @@ async function trade(readings, departments) {
   const switches = readSwitches(departments), counts = { checked: 0, decided: 0, take: 0 }, calls = [];
   try { await ledger.settleDue((t, now) => now - t.time > SETTLE_AFTER_MS); } catch (error) { warn({ settle: error.message }); }
   // The circuit breaker: a series that lost in the last day is paused; a day that lost more than --daily-loss stops new trades.
-  const { paused, stopped } = ledger.breaker(t => t.league, { dailyLimit });
+  const { paused, stopped } = ledger.breaker(t => t.league, breakerSettings); // --daily-loss and --loss-pause, either 'off'
   counts.stopped = stopped;
   for (const { series, m } of await openMarkets()) {
     const { code, offset } = watch.get(series), date = tickerDate(m.ticker.split('-')[1]), kind = kindOf(series);
