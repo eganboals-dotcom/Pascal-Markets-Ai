@@ -83,6 +83,15 @@ function margin(s, team, [h, a], line) {
   return mine === null ? null : mine - theirs > line ? 'yes' : 'no';
 }
 
+// What the live agent trades in soccer: only what goals already scored decide. A result read at the half or full-time whistle
+// (no more goals, both teams did not score, the winner, the exact score) needs Kalshi's feed to have every goal, and it does
+// not always: on Nov 14 it showed Lyon La Duchere 0-3 US Feurs at full time while Kalshi settled 5 or more goals with both
+// teams scoring, and the No buys on that "final" lost $108 at 95-98¢. A goal shown wrongly is caught by the hold instead.
+export function soccerGoalDecision(market, s) {
+  const side = soccerDecision(market, s);
+  return side && s && side === soccerDecision(market, { ...s, finished: false, firstOver: false }) ? side : null;
+}
+
 // 'yes', 'no' or null for one soccer market.
 export function soccerDecision(market, s) {
   const kind = soccerKind(seriesOf(market.ticker)), team = market.custom_strike?.soccer_team, line = Number(market.floor_strike);
@@ -192,7 +201,7 @@ export function compactScore(type, d) {
 // decision must hold first (soccer only).
 export const SPORTS = {
   [TENNIS_TYPE]: { kind: tennisKind, state: (m, d) => tennisState(d, m.details?.best_of ?? 3), decide: tennisDecision },
-  [SOCCER_TYPE]: { kind: soccerKind, state: (m, d) => soccerState(d, m.details?.home_team_id, m.details?.away_team_id, m.details?.tie_id), decide: soccerDecision, holds: true },
+  [SOCCER_TYPE]: { kind: soccerKind, state: (m, d) => soccerState(d, m.details?.home_team_id, m.details?.away_team_id, m.details?.tie_id), decide: soccerGoalDecision, holds: true },
   [ESPORTS_TYPE]: { kind: esportsKind, state: (m, d) => esportsState(d, m.details), decide: esportsDecision },
   [TABLE_TENNIS_TYPE]: { kind: tableTennisKind, state: (m, d) => tableTennisState(d), decide: tableTennisDecision }
 };

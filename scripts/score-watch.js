@@ -7,7 +7,8 @@
 // --contracts (25) a market and what --budget (dollars held in open positions, off by default) leaves room for. Soccer decisions
 // must hold for --hold-seconds (180), since a video review can take a goal back, and soccer buys need a price of at least
 // --soccer-min-price (90¢): on Nov 13 every losing soccer buy came on a goal taken back 10 to 104 seconds after it was first shown,
-// most at prices under 90¢, while the market still priced the review. A series and side with a loss in the last day is
+// most at prices under 90¢, while the market still priced the review. Soccer is traded only on goals already scored, never on a
+// whistle (soccerGoalDecision in src/agents/score-watch.js). A series and side with a loss in the last day is
 // paused, and gross losses reaching --daily-loss ($50) in a rolling day stop new trades for 24 hours. Each score change is logged
 // to data/scores/<day>.jsonl for a later history test. Trades go to data/paper/score-watch.jsonl and results to
 // score-settled.jsonl (src/paper.js). Department switches on the leaderboard apply. --once runs one pass. No orders.

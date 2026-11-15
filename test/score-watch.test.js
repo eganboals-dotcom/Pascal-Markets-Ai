@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { compactScore, esportsDecision, esportsKind, esportsState, held, soccerDecision, soccerKind, soccerState, SPORTS, tableTennisDecision, tableTennisState,
-  tennisDecision, tennisKind, tennisState, ESPORTS_TYPE, TABLE_TENNIS_TYPE, TENNIS_TYPE } from '../src/agents/score-watch.js';
+import { compactScore, esportsDecision, esportsKind, esportsState, held, soccerDecision, soccerGoalDecision, soccerKind, soccerState, SPORTS, tableTennisDecision, tableTennisState,
+  tennisDecision, tennisKind, tennisState, ESPORTS_TYPE, SOCCER_TYPE, TABLE_TENNIS_TYPE, TENNIS_TYPE } from '../src/agents/score-watch.js';
 
 const A = 'a-id', B = 'b-id';
 const round = (outcome, score) => ({ outcome, score });
@@ -86,6 +86,19 @@ test('at full time soccer results use the regulation score, and extra time witho
   assert.equal(d('KXAFCONSCORE-26NOV13HW-H2W1', { custom_strike: { home_score: '2', away_score: '1', home_team_id: H } }), 'yes');
   assert.equal(soccerState(soccer({ half: 'Extra Time 1st Half' }), H, W, T), null);
   assert.equal(soccerState(soccer({ status: 'closed', match_status: 'ended' }), H, W, T), null); // over, but no regulation score yet
+});
+
+test('the live agent trades soccer only on goals scored, never on a whistle that needs every goal in the feed', () => {
+  const ft = soccerState(soccer({ status: 'closed', match_status: 'ended', half: 'FT', home_regulation_score: 2, away_regulation_score: 1 }), H, W, T);
+  const d = (t, extra) => soccerGoalDecision(m(t, extra), ft);
+  assert.equal(SPORTS[SOCCER_TYPE].decide, soccerGoalDecision);
+  assert.equal(d('KXAFCONTOTAL-26NOV13HW-3', { floor_strike: 2.5 }), 'yes'); // three goals scored
+  assert.equal(d('KXAFCONBTTS-26NOV13HW-BTTS'), 'yes');
+  assert.equal(d('KXAFCONSCORE-26NOV13HW-H1W0', { custom_strike: { home_score: '1', away_score: '0', home_team_id: H } }), 'no'); // already passed
+  for (const [t, extra] of [['KXAFCONTOTAL-26NOV13HW-4', { floor_strike: 3.5 }], ['KXAFCONGAME-26NOV13HW-H', { custom_strike: { soccer_team: H } }],
+    ['KXAFCONSPREAD-26NOV13HW-H2', { floor_strike: 1.5, custom_strike: { soccer_team: H } }], ['KXAFCON1HTOTAL-26NOV13HW-3', { floor_strike: 2.5 }],
+    ['KXAFCONSCORE-26NOV13HW-H2W1', { custom_strike: { home_score: '2', away_score: '1', home_team_id: H } }]]) assert.equal(d(t, extra), null, t);
+  assert.equal(soccerGoalDecision(m('KXAFCONTOTAL-26NOV13HW-4', { floor_strike: 3.5 }), null), null);
 });
 
 test('a decision counts only after it has held, and a score log keeps only the score', () => {
