@@ -1,12 +1,14 @@
 // Shared by the live paper agents (gap-taker, station-watch, game-watch): a ledger of paper trades held to settlement (one contract
 // unless a row's `contracts` says more; price and fee are per contract), and the
-// check that the history download is not using Kalshi's request limit. Paper only; nothing here places an order.
+// check that the history download is not using Kalshi's request limit. Paper only, except that an agent Start engine runs
+// (PASCAL_ORDERS=1) also sends each buy and exit through src/order-router.js when config/trading.local.json lists it.
 import { appendFileSync, existsSync, mkdirSync, readFileSync, statSync } from 'node:fs';
 import { fetchMarkets, kalshiFee } from './kalshi.js';
 import { settle } from './takers.js';
 import { downloadState, settlementValue } from './history.js';
 import { isStale, recentBeats } from './heartbeat.js';
 import { projectPath } from './files.js';
+import { mirrorTrade } from './order-router.js';
 
 export const PAPER_DIR = 'data/paper';
 const DAY_MS = 86400000;
@@ -35,7 +37,10 @@ const append = (path, row) => appendFileSync(projectPath(path), JSON.stringify(r
 
 // One agent's ledger, loaded from its files. settleDue(isDue) asks Kalshi about trades isDue says should be over and records
 // each one Kalshi has settled; the rest are asked again next time.
-export function openLedger(agent, { dir = PAPER_DIR, load = fetchMarkets } = {}) {
+export function openLedger(agent, { dir = PAPER_DIR, load = fetchMarkets, mirror = process.env.PASCAL_ORDERS === '1' ? mirrorTrade : null } = {}) {
+  // One order at a time, so each sees the fills before it against the day's limit (several buys often land in one second).
+  let queue = Promise.resolve();
+  const send = (row, options) => { if (mirror) queue = queue.then(() => mirror(agent, row, options)).catch(error => console.error(JSON.stringify({ order: error.message }))); };
   const files = LEDGERS.find(l => l.agent === agent);
   if (!files) throw new Error(`No paper ledger for ${agent}`);
   mkdirSync(projectPath(dir), { recursive: true });
@@ -44,7 +49,7 @@ export function openLedger(agent, { dir = PAPER_DIR, load = fetchMarkets } = {})
   const done = row => { if (settled.has(row.ticker)) return false; append(settledPath, row); rows.push(row); settled.set(row.ticker, row.pnl); return true; };
   return {
     trades, settled,
-    record(row) { append(tradesPath, row); trades.push(row); },
+    record(row) { append(tradesPath, row); trades.push(row); send(row); },
     open: () => trades.filter(t => !settled.has(t.ticker)),
     // Cash tied up in open positions, for an agent's --budget: price plus fee for every contract not yet settled or exited.
     openCost: () => trades.reduce((a, t) => settled.has(t.ticker) ? a : a + (t.price + t.fee) * (t.contracts ?? 1), 0),
@@ -54,7 +59,9 @@ export function openLedger(agent, { dir = PAPER_DIR, load = fetchMarkets } = {})
       if (!trades.some(t => t === trade) || settled.has(trade.ticker)) return false;
       if (!Number.isFinite(value) || value <= 0 || value > 1 || !Number.isFinite(fee) || fee < 0) return false;
       const contracts = trade.contracts ?? 1;
-      return done({ time: now, ticker: trade.ticker, result: 'exited', exitPrice: value, exitFee: fee, reason, contracts, pnl: (value - fee - trade.price - trade.fee) * contracts });
+      const exited = done({ time: now, ticker: trade.ticker, result: 'exited', exitPrice: value, exitFee: fee, reason, contracts, pnl: (value - fee - trade.price - trade.fee) * contracts });
+      if (exited) send({ ticker: trade.ticker, side: trade.side, price: value, contracts }, { action: 'sell' });
+      return exited;
     },
     breaker: (groupOf, options) => breakerState(trades, rows, groupOf, options),
     pnl: () => [...settled.values()].reduce((a, b) => a + b, 0),

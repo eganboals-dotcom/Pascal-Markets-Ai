@@ -18,7 +18,8 @@ export const PAPER_AGENTS = [['game-watch', ['--budget=split', '--contracts=400'
 function spawnAgent(name, args) {
   mkdirSync(projectPath('data/paper'), { recursive: true });
   const out = openSync(projectPath(`data/paper/${name}.log`), 'a'), err = openSync(projectPath(`data/paper/${name}.err.log`), 'a');
-  try { return spawn(process.execPath, [`scripts/${name}.js`, ...args], { cwd: PROJECT_ROOT, windowsHide: true, stdio: ['ignore', out, err] }); }
+  // PASCAL_ORDERS=1 lets the agent send its trades as orders, when config/trading.local.json switches that on (src/order-router.js).
+  try { return spawn(process.execPath, [`scripts/${name}.js`, ...args], { cwd: PROJECT_ROOT, windowsHide: true, stdio: ['ignore', out, err], env: { ...process.env, PASCAL_ORDERS: '1' } }); }
   finally { closeSync(out); closeSync(err); } // the child keeps its own handles
 }
 
