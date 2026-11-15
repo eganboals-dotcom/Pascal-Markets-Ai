@@ -74,7 +74,7 @@ test('Start engine also starts every paper agent once, Stop stops them, and an a
   for (const agent of ['game-watch', 'station-watch', 'score-watch']) assert.ok(PAPER_AGENTS.find(([name]) => name === agent)[1].includes('--budget=split'));
   assert.ok(PAPER_AGENTS.find(([name]) => name === 'game-watch')[1].includes('--player-min-price=0.98')); // a discount on a decided player market is a review being priced
   assert.ok(PAPER_AGENTS.find(([name]) => name === 'game-watch')[1].includes('--player-contracts=100'));
-  for (const name of ['game-watch', 'station-watch', 'score-watch']) for (const arg of ['--daily-loss=off', '--loss-pause=off'])
+  for (const name of ['game-watch', 'station-watch', 'score-watch', 'poly-signal']) for (const arg of ['--daily-loss=off', '--loss-pause=off'])
     assert.ok(PAPER_AGENTS.find(([n]) => n === name)[1].includes(arg), `${name} ${arg}`); // paper runs never pause for a day
   assert.ok(PAPER_AGENTS.some(([name]) => name === 'rebalance'));
   assert.equal(runner.snapshot().agents.length, PAPER_AGENTS.length);

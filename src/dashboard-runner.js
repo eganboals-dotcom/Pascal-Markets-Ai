@@ -9,10 +9,12 @@ import { PROJECT_ROOT, projectPath } from './files.js';
 // pauses (a day's losses past --daily-loss, and a series and side after a loss) are off for every paper agent since Nov 15, so a
 // loss never costs a day of paper trades; they go back on (game-watch --daily-loss=300, score-watch 50, station-watch 25) before
 // any real order. The cap goes back to 50 if 98¢ player buys run worse than 1 full loss in 53. Reward-maker runs outside the
-// split until its rewards beat its fills. Longshot-watch is off: the favorite-longshot fade fails on four years of data and lost live.
+// split until its rewards beat its fills. Poly-signal (Kalshi winners priced off Polymarket US) runs
+// outside the split on its own $500 until its live results and offered sizes say how much it can carry. Longshot-watch is off: the favorite-longshot fade fails on four years of data and lost live.
 const NO_PAUSE = ['--daily-loss=off', '--loss-pause=off'];
 export const PAPER_AGENTS = [['game-watch', ['--budget=split', '--contracts=200', '--player-contracts=100', '--player-min-price=0.98', ...NO_PAUSE]], ['station-watch', ['--budget=split', '--contracts=10', ...NO_PAUSE]],
-  ['reward-maker', ['--size=25', '--markets=12']], ['score-watch', ['--budget=split', '--contracts=50', ...NO_PAUSE]], ['rebalance', []]];
+  ['reward-maker', ['--size=25', '--markets=12']], ['score-watch', ['--budget=split', '--contracts=50', ...NO_PAUSE]],
+  ['poly-signal', ['--budget=500', '--contracts=25', ...NO_PAUSE]], ['rebalance', []]];
 function spawnAgent(name, args) {
   mkdirSync(projectPath('data/paper'), { recursive: true });
   const out = openSync(projectPath(`data/paper/${name}.log`), 'a'), err = openSync(projectPath(`data/paper/${name}.err.log`), 'a');

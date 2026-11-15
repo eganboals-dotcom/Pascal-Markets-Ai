@@ -27,6 +27,7 @@
     "gap-taker": { "name": "Live gap-taker, paper (Agent A live)", "role": "trading", "built": true },
     "game-watch": { "name": "NBA, NFL, NHL and college winners, spreads, totals and props the score already decided", "role": "trading", "built": true },
     "score-watch": { "name": "Tennis, soccer, esports and table tennis markets the live score already decided", "role": "trading", "built": true },
+    "poly-signal": { "name": "Kalshi winners priced off the same game on Polymarket US, paper (Kalshi orders only)", "role": "trading", "built": true },
     "soccer-books": { "name": "Live three-way soccer fair value", "role": "research", "built": false },
     "tennis-odds": { "name": "Tennis odds", "role": "research", "built": false }
   },
@@ -50,7 +51,7 @@
       "^KX(APCALL|ATTYGEN|SECSTATE|MAYOR|VOTE|PRIME|BRPRES|HOLBORNVOTE)"
     ], "agents": ["poll-watch", "news", "top-trader-watch", "maker", "longshot", "reward-maker"] },
     { "id": "sportsUS", "name": "Sports US", "patterns": ["^KX(NFL|NBA|MLB|NHL|MLS|WNBA|NCAA)"],
-      "agents": ["books-espn", "books-oddsapi", "consensus", "line-move", "injuries", "sportsbook", "game-watch", "gap-taker", "maker", "longshot", "reward-maker"] },
+      "agents": ["books-espn", "books-oddsapi", "consensus", "line-move", "injuries", "sportsbook", "game-watch", "poly-signal", "gap-taker", "maker", "longshot", "reward-maker"] },
     { "id": "soccerIntl", "name": "Sports international (soccer)", "patterns": [
       "^KX(EPL|EFL|ENGNL|LALIGA|COPADELREY|SERIE|BUNDESLIGA|DFBPOKAL|GER3L|LIGUE|FROPL|FRAPLW|EREDIVISIE|EERSTEDIV|TWEEDEDIV|KNVBCUP|LIGAPORTUGAL|TACAPORT)",
       "^KX(UCL|UEL|UECL|UEFA|FIFA|INTLFRIENDLY|CLUBF|SCOTTISHPREM|SCOCUP|BELGIANPL|SWISSLEAGUE|AUTBUNDES|DENSUPERLIGA|ALLSVENSKAN|ETTAN|ELITESERIEN|FINYL)",
