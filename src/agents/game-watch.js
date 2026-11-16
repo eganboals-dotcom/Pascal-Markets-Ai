@@ -34,8 +34,10 @@ export const SERIES = {
   KXNCAAWBTOTAL: total('ncaawb'),
 };
 export const WATCHED_LEAGUES = [...new Set(Object.values(SERIES).map(s => s.league))];
-// Series the history test reads and the live agent does not trade yet (scripts/game-watch.js leaves them out).
-export const HISTORY_ONLY = new Set(['KXNFLREC', 'KXNFLTD', 'KXNFLPASSTDS', 'KXNFLRSHATT', 'KXNFLPASSCOMP']);
+// Series the history test reads and the live agent does not trade (scripts/game-watch.js leaves them out). NBA assists and
+// points+rebounds+assists since Nov 15: ESPN's live count reached the line and the final box came in one short in 3 of 59 buys
+// at 98¢ (−$151 net), where 98¢ breaks even at about 1 in 50; assists are the stat most often taken back.
+export const HISTORY_ONLY = new Set(['KXNFLREC', 'KXNFLTD', 'KXNFLPASSTDS', 'KXNFLRSHATT', 'KXNFLPASSCOMP', 'KXNBAAST', 'KXNBAPRA']);
 // The cache version of a compacted game. NFL games are at 6: their plays name who caught, threw, ran and scored.
 export const compactVersion = league => league === 'nfl' ? 6 : 5;
 // The last regulation period: a half or quarter count that ends before it is final once a later period starts.

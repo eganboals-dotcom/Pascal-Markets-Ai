@@ -108,7 +108,7 @@ let listed = { at: 0, markets: [] };
 async function openMarkets() {
   if (Date.now() - listed.at < LIST_MS) return listed.markets;
   const markets = [];
-  for (const series of Object.keys(SERIES).filter(s => !HISTORY_ONLY.has(s))) { // NFL player counts wait for their live feed
+  for (const series of Object.keys(SERIES).filter(s => !HISTORY_ONLY.has(s))) { // HISTORY_ONLY: NFL player counts wait for their live feed; NBA assists are left out
     try { for (const event of await fetchOpenEvents({ seriesTicker: series })) for (const m of event.markets ?? []) markets.push({ ticker: m.ticker, series }); }
     catch (error) { warn({ series, error: error.message }); }
     await sleep(250);
