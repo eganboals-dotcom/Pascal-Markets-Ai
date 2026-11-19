@@ -10,6 +10,12 @@ test('quoting skips NFL player props and keeps NFL team markets', () => {
   for (const s of ['KXNFLGAME', 'KXNFLSPREAD', 'KXNFLTOTAL', 'KXNFLTEAMTOTAL', 'KXNFLFIRSTTDTEAM', 'KXNFLTEAMFIRSTTD', 'KXNFLWINMARGIN', 'KXNBAPTS']) assert.ok(!re.test(s), s);
 });
 
+test('quoting skips ITF tennis and keeps tour tennis', () => {
+  const re = new RegExp(JSON.parse(readFileSync(new URL('../config/scan.json', import.meta.url))).mm.excludeSeriesPattern);
+  for (const s of ['KXITFMATCH', 'KXITFWMATCH', 'KXITFDOUBLES', 'KXITFWDOUBLES']) assert.ok(re.test(s), s);
+  for (const s of ['KXATPMATCH', 'KXWTAMATCH', 'KXCHALLENGERMATCH']) assert.ok(!re.test(s), s);
+});
+
 test('sizedFill takes the smaller of the size and the whole contracts traded, at least one, and charges the fee on the whole order', () => {
   const fill = { side: 'buy', price: 0.4, feeRate: 0.0175, fee: kalshiFee(1, 0.4, 0.0175), available: 4.7, clv: 0.02 };
   const four = sizedFill(fill, 10, 1);
