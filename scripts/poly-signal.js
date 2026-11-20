@@ -29,7 +29,8 @@ const warn = fields => console.error(JSON.stringify({ time: new Date().toISOStri
 const checkIn = (state, detail) => { if (dry) return; try { beat(AGENT, state, detail, { nextWithinMs: NEXT_MS }); } catch (error) { warn({ heartbeat: error.message }); } };
 const money = x => (x < 0 ? '−$' : '$') + Math.abs(x).toFixed(2);
 
-const ledger = openLedger(AGENT), taken = new Set(ledger.trades.map(t => t.ticker));
+// One buy per game: a game's two winner markets are the same bet (Indiana Yes is Houston No), so the second is skipped.
+const ledger = openLedger(AGENT), taken = new Set(ledger.trades.map(t => t.ticker)), takenGames = new Set(ledger.trades.map(t => t.game));
 
 async function polyJson(path) {
   const response = await fetch(`${API}${path}`, { headers: { 'User-Agent': 'research-client' }, signal: AbortSignal.timeout(20000) });
@@ -66,7 +67,7 @@ async function pass() {
   const { paused, stopped } = ledger.breaker(t => t.league, breakerSettings), index = gameIndex(games), wanted = [];
   for (const ticker of tickers) {
     const series = ticker.split('-')[0], match = !taken.has(ticker) && !stopped && !paused.has(series) && matchGame(ticker, index);
-    if (!match || switches[departmentOf(series, departments)] === false || !pregame(Date.parse(match.game.start), now)) continue;
+    if (!match || takenGames.has(match.game.slug) || switches[departmentOf(series, departments)] === false || !pregame(Date.parse(match.game.start), now)) continue;
     wanted.push({ ticker, series, game: match.game, xIsFirst: match.isAway !== match.swapped });
   }
   const points = new Map(), end = Math.floor(now / 1000);
@@ -79,6 +80,7 @@ async function pass() {
   if (wanted.length) try { books = new Map((await fetchMarkets(wanted.map(w => w.ticker))).map(m => [m.ticker, m])); } catch (error) { warn({ books: error.message }); }
   const counts = { games: games.length, matched: wanted.length, priced: 0, take: 0 };
   for (const w of wanted) {
+    if (takenGames.has(w.game.slug)) continue;
     const m = books.get(w.ticker), point = points.get(w.game.slug), fair = polyFair(point, w.xIsFirst, Date.now());
     if (!m || fair === null) continue;
     counts.priced++;
@@ -93,7 +95,7 @@ async function pass() {
     ledger.record({ time: Date.now(), ticker: w.ticker, league: w.series, department: departmentOf(w.series, departments), game: w.game.slug,
       start: w.game.start, side: pick.side, price: pick.price, fee: pick.fee, edge: pick.edge, fair, books: null,
       poly: { longPrice: point.longPrice, shortPrice: point.shortPrice, ageMs: Date.now() - point.time }, offered, contracts });
-    taken.add(w.ticker); counts.take++;
+    taken.add(w.ticker); takenGames.add(w.game.slug); counts.take++;
   }
   checkIn('waiting', `${counts.games} Polymarket US games within 24 hours, ${counts.matched} Kalshi winner markets matched, ${counts.priced} priced, ${counts.take} new paper trades${stopped ? ', new trades stopped by the daily loss limit' : ''}; `
     + `${ledger.trades.length} so far, ${ledger.settled.size} settled, ${money(ledger.pnl())}`);
