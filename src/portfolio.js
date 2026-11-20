@@ -16,7 +16,8 @@ export const START = Date.parse('2026-11-15T16:19:32Z'), SWITCH = START;
 // stays in reserve, and the rest goes to game-watch, whose books hold far more than its old 25-contract cap. Reward-maker runs
 // outside the split until its rewards are shown to beat its fills. Since Nov 20: quoting never held more than $2,089 while game-watch
 // and score-watch ran into their budgets, so quoting drops to 5 contracts a quote and $1,300 and the rest goes to those two (README).
-export const BASE = 10000, SPLIT = { 'game-watch': 6950, quoting: 1300, 'score-watch': 900, 'station-watch': 100, reserve: 750 };
+// The reserve's $750 went to them too; it stays at $0 and only holds cash a rebalance frees when no agent filled its budget.
+export const BASE = 10000, SPLIT = { 'game-watch': 7550, quoting: 1300, 'score-watch': 1050, 'station-watch': 100, reserve: 0 };
 // An agent that joins after START counts its P&L and cash from then (score-watch joined on Nov 14, before the reset).
 export const JOINED = {};
 // Quoting's contracts a quote at time t (for a ticker, when given): each budgets row records mm.quoteSize and mm.seriesSizes; 5
