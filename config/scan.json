@@ -74,7 +74,7 @@
     "minMid": 0.05,
     "maxMid": 0.95,
     "maxQuoteAgeMs": 90000, "maxMarkoutDelayMs": 90000,
-    "quoteSize": 10,
+    "quoteSize": 5,
     "seriesSizes": [{ "pattern": "^KX[A-Z0-9]*MENTION(?!DURATION)", "size": 25, "label": "mention markets" }],
     "minQuoteEdge": 0.005
   },
